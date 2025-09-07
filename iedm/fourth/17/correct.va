@@ -1,0 +1,92 @@
+// Divide by N Frequency Counter
+//
+// Contains no hidden state, and so it works with SpectreRF
+//
+// Will fail if N is large, say greater than 1000.  Can tighten tolerances
+// to increase the range of N, or you can break N into integer factors and
+// implement the divide by N with several counters in series.
+
+/*
+ * Usage:
+ * 1) V(Pin, Nin) must sometimes be greater than zero during the simulation.
+ *    If V(Pin, Nin) is always less than zeros, this divider may not work
+ *    properly.
+ * 2) The clocked signal at input must be larger than thresh; otherwise
+ *    the divider may not work properly.
+ * 3) This model is overly expensive if running "tran"; It is efficient
+ *    if running under SpectreRF.
+ *
+ */
+
+`include "constants.h"
+`include "discipline.h"
+
+
+module div(Pout, Nout, Pin, Nin);
+output Pout, Nout;
+input Pin, Nin;
+electrical Pin, Nin, Pout, Nout;
+electrical vg, chg, hold;
+parameter integer n = 2 from [2:inf);   // divide ratio
+parameter integer nhi = 1 from [1:n-1]; // number of hi counts per output pulse
+parameter integer dir = 1 from [-1:1] exclude 0;
+                                        // +1 for rising edge triggered
+                                        // -1 for falling edge triggered
+parameter real tt=0.01;                 // output transition time
+parameter real vdd=5, vss=0;            // defines output high and low levels
+parameter real thresh=(vdd+vss)/2;      // input threshold is at midpoint
+real vmax;
+integer out, count;
+real g;
+real vchg;
+
+    analog begin
+        vmax = max(abs(vdd),abs(vss));
+        g = 5*ln(n);
+        @(cross(V(Pin,Nin) - thresh, 0));
+
+        // hold capacitor with capacitance tt
+        I(vg,hold) <+ tt*ddt(V(vg,hold));
+
+        // clamp hold capacitor during dc analysis
+        if (analysis("static"))
+            I(vg,hold) <+ V(vg,hold);
+
+        // ideal op amp
+        V(hold): V(vg) == 0;
+
+        // titrating capacitor with capacitance tt
+        I(chg) <+ tt*ddt(V(chg));
+
+        // titrating capacitor is precharged when input is high
+        // if V(hold) is in range,
+        //     precharge to vmax/n volts to increment hold cap one level,
+        // else
+        //     precharge with equal but opposite the charge on the hold cap
+        //     in order to reset hold cap to zero
+        if ((V(hold) < vmax*(1.5/n-1)) && (dir*V(Pin,Nin) < dir*thresh)) begin
+            vchg = V(hold);
+        end else begin
+            vchg = vmax/n;
+        end
+
+        // determine the count
+        count = -n*V(hold)/vmax;
+
+        // charge or discharge when input is high through g Siemen switches
+        if (dir*V(Pin,Nin) > dir*thresh) begin
+            // dump titrating charge onto hold cap
+            I(vg,chg) <+ g*V(vg,chg);
+        end else begin
+            // precharge titrating capacitor
+            I(chg) <+ g*(V(chg)-vchg);
+            // use discrete-level feedback to correct for any errors in hold chg
+            I(vg) <+ -n*V(hold)/vmax - count;
+        end
+
+        // output pulse when V(in) is high and V(hold) below threshold
+        out = count >= (n - nhi);
+        V(Pout,Nout) <+ transition(vss + out*(vdd-vss), 0.0, tt, tt);
+
+    end
+endmodule

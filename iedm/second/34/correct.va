@@ -1,0 +1,102 @@
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Copyright @ 2014 Purdue University
+ 
+//The terms under which the software and associated documentation (the Software) is provided are as the following:
+ 
+//The Software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, 
+// fitness for a particular purpose and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages or other 
+// liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the Software or the use or other dealings
+//  in the Software.
+ 
+//Purdue grants, free of charge, to any users the right to modify, copy, and redistribute the Software, both within the user's organization and 
+// externally, subject to the following restrictions:
+ 
+//1. The users agree not to charge for the code itself but may charge for additions, extensions, or support.
+ 
+//2. In any product based on the Software, the users agree to acknowledge the Biosensor model Research Group that developed the software. This 
+// acknowledgment shall appear in the product documentation.
+ 
+//3. The users agree to obey all U.S. Government restrictions governing redistribution or export of the software.
+ 
+//4. The users agree to reproduce any copyright notice which appears on the software on any copy or modification of such made available to others.
+ 
+//Agreed to by 
+//Piyush Dak and Muhammad Ashraf Alam, Purdue University
+//July 1, 2014
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Verilog-A version of Surface Potential Model for FET based pH sensors that describes the physics of electrolyte and surface charges that 
+// respond to pH. 
+// This is the simplified model which linearizes the potential change as a function of pH. 
+// Implemented on April 1, 2013 by Piyush Dak
+// Default parameters are from Reference
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+//define relative permittivity of water
+`define RP_EPSw 80
+//conversion constant from moles/liter to #/m^3
+`define Navg 6e26
+
+module pH_simple_model_1_0_1(fgate,interface,pHnode);
+
+input pHnode;
+output fgate, interface;  // fgate is connected to the reference electrode, interface is in contact with the surface
+electrical fgate, interface,pHnode;
+
+// Convention for pKa and pKb from Go's Thesis i.e. 
+//Ka=[AOH][Hs+]/[SiOH2+] Kb=[SiO-][Hs+]/[SiOH]
+
+//Parameters characterizing electrolyte and electrolyte-oxide interface
+parameter real version   = 1.00;                                // pHsensor surface potential model version = 1.0.1
+parameter real sternmod  =   1       from [0:1];                // Parameter to turn on/off the stern model. 0 means that the model is off.
+parameter real pKa       = -2.0    from (-inf:inf);             // pKa of the acidic [A-OH2+] surface group
+parameter real pKb       = 6.0     from (-inf:inf);             // pKb of the basic [A-OH] surface group
+parameter real i0        = 0.1     from [0.0:inf];              // ionic concentration in moles/liter
+parameter real Cstern    = 0.2     from (0.0:inf);              // Stern capacitance in F/m^2
+parameter real NOH       = 5e14    from (0.0:inf);              // Number density of surface OH groups in cm^-2
+
+
+real ew;
+real n0;  
+real psi0;
+real pzc, deltapK;
+real delta, beta, alpha;
+real Cdl, Ceq;
+real NOH_SI;
+real pH;
+
+
+
+analog begin
+        pH       =        V(pHnode);
+        ew       =        `RP_EPSw * `P_EPS0;
+        pzc      =        (pKa+pKb)/2.0;
+        deltapK  =        (pKb-pKa);
+        n0       =        i0*`Navg;
+        NOH_SI   =        NOH * 1e4; //NOH in #/m^2
+        Cdl      =        sqrt(8 * ew * $vt * `P_Q * n0)/ (2 * $vt);
+        delta    =        2*pow(10,-deltapK/2.0);
+        Ceq      =        1/ (1/ Cstern + 1/ Cdl );
+        if(sternmod == 0) begin
+               beta     =        `P_Q * NOH_SI * delta/ (Cdl * $vt);    // Refer Section 3.1 of the manual
+        end
+        else begin
+               beta     =        `P_Q * NOH_SI * delta/ (Ceq*$vt);     // Refer Section 3.1 of the manual
+        end
+        
+        alpha    =         beta/(1.0+beta);
+        psi0     =         -`M_LN10*$vt*alpha*(pH-pzc); 
+
+        if (abs(psi0) > $vt*beta) begin
+              $strobe("Warning: The results might be inaccurate! Use robust model for accurate analysis."); //Refer Section 3.1 of the manual
+        end       
+
+        V(interface,fgate) <+ psi0;  
+       end
+endmodule
+
+
+

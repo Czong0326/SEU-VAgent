@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "    Qinv		= Qinvs;", 
+		"bug_line": "    Qinv		= Qinvd;",
+		"error_description": "Sets inversion charge to drain-end charge (Qinvd) instead of source-end charge (Qinvs), violating the charge control model which requires source-end charge for current calculation in saturation."
+	},
+	{
+		"original_line": "    if ( etaFFsrd <= `LARGE_VALUE ) begin", 
+		"bug_line": "    if ( etaFFsrd >= `LARGE_VALUE ) begin",
+		"error_description": "Reversed inequality direction causes incorrect branch selection. When etaFFsrd is large (exceeding LARGE_VALUE), the code incorrectly uses the exponential approximation branch instead of the linear branch, corrupting FFsrd calculations for high gate voltages."
+	},
+	{
+		"original_line": "real Ec1, A, B, Vds_smooth, qsv1,qdv1, dvg, VtOb, n, Qrefs, Qrefd;", 
+		"bug_line": "real Ec1, A, B, Vds_smooth, qsv1,qdv1, dvg, VtOb, Qrefd, Qrefs, Qrefd;",
+		"error_description": "The variable 'n' is replaced with duplicate 'Qrefd', causing loss of the critical subthreshold slope factor variable. This breaks the calculation of charge densities and threshold voltage adjustments throughout the model."
+	},
+	{
+		"original_line": "parameter real 		Cg        	= 6.5e-7        			from (0:inf);           // Gate areal capacitance [F/cm2]", 
+		"bug_line": "parameter real 		Cg        	= -6.5e-7        			from [-1:inf);           // Gate areal capacitance [F/cm2]",
+		"error_description": "Changed gate capacitance to negative value and expanded range to include negative values. Negative capacitance violates physical laws, causing unphysical charge calculations and inverted current flow in the transistor model."
+	},
+	{
+		"original_line": "parameter real 		Rsh       	= 200           			from [0:inf);           // Access region sheet resistance [ohm/square]", 
+		"bug_line": "parameter real 		Rsh       	= -200           			from [0:inf);           // Access region sheet resistance [ohm/square]",
+		"error_description": "Negative sheet resistance violates physical constraints and causes incorrect access region calculations since resistance must be non-negative."
+	},
+	{
+		"original_line": "module MVSG_RF_1_0_0(d, g, s);", 
+		"bug_line": "module MVSG_RF_1_0_0(d, g);",
+		"error_description": "Removed source terminal 's' from port list. This breaks device connectivity and prevents source terminal from being properly connected, causing undefined behavior in terminal voltages and current calculations."
+	},
+	{
+		"original_line": "parameter real 		vxo       	= 1.30e7         			from [0:inf);           // Source injection velocity [cm/s]", 
+		"bug_line": "parameter real 		vxo       	= 1.30e5         			from [0:inf);           // Source injection velocity [cm/s]",
+		"error_description": "Source injection velocity reduced by 100x (from 1.30e7 to 1.30e5 cm/s), causing significant under-estimation of drain current due to incorrect carrier velocity calculation."
+	},
+	{
+		"original_line": "real Vdsatsrd, Vdsatrd, Fsatrd;", 
+		"bug_line": "real Vdsatsrd, Vdsatrd, Fsatrs;",
+		"error_description": "Changed Fsatrd (drain access saturation factor) to Fsatrs (source access saturation factor), causing drain access transistor calculations to incorrectly overwrite source access variable. This cross-coupling leads to incorrect saturation behavior in both access regions."
+	},
+	{
+		"original_line": "parameter real 		W         	= 25e-6         			from (0:inf);           // Width of the device [m]", 
+		"bug_line": "parameter real 		W         	= -25e-6         			from (0:inf);           // Width of the device [m]",
+		"error_description": "Negative device width violates physical constraints and causes reversed current direction in Ids calculations, breaking Ohm's law and device functionality."
+	},
+	{
+		"original_line": "    two_ns_phitrs       = 2.0 * nrs * phit;", 
+		"bug_line": "    two_ns_phitrs       = 2.0 * ndrs * phit;",
+		"error_description": "Replaced 'nrs' (subthreshold slope factor) with 'ndrs' (punchthrough factor) in the source access region charge calculation. This swaps the fundamental physical parameter, causing incorrect charge density and subsequent current errors in the source access transistor."
+	},
+	{
+		"original_line": "real two_ns_phitrd, two_nd_phitrd, Vdsrdi, Vgsrdi;", 
+		"bug_line": "real two_ns_phitrd, two_nd_phitrd, Vdsrdi, Vgsrdi, Vdibsat;",
+		"error_description": "Added an extra undeclared variable 'Vdibsat' which shadows the global parameter, causing incorrect value usage in the drain access transistor DIBL calculation where the global parameter is overwritten by this local variable (initialized to 0.0)."
+	},
+	{
+		"original_line": "        end else begin // reverse mode", 
+		"bug_line": "        end else if (0) begin // reverse mode",
+		"error_description": "The condition 'if (0)' permanently blocks the reverse mode branch. This prevents the reverse bias operation of the source access transistor, causing incorrect current calculations when V(src) > V(si) for nFETs (type=1)."
+	},
+	{
+		"original_line": "end else begin", 
+		"bug_line": "end else if (0) begin",
+		"error_description": "The reverse mode block for the source access transistor is never executed due to the always-false condition, breaking source-drain symmetry in reverse bias operation."
+	},
+	{
+		"original_line": "    if ( Fd_arg <= `LARGE_VALUE ) begin", 
+		"bug_line": "    if ( Fd_arg >= `LARGE_VALUE ) begin",
+		"error_description": "Reversed inequality condition causes incorrect branch execution. When Fd_arg exceeds LARGE_VALUE (80), the if-branch calculates FFy using logarithmic terms instead of falling back to the asymptotic approximation, introducing capacitance calculation errors in reverse bias."
+	},
+	{
+		"original_line": "    end else begin // reverse mode", 
+		"bug_line": "    end else begin // forward mode",
+		"error_description": "Changed comment from 'reverse mode' to 'forward mode', introducing directional confusion in access transistor logic. This mislabels the operational mode during source/drain reversal, potentially causing incorrect biasing in access region calculations."
+	},
+	{
+		"original_line": "real Vgsrs_raw, Vgdrs_raw, dirrs  ;", 
+		"bug_line": "real Vgsrs_raw, Vgdrs_raw, dirrs = 1;",
+		"error_description": "Initialized dirrs to 1 instead of 0. This forces the source access transistor to always operate in forward mode regardless of actual voltage conditions, breaking symmetric bidirectional operation and causing incorrect current calculations in reverse bias."
+	},
+	{
+		"original_line": "parameter real 		delta1rd  	= 1.3          				from [0:inf);           // DIBL for drain access transitor", 
+		"bug_line": "parameter real 		delta1rd  	= -0.3         				from [0:inf);           // DIBL for drain access transitor",
+		"error_description": "Negative value violates the [0:inf) range constraint. This causes unphysical negative DIBL effects in drain access transistor calculations, corrupting threshold voltage computations and current modeling."
+	},
+	{
+		"original_line": "parameter real 		L         	= 105e-9         			from (0:inf);           // Length of gate [m]", 
+		"bug_line": "parameter real 		L         	= -105e-9         			from (0:inf);           // Length of gate [m]",
+		"error_description": "Assigned negative gate length (-105 nm) while range constraint is (0:inf). Violates physical reality and causes division-by-zero in Leff calculation when converted to cm."
+	},
+	{
+		"original_line": "real Ec1, A, B, Vds_smooth, qsv1,qdv1, dvg, VtOb, n, Qrefs, Qrefd;", 
+		"bug_line": "real Ec1, A, B, Vds_smooth, qsv1,qdv1, dvg, VtOb, Qrefs, Qrefd;",
+		"error_description": "Removed variable 'n'. The variable 'n' is critical for subthreshold slope calculations and charge modeling. Its absence causes undefined behavior in multiple equations (e.g., FFs, etas, Qrefs), breaking the core transistor model functionality."
+	},
+	{
+		"original_line": "parameter real 		Cofdm    	= 40e-12     				from [0:inf);           // Outer fringing cap on drain side[F/m]", 
+		"bug_line": "parameter real 		Cofdm    	= -40e-12     				from [0:inf);           // Outer fringing cap on drain side[F/m]",
+		"error_description": "Negative capacitance value violates physical reality and parameter range constraint [0:inf). This non-physical value will cause incorrect charge calculations in the drain-side outer fringing capacitance, distorting gate-drain coupling behavior during transient analysis."
+	}
+]

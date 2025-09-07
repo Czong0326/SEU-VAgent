@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "real    max_inl;", 
+		"bug_line": "integer max_inl;",
+		"error_description": "Changed max_inl from real to integer type, causing truncation of fractional values during INL calculations. This results in loss of precision for maximum INL detection since decimal values are improperly converted to integers during comparisons and assignments."
+	},
+	{
+		"original_line": "V(vd1) <+ vd_val[1];", 
+		"bug_line": "V(vd1) <+ vd_val[0];",
+		"error_description": "Assigns the wrong bit value (vd_val[0] instead of vd_val[1]) to data line vd1, causing bit reversal between LSB and MSB inputs and corrupting DAC conversion accuracy."
+	},
+	{
+		"original_line": "real    vd_val[0:`NUM_DAC_BITS-1];", 
+		"bug_line": "real    vd_val[0:`NUM_DAC_BITS];",
+		"error_description": "Array size increased to 9 elements (0-8) instead of 8 (0-7), causing out-of-bounds access when bit=7 due to the loop condition 'bit < 8', leading to memory corruption during voltage assignments."
+	},
+	{
+		"original_line": "         tnext = tsettle;", 
+		"bug_line": "         tnext = 0;",
+		"error_description": "Sets initial timer event to time=0 instead of tsettle, causing premature first voltage measurement before DAC settling time. This violates the requirement to wait tsettle after data changes before sampling vin."
+	},
+	{
+		"original_line": "for (bit=0; bit < `NUM_DAC_BITS; bit=bit+1) begin", 
+		"bug_line": "for (bit=0; bit < `NUM_DAC_BITS; bit=bit+2) begin",
+		"error_description": "The loop increments by 2 instead of 1, skipping every other bit during initialization. This leaves half the bit mask values uninitialized, corrupting the DAC code generation and causing incorrect voltage outputs during the INL measurement sweep."
+	},
+	{
+		"original_line": "end else begin			// finished", 
+		"bug_line": "end else if (code == 0) begin		// finished",
+		"error_description": "The condition 'code == 0' prevents the finished branch from executing at the end of the sweep (code=256). This error skips the INL calculation and results reporting since the branch only triggers at code=0 (impossible after sweep starts)."
+	},
+	{
+		"original_line": "if (code & code_mask[bit]) begin", 
+		"bug_line": "if (code | code_mask[bit]) begin",
+		"error_description": "Changed bitwise AND operator to OR, causing incorrect voltage assignments. Now sets vd_val[bit] to high whenever either the current code bit OR the mask bit is set, resulting in multiple erroneous high outputs per code."
+	},
+	{
+		"original_line": "integer code_mask[0:`NUM_DAC_BITS-1];", 
+		"bug_line": "integer code_mask[0:`NUM_DAC_BITS];",
+		"error_description": "The array size is increased by one, causing an off-by-one error. This leads to uninitialized values being used for mask calculations, corrupting the DAC bit pattern generation and resulting in incorrect voltage outputs during INL measurement."
+	},
+	{
+		"original_line": "         for (code=0; code < `NUM_CODES; code=code+1) begin", 
+		"bug_line": "         for (code=0; code < `NUM_CODES - 1; code=code+1) begin",
+		"error_description": "The loop termination condition incorrectly uses `NUM_CODES - 1` instead of `NUM_CODES`, causing the last code (255) to be skipped in INL calculation. This violates the requirement to measure all 256 codes, potentially missing the worst-case INL at the upper range and compromising the integrity of the DAC linearity test."
+	},
+	{
+		"original_line": "for (bit=0;bit<`NUM_DAC_BITS; bit=bit+1) begin", 
+		"bug_line": "for (bit=0;bit<=`NUM_DAC_BITS; bit=bit+1) begin",
+		"error_description": "Changed loop condition from < to <=, causing out-of-bounds array access. The loop now runs 9 times (bit=0-8) instead of 8 times, attempting to write to non-existent vd_val[8] beyond the array bounds [0:7], corrupting adjacent memory."
+	},
+	{
+		"original_line": "real    inl[0:`NUM_CODES-1];", 
+		"bug_line": "real    inl[0:`NUM_CODES-2];",
+		"error_description": "The array size is reduced from 256 to 255 elements, causing out-of-bounds access during INL calculation at code 255. This corrupts adjacent memory and invalidates the max INL result."
+	},
+	{
+		"original_line": "V(vd3) <+ vd_val[3];", 
+		"bug_line": "V(vd3) <+ vd_val[2];",
+		"error_description": "Assigns the voltage for bit3 (vd3) from the value intended for bit2 (vd_val[2]) instead of vd_val[3]. This causes bit3 to always mirror bit2, resulting in incorrect DAC codes and INL measurement."
+	},
+	{
+		"original_line": "/ (`NUM_CODES - 1);", 
+		"bug_line": "/ (`NUM_CODES);",
+		"error_description": "The divisor was changed from (number of codes - 1) to total number of codes. This miscalculates the expected step width by dividing the full-scale range by 256 instead of 255, causing incorrect INL measurements due to an underestimated LSB size."
+	},
+	{
+		"original_line": "V(vd6) <+ vd_val[6];", 
+		"bug_line": "V(vd6) <+ vd_val[5];",
+		"error_description": "Assigns the voltage for bit 6 (vd6) to the value of bit 5 (vd_val[5]) instead of its own bit value (vd_val[6]). This swaps the voltage levels between adjacent bits, corrupting the binary-to-analog conversion during DAC testing."
+	},
+	{
+		"original_line": "parameter real vlogic_high=5.0;", 
+		"bug_line": "parameter real vlogic_high=0.0;",
+		"error_description": "Setting vlogic_high to 0.0V creates a dead zone where logic high and low become identical. This prevents proper bit pattern generation since all bits will always read as low, causing the DAC to output only the minimum voltage throughout the measurement sweep."
+	},
+	{
+		"original_line": "         if (log_to_file) $fclose(out_file);", 
+		"bug_line": "         if (!log_to_file) $fclose(out_file);",
+		"error_description": "The condition is inverted: the file is closed only when logging is disabled (log_to_file=0), which is incorrect because the file was never opened. Meanwhile, when logging is enabled (log_to_file=1), the file remains open, causing a resource leak."
+	},
+	{
+		"original_line": "@ (timer(tnext)) begin // at a measurement point", 
+		"bug_line": "@ (timer(tsettle)) begin // at a measurement point",
+		"error_description": "Replaced 'tnext' with fixed 'tsettle', causing all measurements to trigger at fixed intervals instead of accumulating wait times. This violates settling time requirements and corrupts INL calculations by preventing proper time progression between codes."
+	},
+	{
+		"original_line": "max_inl_code = -1;", 
+		"bug_line": "code = 1;",
+		"error_description": "Initializes 'code' to 1 instead of 0, causing the first DAC code (0) to be skipped during measurement. The uninitialized 'code_vout[0]' (default 0.0) corrupts INL calculations by producing incorrect endpoints for the expected voltage width."
+	},
+	{
+		"original_line": "mask = mask * 2;", 
+		"bug_line": "mask = mask * 1;",
+		"error_description": "Changed mask multiplier from 2 to 1, causing all mask values to remain 1. This prevents proper binary decoding of DAC input codes since every bit will incorrectly use the same mask value (1), making all bits appear set when the LSB is set."
+	},
+	{
+		"original_line": "parameter real vlogic_high=5.0;", 
+		"bug_line": "parameter real vlogic_high=0.0;",
+		"error_description": "Sets logic high voltage to 0V (same as logic low), causing all data lines to be driven to 0V regardless of input code, resulting in constant DAC output and invalid INL measurement."
+	}
+]

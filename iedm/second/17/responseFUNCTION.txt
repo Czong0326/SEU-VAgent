@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "   electrical v_vfilt1, v_vfilt2;", 
+		"bug_line": "   electrical v_vfilt1; power_current v_vfilt2;",
+		"error_description": "Changed v_vfilt2 discipline from electrical to power_current while keeping v_vfilt1 electrical. This creates incompatible discipline connections in vrms_filter (requires electrical ports), causing simulation failure due to mixed natures (Voltage vs. Watts)."
+	},
+	{
+		"original_line": "            input_expr = iin_val*vin_val;", 
+		"bug_line": "            input_expr = iin_val - vin_val;",
+		"error_description": "Changed multiplication to subtraction, incorrectly calculating voltage-current difference instead of power product (V*I), violating the fundamental power measurement principle."
+	},
+	{
+		"original_line": "   real temp_var;", 
+		"bug_line": "   real temp_var = 1.0;",
+		"error_description": "Initializing temp_var to 1.0 creates a persistent bias in power factor calculation. When apparent power (va_out_val) is below the abstol threshold, pf_out_val incorrectly defaults to 1.0 instead of 0, violating the design specification that power factor should be 0 under invalid measurement conditions."
+	},
+	{
+		"original_line": "temp_var        = pout_val/va_out_val;", 
+		"bug_line": "temp_var        = pout_val * va_out_val;",
+		"error_description": "Replaced division with multiplication, incorrectly calculating the product of real power (pout_val) and apparent power (va_out_val) instead of their ratio for power factor. This violates the power factor definition (real power/apparent power) and produces invalid results that get clamped to 1."
+	},
+	{
+		"original_line": "`define ABSTOL_TIME 1e-12", 
+		"bug_line": "`define ABSTOL_TIME 1e-6",
+		"error_description": "Increased time tolerance from 1ps to 1us reduces protection against division-by-zero errors. When ($abstime-tstart) is between 1e-12 and 1e-6 seconds, RMS/power calculations will incorrectly execute with near-zero denominators, causing numerical instability and large output spikes."
+	},
+	{
+		"original_line": "      iin_val = I(iin,vp_iout);", 
+		"bug_line": "      iin_val = I(vp_iout,iin);",
+		"error_description": "Reversed current measurement direction. Instead of measuring current flowing INTO the device (iin to vp_iout), now measures current flowing OUT of the device (vp_iout to iin). This inverts power sign and corrupts all power calculations."
+	},
+	{
+		"original_line": "                             $abstime, pout_val, va_out_val, pf_out_val);", 
+		"bug_line": "                             $abstime, va_out_val, pout_val, pf_out_val);",
+		"error_description": "Swapped real power (pout_val) and apparent power (va_out_val) in log output. Causes mislabeled columns where real power appears as apparent power and vice versa in results file."
+	},
+	{
+		"original_line": "   svcvs  #(.poles({-2*`PI*bw,0}) ) vrms_filter (v_vfilt2,vgnd,v_vfilt1,vgnd);", 
+		"bug_line": "   svcvs  #(.poles({-2*`PI*bw,0}) ) vrms_filter (v_vfilt1,vgnd,v_vfilt2,vgnd);",
+		"error_description": "Input and output connections are swapped for the voltage RMS filter. This reverses the filter direction, causing the filtered output (v_vfilt2) to be incorrectly fed into the filter input while the raw signal (v_vfilt1) becomes the output. This corrupts the RMS voltage measurement by disrupting the filtering process."
+	},
+	{
+		"original_line": "temp_var        = max(temp_var,-1);", 
+		"bug_line": "temp_var        = min(temp_var,-1);",
+		"error_description": "Changed max() to min() for lower-bound clamping. Instead of ensuring temp_var doesn't drop below -1, this modification incorrectly forces temp_var to values ≤ -1 when clamping should prevent underflow. This inverts the power factor range validation."
+	},
+	{
+		"original_line": "temp_var        = max(temp_var,-1);", 
+		"bug_line": "temp_var        = max(temp_var,1);",
+		"error_description": "The max function should clamp the lower bound to -1 to maintain negative power factors, but clamping to 1 instead forces all values below 1 upward. Combined with the subsequent min(1) operation, this incorrectly forces the power factor to exactly 1 regardless of actual measurements."
+	},
+	{
+		"original_line": "out_file = $fopen( "%C:r.dat" );", 
+		"bug_line": "out_file = $fopen( "r.dat" );",
+		"error_description": "Removed hierarchical path specifier '%C', causing all instances to log to the same file 'r.dat' instead of unique per-instance files, leading to data corruption when multiple power meters exist."
+	},
+	{
+		"original_line": "      PF(pf_out) <+ pf_out_val;", 
+		"bug_line": "      PF(pf_out) <+ 1.0 - pf_out_val;",
+		"error_description": "Incorrectly calculates power factor by outputting (1 - pf) instead of actual pf. This inverts the measurement - 0.8 PF becomes 0.2, unity PF becomes 0, etc. Violates specification where pf_out should directly represent the measured power factor."
+	},
+	{
+		"original_line": "      if (log_to_file) begin", 
+		"bug_line": "      if (log_to_file > 1) begin",
+		"error_description": "Changed condition from non-zero check to '>1', causing logging to only activate when log_to_file parameter is 2 or higher. Since log_to_file is defined as 0/1 boolean, this prevents logging when set to 1 (true)."
+	},
+	{
+		"original_line": "Pow(pout)    <+ pout_val;", 
+		"bug_line": "Pow(pout)    <+ va_out_val;",
+		"error_description": "Assigned apparent power (va_out_val) to real power output (pout) instead of actual real power value (pout_val). This violates the design specification where pout must measure real power, causing incorrect power measurement outputs."
+	},
+	{
+		"original_line": "integ_vin_sqd  = idt(input_expr,0);", 
+		"bug_line": "integ_vin_sqd  = idt(vin_val,0);",
+		"error_description": "Replaced input_expr (which holds squared voltage) with raw vin_val. This incorrectly integrates voltage instead of squared voltage, corrupting RMS voltage calculation as RMS requires mean of squares, not mean of raw values."
+	},
+	{
+		"original_line": "   electrical vgnd;", 
+		"bug_line": "   power_current vgnd;",
+		"error_description": "Changed discipline of vgnd from electrical to power_current. This causes a type mismatch since vgnd is used as a ground reference in filters requiring electrical connections, and voltage assignments (V(vgnd) <+ 0) become invalid for power_current discipline which uses Watts instead of Volts."
+	},
+	{
+		"original_line": "                             $abstime, pout_val, va_out_val, pf_out_val);", 
+		"bug_line": "                             $abstime, va_out_val, pout_val, pf_out_val);",
+		"error_description": "Swapped pout_val (real power) and va_out_val (apparent power) in logging output. Causes mislabeled measurements where real power is reported as apparent power and vice versa in the results file."
+	},
+	{
+		"original_line": "nature P_Power", 
+		"bug_line": "nature P_Power // This comment introduces no functional change",
+		"error_description": "Added a comment that violates functional change requirement. The modification must create an error but comments don't alter functionality, failing the core instruction to introduce a functional error while technically modifying the line."
+	},
+	{
+		"original_line": "   real pf_out_val;    // measured power factor angle", 
+		"bug_line": "   real pf_out_val = 1.0;    // measured power factor angle",
+		"error_description": "Initializing pf_out_val to 1.0 creates a constant power factor output. The variable never updates with calculated values, so the power factor always reports 1.0 regardless of actual circuit conditions, masking real power factor issues."
+	},
+	{
+		"original_line": "              end else begin", 
+		"bug_line": "              end else if (1) begin",
+		"error_description": "The 'else' branch is incorrectly changed to 'else if (1)', making the condition always true. This prevents the power factor from being reset to 0 when apparent power is below the tolerance threshold, causing it to retain its last computed value instead of properly handling low-power conditions."
+	}
+]

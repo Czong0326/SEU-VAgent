@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real tfall = 0 from [0:inf);", 
+		"bug_line": "parameter real tfall = -1e-9 from [-1e-9:inf);",
+		"error_description": "The fall time parameter tfall is set to a negative default value. Negative time constants are invalid for transition functions, causing undefined behavior in output voltage transitions and violating physical reality requirements for timing parameters."
+	},
+	{
+		"original_line": "unconverted = unconverted * 2;", 
+		"bug_line": "unconverted = halfref;",
+		"error_description": "Changed residual voltage scaling to fixed assignment of halfref, breaking binary successive approximation. This causes all bits after MSB to be incorrectly set to low since unconverted never updates proportionally to input."
+	},
+	{
+		"original_line": "unconverted = V(vin);", 
+		"bug_line": "unconverted = V(vclk);",
+		"error_description": "ADC samples clock voltage instead of input voltage, causing digitization of clock signal (fixed at vtrans_clk) rather than actual analog input."
+	},
+	{
+		"original_line": "   integer i;", 
+		"bug_line": "   real i;",
+		"error_description": "Changed loop index variable 'i' from integer to real. The for-loop requires an integer index variable, so using a real type will cause a compilation error and prevent ADC conversion functionality."
+	},
+	{
+		"original_line": "parameter real vlogic_low  = 0;", 
+		"bug_line": "parameter real vlogic_low  = 5;",
+		"error_description": "Sets low logic level to 5V (same as high logic level), causing the ADC to output identical voltages for both logic states and making it impossible to distinguish between '0' and '1' digital outputs."
+	},
+	{
+		"original_line": "V(vd5) <+ transition( vd[5], tdel, trise, tfall );", 
+		"bug_line": "V(vd5) <+ transition( vd[6], tdel, trise, tfall );",
+		"error_description": "Bit5 output (vd5) incorrectly driven by bit6 value (vd[6]) instead of its own bit5 value (vd[5]). This causes bit5 and bit6 outputs to always match, corrupting the ADC conversion result by duplicating MSB-1 bit value in bit5 position."
+	},
+	{
+		"original_line": "`define NUM_ADC_BITS	8", 
+		"bug_line": "`define NUM_ADC_BITS	7",
+		"error_description": "Reduces ADC resolution from 8-bit to 7-bit. This causes incomplete voltage conversion (missing MSB) and leaves vd7 unassigned since the vd array only has indices 0-6. The highest output bit remains undriven, violating the 8-bit output specification."
+	},
+	{
+		"original_line": "   integer i;", 
+		"bug_line": "   integer i = 7;",
+		"error_description": "Initializing loop index i to 7 causes the for-loop to start at i=7 instead of resetting to 7 on each clock cycle. After the first conversion, i retains its final value (-1), causing the next conversion to start at i=-1 and skip bit processing, resulting in incorrect digital output."
+	},
+	{
+		"original_line": "module adc_8bit_ideal(vd7, vd6, vd5, vd4, vd3, vd2, vd1, vd0, vin, vclk);", 
+		"bug_line": "module adc_8bit_ideal(vd7, vd6, vd5, vd4, vd3, vd2, vd1, vd0, vclk, vin);",
+		"error_description": "Swapped 'vin' and 'vclk' ports. This causes the analog input signal to be connected to the clock terminal and vice versa, leading to incorrect sampling triggered by analog input crossings instead of clock edges."
+	},
+	{
+		"original_line": "unconverted = unconverted - halfref;", 
+		"bug_line": "unconverted = unconverted - vref;",
+		"error_description": "Changed subtraction of half reference voltage (halfref) to full reference voltage (vref). This causes over-subtraction during bit quantization, distorting the remainder calculation for lower bits and producing incorrect digital outputs."
+	},
+	{
+		"original_line": "parameter real vlogic_low  = 0;", 
+		"bug_line": "parameter real vlogic_low  = vlogic_high;",
+		"error_description": "Setting vlogic_low equal to vlogic_high (5V) causes the ADC to output 5V for both logic 0 and logic 1. This eliminates voltage distinction between digital states, making the output unreadable and violating ADC functionality where distinct voltage levels represent binary values."
+	},
+	{
+		"original_line": "unconverted = unconverted * 2;", 
+		"bug_line": "unconverted = vd[i] * 2;",
+		"error_description": "The residue is incorrectly set to the current bit's voltage level doubled instead of the actual residue. This breaks the successive approximation algorithm by corrupting the residue value for subsequent bit decisions, causing catastrophic conversion errors."
+	},
+	{
+		"original_line": "          halfref = vref / 2;", 
+		"bug_line": "          halfref = vref * 2;",
+		"error_description": "Changed division to multiplication, setting halfref to twice vref instead of half. This corrupts the ADC's threshold calculation, causing incorrect bit decisions throughout the conversion process."
+	},
+	{
+		"original_line": "electrical vd7, vd6, vd5, vd4, vd3, vd2, vd1, vd0, vin, vclk;", 
+		"bug_line": "electrical vd7, vd6, vd5, vd4, vd3, vd2, vd1, vin, vclk;",
+		"error_description": "Port vd0 is missing from the declaration list. This causes the output bit vd0 to be undriven, breaking the 8-bit output functionality and corrupting the digital output value."
+	},
+	{
+		"original_line": "unconverted = unconverted * 2;", 
+		"bug_line": "unconverted = unconverted * 0.5;",
+		"error_description": "Changed multiplication factor from 2 to 0.5. This halves the remainder instead of doubling it for the next bit decision, causing incorrect successive approximation and invalid ADC output codes."
+	},
+	{
+		"original_line": "parameter real vlogic_low  = 0;", 
+		"bug_line": "parameter real vlogic_low  = 5;",
+		"error_description": "Sets logic low voltage (vlogic_low) to 5V, identical to logic high voltage (vlogic_high). This prevents distinguishing between '0' and '1' states in digital outputs, causing all output bits to show 5V regardless of conversion results."
+	},
+	{
+		"original_line": "V(vd6) <+ transition( vd[6], tdel, trise, tfall );", 
+		"bug_line": "V(vd6) <+ transition( vd[7], tdel, trise, tfall );",
+		"error_description": "Assigns MSB (bit7) value to bit6 output. This duplicates MSB on both vd7 and vd6 outputs while losing the actual bit6 value, corrupting the digital output representation."
+	},
+	{
+		"original_line": "parameter real vlogic_high = 5;", 
+		"bug_line": "parameter real vlogic_high = vlogic_low;",
+		"error_description": "Assigning vlogic_high the same value as vlogic_low (0V) causes the ADC to output identical voltage levels for all bits, eliminating the distinction between logic 1 and 0 states and destroying digital output functionality."
+	},
+	{
+		"original_line": "V(vd7) <+ transition( vd[7], tdel, trise, tfall );", 
+		"bug_line": "V(vd7) <+ transition( vd[0], tdel, trise, tfall );",
+		"error_description": "Assigns the least significant bit (vd[0]) to the most significant output (vd7), causing bit reversal in the highest bit and resulting in incorrect digital output representation."
+	},
+	{
+		"original_line": "parameter real vlogic_high = 5;", 
+		"bug_line": "parameter real vlogic_high = vlogic_low;",
+		"error_description": "Sets vlogic_high equal to vlogic_low (0V), causing all digital 1 outputs to be driven to 0V instead of 5V. This eliminates voltage distinction between 0/1 states, making output bits unreadable."
+	}
+]

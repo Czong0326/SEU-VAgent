@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "if ( sigin_val < 0.0 )", 
+		"bug_line": "if ( sigin_val > 0.0 )",
+		"error_description": "Conditional logic reversed. Handles positive values as negative and vice versa, causing negative inputs to produce positive outputs and positive inputs to produce negative outputs - violating cube root sign convention."
+	},
+	{
+		"original_line": "output sigout;", 
+		"bug_line": "input sigout;",
+		"error_description": "Changed port direction from output to input. This violates the design specification since the module drives the cubic root result on sigout internally, and driving an input port is illegal in Verilog-A. This will cause compilation/simulation errors."
+	},
+	{
+		"original_line": "parameter real epsilon = 1e-6;", 
+		"bug_line": "parameter real epsilon = -1e-6;",
+		"error_description": "Negative epsilon causes the adjusted input (sigin_val) to become negative for small positive inputs, and the expression in the negative branch (abs(sigin_val) + epsilon) to become negative for small absolute values. This leads to undefined behavior when computing pow() with negative base and fractional exponent."
+	},
+	{
+		"original_line": "real sigin_val;", 
+		"bug_line": "integer sigin_val;",
+		"error_description": "Changed variable type from real to integer, causing truncation of input voltage values. This destroys fractional voltage information and results in incorrect cube root calculations due to loss of precision."
+	},
+	{
+		"original_line": "output sigout;", 
+		"bug_line": "input sigout;",
+		"error_description": "Changing sigout from output to input creates a directional error where the module attempts to drive an input port, violating Verilog-A port assignment rules and causing functional failure."
+	},
+	{
+		"original_line": "input sigin;", 
+		"bug_line": "output sigin;",
+		"error_description": "Changed port direction from input to output. This violates the design since sigin is only read (V(sigin)) but never driven internally. An output port requires driving logic, causing functional conflict."
+	},
+	{
+		"original_line": "V(sigout) <+  pow(sigin_val + epsilon,0.333333333333333333);", 
+		"bug_line": "V(sigout) <+  pow(sigin_val + epsilon, 1.0);",
+		"error_description": "Changed exponent from 1/3 to 1.0, making the module compute identity (linear) instead of cube root for positive inputs."
+	},
+	{
+		"original_line": "          real sigin_val;", 
+		"bug_line": "          integer sigin_val;",
+		"error_description": "Changing 'sigin_val' from real to integer truncates fractional input values, causing incorrect cube root calculations due to loss of precision in the analog block."
+	},
+	{
+		"original_line": "V(sigout) <+  pow(sigin_val + epsilon,0.333333333333333333);", 
+		"bug_line": "V(sigout) <+  pow(sigin_val + epsilon, 3.0);",
+		"error_description": "Changed exponent from 1/3 to 3, causing the output to be the cube of the input instead of the cube root."
+	},
+	{
+		"original_line": "output sigout;", 
+		"bug_line": "input sigout;",
+		"error_description": "Changed port direction from output to input. This violates the design as sigout should be driven by the module's cubic root calculation, but is now incorrectly configured as an input port."
+	},
+	{
+		"original_line": "output sigout;", 
+		"bug_line": "input sigout;",
+		"error_description": "Changing the output port to input prevents the module from driving the output signal. The analog block's assignment to V(sigout) becomes invalid since input ports cannot be driven internally, breaking the core functionality of computing the cube root."
+	},
+	{
+		"original_line": "real sigin_val;", 
+		"bug_line": "integer sigin_val;",
+		"error_description": "Changed 'sigin_val' from real to integer type, causing truncation of the input voltage value. This results in loss of fractional precision and incorrect cube root calculations for non-integer inputs."
+	},
+	{
+		"original_line": "sigin_val = V(sigin) + epsilon;", 
+		"bug_line": "sigin_val = epsilon;",
+		"error_description": "Fails to incorporate input voltage by omitting V(sigin), causing constant output (cube root of 2*epsilon) regardless of input signal."
+	},
+	{
+		"original_line": "module cube_root (sigin, sigout);", 
+		"bug_line": "module cube_root (sigin, sigin);",
+		"error_description": "Both ports are named 'sigin', causing output port conflict. The module now incorrectly shares the same identifier for input and output, preventing proper signal assignment to the output."
+	},
+	{
+		"original_line": "parameter real epsilon = 1e-6;", 
+		"bug_line": "parameter real epsilon = -1e-6;",
+		"error_description": "Negative epsilon causes small positive inputs to become negative after adjustment, leading to undefined pow() behavior (non-integer exponent of negative base) and simulation errors/NaN outputs."
+	},
+	{
+		"original_line": "sigin_val = V(sigin) + epsilon;", 
+		"bug_line": "sigin_val = V(sigin) - epsilon;",
+		"error_description": "Subtracting epsilon instead of adding it causes small positive inputs to become negative, leading to incorrect negative outputs for positive inputs since the negative branch handles the computation."
+	},
+	{
+		"original_line": "V(sigout) <+ -(pow(abs(sigin_val) + epsilon,0.333333333333333333));", 
+		"bug_line": "V(sigout) <+ -(pow(abs(sigin_val) + epsilon,3.0));",
+		"error_description": "Exponent changed from 0.333 (cube root) to 3.0 (cube), causing output to be the cube of absolute input instead of cube root for negative values."
+	},
+	{
+		"original_line": "parameter real epsilon = 1e-6;", 
+		"bug_line": "parameter real epsilon = 1e6;",
+		"error_description": "Changing epsilon from 1e-6 to 1e6 introduces a large offset error. The output becomes cube_root(input + 1e6) instead of cube_root(input), severely distorting results especially for small input values and violating the design specification."
+	},
+	{
+		"original_line": "real sigin_val;", 
+		"bug_line": "real sigin_val = 0.0;",
+		"error_description": "Initializing sigin_val to 0.0 causes incorrect cube root calculation for negative inputs since the condition (sigin_val < 0.0) always fails after reassignment, resulting in positive outputs for negative inputs."
+	},
+	{
+		"original_line": "  real sigin_val;", 
+		"bug_line": "  integer sigin_val;",
+		"error_description": "Changing 'sigin_val' from real to integer truncates the input voltage to integer values, causing loss of fractional precision and incorrect cube root calculations."
+	}
+]

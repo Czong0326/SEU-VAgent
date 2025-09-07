@@ -1,0 +1,154 @@
+// VerilogA for sources_modules, wcdma_sch_multiplexer, veriloga
+//
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+`define ALENGTH 16
+`define PSCLENGTH 256
+
+(* instrument_module *)
+module wcdma_sch_multiplexer(I_in_p_ccpch, Q_in_p_ccpch, 
+                             I_out_p_ccpch, Q_out_p_ccpch);
+input  I_in_p_ccpch, Q_in_p_ccpch;
+output I_out_p_ccpch, Q_out_p_ccpch;
+electrical I_in_p_ccpch, Q_in_p_ccpch, 
+           I_out_p_ccpch, Q_out_p_ccpch;
+
+parameter real frame_time = 1.0/15000.0 from (0:inf);
+parameter integer ssc_num = 64 from[1:64];
+parameter integer numChipsOut = 256;
+parameter integer X [0:`ALENGTH] = { 1 ,1 ,1 ,1 ,1 ,1 ,-1 ,-1 ,1 ,-1, 1, -1 ,1 ,-1, -1 ,1};
+parameter integer pattern_psc   [0:`ALENGTH] = {1, 1 ,1 ,-1 ,-1 ,1 ,-1 ,-1 , 1 ,1 ,1 ,-1 ,1, -1, 1, 1};
+//parameter integer pattern_ssc   [0:`ALENGTH] = {1, 1 ,1 ,-1 ,-1 ,1 ,-1 ,-1 , 1 ,1 ,1 ,-1 ,1, -1, 1, 1};
+parameter integer pattern_ssc   [0:`ALENGTH] = {1, 1 ,1 ,-1 ,1 ,1 ,-1 ,-1 , 1 ,-1 ,1 ,-1 ,-1, -1, -1, -1};
+parameter integer patternb [0:`ALENGTH] = {1, 1 ,1 , 1 , 1 ,1 , 1 , 1 , -1 ,-1 ,-1 ,-1 ,-1, -1, -1, -1};
+parameter integer a = 1 from [-1:1] exclude 0 ;
+
+integer hada[0:`PSCLENGTH], kcoe[0:7];
+integer readssc[0:`ALENGTH], i, j, n, k, hada_seq, tmp, tmp2;
+integer fptr1, readcode;
+real psc[0:`PSCLENGTH], ssc[0:`PSCLENGTH], tmpssc[0:`PSCLENGTH];
+integer tmpIndex;
+integer flag;
+real i_out_p_ccpch, q_out_p_ccpch;
+real local_sample, sch_sample;
+integer scc_num ;
+
+analog begin
+  @(initial_step) begin
+    local_sample = frame_time / numChipsOut;
+    sch_sample   = frame_time * 10;
+
+    for ( i = 0; i < `ALENGTH; i = i +1 ) begin
+      for ( j = 0; j < `ALENGTH; j = j +1 ) begin
+        tmpIndex = j * `ALENGTH + i;
+        if ( X[i] > 0 ) begin
+	        if ( pattern_psc[j] > 0 )
+               psc[tmpIndex] = `M_SQRT1_2;
+            else
+               psc[tmpIndex] = - `M_SQRT1_2;
+           if ( pattern_ssc[j] > 0 ) 
+               ssc[tmpIndex] =   patternb[i];
+	       else 
+               ssc[tmpIndex] = - patternb[i];
+	    end else begin
+	       if ( pattern_psc[j] > 0 ) 
+	          psc[tmpIndex] = - `M_SQRT1_2;
+           else 
+              psc[tmpIndex] =  `M_SQRT1_2;
+           if ( pattern_ssc[j] > 0 )
+              ssc[tmpIndex] = -  patternb[i];
+	       else
+              ssc[tmpIndex] =   patternb[i];
+	   end
+       if ( a < 0 ) begin
+          psc[tmpIndex] = - psc[tmpIndex];
+          ssc[tmpIndex] = - ssc[tmpIndex];
+       end
+      end
+    end
+
+//Get ssc number(hada sequence) of each slot specified by scrambling code group(ssc_num)
+
+    fptr1 = $fopen("wcdma_allocationssc.dat","r");
+    i = 1;
+    readcode = 1;
+    while ( readcode > 0 ) begin
+      readcode = $fscanf(fptr1, "%d  %d  %d  %d  %d  %d  %d  %d  %d  %d  %d  %d  %d  %d  %d   ",   readssc[1],    readssc[2],    readssc[3],  readssc[4],    readssc[5],    readssc[6],    readssc[7],   readssc[8],    readssc[9],    readssc[10],  readssc[11],  readssc[12],  readssc[13],  readssc[14],  readssc[15]   );
+      if ( i == ssc_num ) readcode = - 1;
+      else i = i + 1;
+    end
+    $fclose(fptr1);
+
+    n = 1;
+    i_out_p_ccpch = 0;
+    q_out_p_ccpch = 0;
+  end
+
+  @(timer(local_sample/1500, sch_sample)) begin
+    // Hadamard matrix
+    if ( n == `ALENGTH ) n = 1;
+    scc_num = readssc[n];
+//    $strobe("scc_num = %d time = ", scc_num, $realtime);
+    hada_seq = 16 * (scc_num-1) + 1;
+    for (j = 7; j >= 0; j = j - 1 ) begin
+      if ( hada_seq > pow(2, j) ) begin
+         kcoe[j] = 1;
+         hada_seq = hada_seq - pow(2, j);
+      end
+      else kcoe[j] = 0;
+    end
+    for (j=1; j<=`PSCLENGTH; j=j+1) begin
+      tmp = 0;
+      tmp2 = j;
+      for ( i=7; i>=0; i=i-1) begin
+        if ( tmp2 > pow(2, i) ) begin
+          tmp2 = tmp2 - pow(2, i);
+          if ( kcoe[i]==1 )
+            tmp = tmp+1;
+        end
+      end
+      if ( tmp%2 == 0 )
+        hada[j-1]=1;
+      else
+        hada[j-1]=-1;
+    end
+
+    for ( i = 0; i < `PSCLENGTH; i = i +1 ) begin
+      if ( hada[i] > 0 ) begin
+        if ( ssc[i] > 0 ) tmpssc[i] = `M_SQRT1_2;
+	else tmpssc[i] = - `M_SQRT1_2;
+      end else begin
+        if ( ssc[i] > 0 ) tmpssc[i] = - `M_SQRT1_2;
+	else tmpssc[i] = `M_SQRT1_2;
+      end
+      tmpssc[i]  = (tmpssc[i] + psc[i]) * `M_SQRT1_2;
+    end
+    n    = n + 1;
+    flag = 1;
+    k     = 0;
+    j = 0;
+  end
+
+  @(timer(local_sample/500, local_sample)) begin
+     if ( flag ) begin
+      if ( k == `PSCLENGTH - 1) flag = 0;
+      else k = k + 1;
+      i_out_p_ccpch  = tmpssc[j];
+      q_out_p_ccpch = tmpssc[j];
+    end else begin
+      i_out_p_ccpch = V(I_in_p_ccpch);
+      q_out_p_ccpch = V(Q_in_p_ccpch);
+    end
+
+    j = j + 1;
+      
+  end
+
+  V(I_out_p_ccpch) <+ i_out_p_ccpch;
+  V(Q_out_p_ccpch) <+ q_out_p_ccpch;
+
+end
+
+endmodule

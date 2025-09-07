@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "@ (cross(abs(V(vctrl_p,vctrl_n)) - vrelease,-1,1.0,vctrl_p.potential.abstol) )", 
+		"bug_line": "@ (cross(abs(V(vctrl_p,vctrl_n)) - vrelease,+1,1.0,vctrl_p.potential.abstol) )",
+		"error_description": "Changed cross direction from falling edge (-1) to rising edge (+1). This causes the relay to open during control voltage increase instead of decrease, violating the release timing specification where opening should occur when voltage falls below vrelease."
+	},
+	{
+		"original_line": "parameter real vrelease=0.5 from (0:inf);", 
+		"bug_line": "parameter real vrelease=0.5 from (-inf:inf);",
+		"error_description": "Changing the range to include negative values violates the design requirement that release voltage must be positive. Negative vrelease values prevent the opening cross event from triggering, causing the relay to remain permanently closed."
+	},
+	{
+		"original_line": "   @ ( initial_step ) begin", 
+		"bug_line": "   @ ( final_step ) begin",
+		"error_description": "Changed event from initial_step to final_step. This prevents parameter validation (vtrig/vrelease check) and state initialization at simulation start. The relay remains uninitialized during operation, causing undefined switching behavior and missing critical parameter checks."
+	},
+	{
+		"original_line": "@ (cross(abs(V(vctrl_p,vctrl_n)) - vrelease,-1,1.0,vctrl_p.potential.abstol) )", 
+		"bug_line": "@ (cross(abs(V(vctrl_p,vctrl_n)) - vtrig,-1,1.0,vctrl_p.potential.abstol) )",
+		"error_description": "Changed threshold from vrelease to vtrig. Now triggers relay opening at the higher trigger voltage instead of the lower release voltage, causing premature opening during voltage decline between vtrig and vrelease."
+	},
+	{
+		"original_line": "inout vopen,vclosed,vcomm;", 
+		"bug_line": "inout vopen,vcomm; input vclosed;",
+		"error_description": "Changed vclosed from inout to input. This prevents driving the normally closed terminal when the relay is open, breaking the voltage contribution V(vclosed,vcomm) <+ 0.0 since input ports cannot be driven."
+	},
+	{
+		"original_line": "$display( "'vtrig' value must be larger than 'vrelease' value.\n" );", 
+		"bug_line": "$display( "'vtrig' value must be smaller than 'vrelease' value.\n" );",
+		"error_description": "The error message incorrectly states that vtrig must be smaller than vrelease, which is the opposite of the design requirement. This misleads users to set invalid parameter values where vtrig < vrelease, causing undefined relay behavior when control voltages cross thresholds."
+	},
+	{
+		"original_line": "@ (cross(abs(V(vctrl_p,vctrl_n)) - vrelease,-1,1.0,vctrl_p.potential.abstol) )", 
+		"bug_line": "@ (cross(abs(V(vctrl_p,vctrl_n)) - vtrig,-1,1.0,vctrl_p.potential.abstol) )",
+		"error_description": "Replaced vrelease with vtrig, causing the relay to open at the same voltage threshold used for closing. This removes the intended hysteresis effect where the relay should open at a lower voltage (vrelease) than it closes (vtrig), violating the design specification."
+	},
+	{
+		"original_line": "@ (cross(abs(V(vctrl_p,vctrl_n)) - vrelease,-1,1.0,vctrl_p.potential.abstol) )", 
+		"bug_line": "@ (cross(abs(V(vctrl_p,vctrl_n)) - vtrig,-1,1.0,vctrl_p.potential.abstol) )",
+		"error_description": "Changed threshold from vrelease to vtrig. This causes the relay to open at the higher closing threshold instead of the lower release threshold, eliminating the hysteresis effect required for proper relay operation."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   analog begin closed = 1;",
+		"error_description": "Forces the relay state to always be closed by resetting the 'closed' variable to 1 at every analog iteration. This overrides the event-driven state transitions and prevents the relay from opening."
+	},
+	{
+		"original_line": "	 if (vtrig < vrelease) begin", 
+		"bug_line": "	 if (vtrig > vrelease) begin",
+		"error_description": "The condition is inverted. Now triggers an error when vtrig is greater than vrelease (valid case) while failing to detect the invalid case where vtrig is less than vrelease. This violates the design requirement that vtrig must be larger than vrelease."
+	},
+	{
+		"original_line": "@ (cross(abs(V(vctrl_p,vctrl_n)) - vtrig,1,1.0,vctrl_p.potential.abstol) )", 
+		"bug_line": "@ (cross(abs(V(vctrl_p,vctrl_n)) - vtrig,-1,1.0,vctrl_p.potential.abstol) )",
+		"error_description": "Changed cross direction from +1 (rising edge) to -1 (falling edge). This causes the relay to close when the control voltage DECREASES past vtrig instead of INCREASING past vtrig, violating the specified trigger behavior."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* instrument_module, disable *)",
+		"error_description": "Added 'disable' attribute which incorrectly signals simulation tools to deactivate instrumentation for this module, violating the design requirement for monitoring/control. This prevents necessary observability during verification while maintaining silent compilation."
+	},
+	{
+		"original_line": " if (vtrig < vrelease) begin", 
+		"bug_line": " if (vtrig > vrelease) begin",
+		"error_description": "The condition is reversed. Now the error triggers when vtrig > vrelease (valid condition) instead of vtrig < vrelease (invalid). This allows simulation with invalid parameters where vtrig < vrelease, causing undefined relay behavior."
+	},
+	{
+		"original_line": "              @ ( initial_step ) begin", 
+		"bug_line": "              @ ( final_step ) begin",
+		"error_description": "Changed event trigger from initial_step to final_step. The initialization block now executes at simulation end instead of start, causing the parameter validation and state initialization to never occur during actual simulation. This leaves 'closed' uninitialized (default 0) and bypasses critical vtrig/vrelease validation."
+	},
+	{
+		"original_line": "inout vopen,vclosed,vcomm;", 
+		"bug_line": "input vopen,vclosed,vcomm;",
+		"error_description": "Changed relay terminals from inout to input. This prevents driving voltages at vopen/vclosed/vcomm during simulation since input ports cannot be driven internally, breaking the relay's switching functionality."
+	},
+	{
+		"original_line": "@ (cross(abs(V(vctrl_p,vctrl_n)) - vrelease,-1,1.0,vctrl_p.potential.abstol) )", 
+		"bug_line": "@ (cross(abs(V(vctrl_p,vctrl_n)) - vtrig,-1,1.0,vctrl_p.potential.abstol) )",
+		"error_description": "The release condition incorrectly uses vtrig instead of vrelease, causing the relay to open at the trigger voltage rather than the intended lower release voltage. This violates the hysteresis design where vtrig > vrelease."
+	},
+	{
+		"original_line": "parameter real vrelease=0.5 from (0:inf);", 
+		"bug_line": "parameter real vrelease=-0.5 from (-inf:inf);",
+		"error_description": "Negative default vrelease (-0.5) causes the relay opening condition (Vctrl < vrelease) to never trigger since the absolute voltage difference is always non-negative. This prevents the relay from opening after closing, violating the SPDT switching behavior."
+	},
+	{
+		"original_line": "@ (cross(abs(V(vctrl_p,vctrl_n)) - vtrig,1,1.0,vctrl_p.potential.abstol) )", 
+		"bug_line": "@ (cross(abs(V(vctrl_p,vctrl_n)) - vrelease,1,1.0,vctrl_p.potential.abstol) )",
+		"error_description": "Changed trigger voltage from vtrig to vrelease. This causes the relay to close at the release voltage threshold instead of the intended trigger voltage, violating the design requirement where closing should occur at a higher voltage (vtrig) than opening (vrelease)."
+	},
+	{
+		"original_line": "inout vopen,vclosed,vcomm;", 
+		"bug_line": "input vopen,vclosed,vcomm;",
+		"error_description": "Changing all ports to input-only prevents driving voltages when switching states (V(vopen,vcomm) and V(vclosed,vcomm) become invalid operations since outputs cannot be driven, breaking relay functionality."
+	},
+	{
+		"original_line": "      if (closed)", 
+		"bug_line": "      if (!closed)",
+		"error_description": "Inverted condition causes relay to short the wrong terminals: Normally open branch shorts when relay should be open, and normally closed branch shorts when relay should be closed. Violates SPDT switching logic."
+	}
+]

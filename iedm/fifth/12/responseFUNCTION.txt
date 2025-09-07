@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "logic1 = V(vin1) > vtrans;", 
+		"bug_line": "logic1 = V(vin2) > vtrans;",
+		"error_description": "Assigns the first input's digital state (logic1) based on the second input (vin2) instead of vin1, causing the gate to ignore the actual first input and use the second input for both, resulting in incorrect XNOR functionality."
+	},
+	{
+		"original_line": "@ (cross(V(vin2) - vtrans, 1))  logic2 = 1;", 
+		"bug_line": "@ (cross(V(vin2) - vtrans, 1))  logic2 = 0;",
+		"error_description": "Sets logic2 to 0 instead of 1 on positive crossing of vin2, inverting the digital representation of this input and causing incorrect XNOR functionality."
+	},
+	{
+		"original_line": "input vin1, vin2;", 
+		"bug_line": "input vin1; output vin2;",
+		"error_description": "Changed vin2 from input to output. This violates the module's interface as vin2 is now incorrectly designated as an output while being read as an input in the analog block. The undriven output voltage causes undefined logic evaluation and breaks the two-input XNOR functionality."
+	},
+	{
+		"original_line": "parameter real tfall = 1u from (0:inf);", 
+		"bug_line": "parameter real tfall = 1u from [0:inf);",
+		"error_description": "Changing the range from exclusive (0:inf) to inclusive [0:inf) allows tfall=0. This causes a division-by-zero error in the transition function when the output falls, crashing the simulation."
+	},
+	{
+		"original_line": "vout_val = (!(logic1 ^ logic2)) ? vlogic_high : vlogic_low;", 
+		"bug_line": "vout_val = (logic1 ^ logic2) ? vlogic_high : vlogic_low;",
+		"error_description": "Removed the logical NOT operator, converting the XNOR gate functionality to XOR. Now outputs high when inputs differ (instead of when they match), fundamentally altering the logic operation."
+	},
+	{
+		"original_line": "      logic1 = V(vin1) > vtrans;", 
+		"bug_line": "      logic1 = V(vin1) < vtrans;",
+		"error_description": "Reversed comparison operator changes input logic interpretation. Now vin1 is considered 'high' (logic1=1) when below vtrans threshold instead of above, inverting the input signal behavior."
+	},
+	{
+		"original_line": "@ (cross(V(vin1) - vtrans, -1)) logic1 = 0;", 
+		"bug_line": "@ (cross(V(vin1) - vtrans, -1)) logic2 = 0;",
+		"error_description": "Assigns falling-edge event of vin1 to reset logic2 (vin2's state) instead of logic1. Causes cross-coupling where vin1's falling edge incorrectly clears vin2's state."
+	},
+	{
+		"original_line": "@ (cross(V(vin2) - vtrans, -1)) logic2 = 0;", 
+		"bug_line": "@ (cross(V(vin2) - vtrans, 1)) logic2 = 0;",
+		"error_description": "Changed crossing direction from falling-edge (-1) to rising-edge (1) while keeping assignment to 0. Now sets logic2=0 during rising edges instead of falling edges, causing incorrect state transitions and violating XNOR truth table behavior."
+	},
+	{
+		"original_line": "	    $finish;", 
+		"bug_line": "	    $stop;",
+		"error_description": "Changed $finish to $stop, causing simulation to pause instead of terminating when vlogic_high < vlogic_low. This violates the design's requirement to halt execution for invalid parameters, potentially allowing the simulation to continue with inconsistent voltage specifications."
+	},
+	{
+		"original_line": "parameter real tfall = 1u from (0:inf);", 
+		"bug_line": "parameter real tfall = 1u from [0:inf);",
+		"error_description": "Changed range from (0:inf) to [0:inf), allowing zero fall time. This violates the design requirement for positive transition times, causing potential simulation errors when tfall=0 triggers division-by-zero in transition functions."
+	},
+	{
+		"original_line": "parameter real vtrans = 1.4;", 
+		"bug_line": "parameter real vtrans = 10.0;",
+		"error_description": "The threshold voltage is set to 10.0V, which is above the high logic level (5V). This causes both inputs to always be interpreted as low (0), leading the XNOR gate to output high (1) regardless of actual input voltages."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed 'analog' to 'initial', causing the block to execute only once at time zero instead of continuously. This prevents the gate from responding to input changes after initialization, resulting in a static output value."
+	},
+	{
+		"original_line": "parameter real vlogic_low = 0;", 
+		"bug_line": "parameter real vlogic_low = vlogic_high;",
+		"error_description": "vlogic_low is incorrectly set equal to vlogic_high, causing the output voltage for both logic states to be identical. This eliminates the voltage distinction between HIGH and LOW states, making the gate unable to represent logical 0 correctly and disrupting the XNOR functionality."
+	},
+	{
+		"original_line": "parameter real trise = 1u from (0:inf);", 
+		"bug_line": "parameter real trise = 0 from (0:inf);",
+		"error_description": "Rise time set to 0 seconds, violating the range constraint (0:inf) where 0 is excluded. This causes simulation failure during initialization since 0 is not allowed, breaking the gate's timing behavior."
+	},
+	{
+		"original_line": "input vin1, vin2;", 
+		"bug_line": "input vin1; output vin2;",
+		"error_description": "Changed vin2 from input to output direction. This incorrectly makes the second input pin an output, breaking the XNOR logic functionality since vin2 can no longer receive external input signals while also being driven internally."
+	},
+	{
+		"original_line": "input vin1, vin2;", 
+		"bug_line": "output vin1, vin2;",
+		"error_description": "Changing input direction to output prevents external signals from driving vin1/vin2. The gate cannot read input voltages, causing incorrect logic evaluation and output."
+	},
+	{
+		"original_line": "V(vout) <+ transition( vout_val, tdel, trise, tfall);", 
+		"bug_line": "V(vout) <+ transition( vlogic_low, tdel, trise, tfall);",
+		"error_description": "The output always transitions to vlogic_low instead of the computed vout_val, making the gate output constant low regardless of inputs. This destroys the XNOR functionality where output should be high when inputs match."
+	},
+	{
+		"original_line": "   @ ( initial_step ) begin", 
+		"bug_line": "   @ ( final_step ) begin",
+		"error_description": "Changed triggering event from initial_step to final_step, causing parameter validity checks to execute at simulation end instead of start. This allows invalid parameters (vlogic_high < vlogic_low or vtrans out-of-range) to go undetected during operation."
+	},
+	{
+		"original_line": "module xnor_gate(vin1, vin2, vout);", 
+		"bug_line": "module xnor_gate(vin1, vout, vin2);",
+		"error_description": "Swapped the second input (vin2) and output (vout) ports in the module declaration. This incorrectly routes the output signal to the second input position and the second input signal to the output position, causing signal direction conflicts and functional errors in the XNOR operation."
+	},
+	{
+		"original_line": "output vout;", 
+		"bug_line": "input vout;",
+		"error_description": "Changed port direction from output to input. This causes a functional error because the module attempts to drive an input port (V(vout) assignment in analog block), violating fundamental electrical modeling rules."
+	}
+]

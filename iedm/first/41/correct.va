@@ -1,0 +1,123 @@
+//======================================================================
+//Copyright @ 2016 Massachusetts Institute of Technology (MIT)
+// 
+// The terms under which the software and associated documentation
+// (the Software) is provided are as the following:
+// 
+// The Software is provided "as is", without warranty of any kind,
+// express or implied, including but not limited to the warranties of
+// merchantability, fitness for a particular purpose and noninfringement.
+// In no event shall the authors or copyright holders be liable for any claim,
+// damages or other liability, whether in an action of contract,
+// tort or otherwise, arising from, out of or in connection with the Software
+// or the use or other dealings in the Software.
+// 
+// MIT grants, free of charge, to any users the right to modify, copy,
+// and redistribute the Software, both within the user's organization and
+// externally, subject to the following restrictions:
+// 
+// 1. The users agree not to charge for the MIT code itself but may charge
+//      for additions, extensions, or support.
+// 
+// 2. In any product based on the Software, the users agree to acknowledge
+//      the MIT Computational Prototyping Research Group that developed
+//      the software. This acknowledgment shall appear in the product
+//      documentation.
+// 
+// 3. The users agree to obey all U.S. Government restrictions governing
+//      redistribution or export of the software.
+// 
+// 4. The users agree to reproduce any copyright notice which appears on
+//      the software on any copy or modification of such made available to others.
+// 
+// Agreed to by 
+// Luca Daniel, MIT
+// March 1st, 2016
+//======================================================================
+// rbtWaveguideMatch.va
+//======================================================================
+// Waveguide with matched termination
+//
+// Version: 1.0.0
+// Tested on: Cadence Spectre 15.1.0.284.isr1
+//
+// Author: Bichoy Bahr [bichoy at mit dot edu]
+// Last Modified: March 31st, 2016
+
+
+`ifdef __RBT_WAVE_GUIDE_MATCH_VA__
+`else
+`define __RBT_WAVE_GUIDE_MATCH_VA__
+
+`include "constants.vams"
+`include "disciplines.vams"
+`include "rbtConst.va"
+
+
+module rbtWaveguideMatch(p,vss);
+
+inout p,vss;
+
+electrical p;
+electrical vss;
+
+parameter real version = 1.00;
+
+parameter real l   = `RBT_L   from (0:inf);             // Waveguide length
+
+parameter real rho = `RBT_RHO from (0:inf);             // Density for material A
+parameter real Y   = `RBT_Y   from (0:inf);             // Young's Modulus for material A
+parameter real nu  = `RBT_NU  from [0:0.5];             // Poisson's ratio for material A
+
+parameter real rbt_Qother = `RBT_QOTHER from (0:inf);   // Other losses
+parameter real rbt_fQ     = `RBT_FQ     from (0:inf);   // Material fo.Q product
+parameter real rbt_fQfo   = `RBT_FQFO   from [1:inf);   // Frequency at which the fo.Q product is measured
+
+parameter real LTC      = `RBT_LTC from [0:inf);        // Expansion coefficient for material A
+parameter real rhoTC    = `RBT_RHOTC;                   // Density TC for material A
+parameter real YTC      = `RBT_YTC;                     // Young's Modulus TC for material A
+parameter real nuTC     = `RBT_NUTC;                    // Poisson's ratio TC for material A
+parameter real rbt_fQTC = `RBT_FQTC;                    // rbt_fQ TC for material A
+
+parameter real dT = 0; // temperature change
+
+parameter real rbt_wgVtoT   = `RBT_WGVTOT   from (0:inf);   // scaling parameter from voltage to stress
+parameter real rbt_wgLtoRho = `RBT_WGLTORHO from (0:inf);   // scaling parameter from inductance to density
+
+parameter real smallR   = 1n from(0:inf);               // small resistance for waveguide model
+
+// local parameters
+localparam real wgvtoI  = rbt_wgLtoRho/rbt_wgVtoT;              // scaling parameter, calculated to maintain impedance relation
+
+localparam real Leff    = l * ( 1 + LTC   * dT );
+localparam real rhoeff  = rho * ( 1 + rhoTC * dT );
+localparam real Yeff    = Y   * ( 1 + YTC   * dT );
+localparam real nueff   = nu  * ( 1 + nuTC  * dT );
+localparam real fQeff   = rbt_fQ  * ( 1 + rbt_fQTC  * dT );
+
+localparam real c11     = Yeff  * ( 1 - nueff ) / ((1 + nueff )*(1 - 2*nueff ));
+localparam real eta11   = c11/(2*`M_PI*fQeff);          // material losses
+localparam real omegaFQ = 2*`M_PI*rbt_fQfo;             // omega for fQ
+localparam real eta11other = c11/(omegaFQ*rbt_Qother);  // material losses
+localparam real eta11all = eta11 + eta11other;
+
+localparam real mtline_l = rhoeff/rbt_wgLtoRho;             // mtline inductance per unit length
+localparam real mtline_c = rbt_wgLtoRho/c11;                // mtline capacitance per unit length
+localparam real mtline_g = rbt_wgLtoRho*eta11all*pow(omegaFQ,2)/pow(c11,2); // mtline conductance per unit length
+localparam real mtline_r = smallR;                      // mtline resistance per unit length
+
+electrical nLast;
+
+// Actual waveguide
+mtline #(.l(mtline_l), .c(mtline_c), .g(mtline_g), .r(mtline_r), .len(Leff), .fmax(`RBT_FMAX)) mtlineInst (p,nLast,vss,vss);
+
+localparam Zl = sqrt(mtline_l/mtline_c);
+
+analog begin
+        // Termination Resistance
+        I(nLast,vss) <+ V(nLast,vss) / Zl;
+end // analog begin
+
+endmodule
+
+`endif

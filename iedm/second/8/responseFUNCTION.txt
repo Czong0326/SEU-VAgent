@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "real Id, Igs, Igd;", 
+		"bug_line": "real Id, Igs, Igs;",
+		"error_description": "Declaring 'Igd' as 'Igs' creates duplicate variable 'Igs'. This causes gate-drain current (Igd) to incorrectly reference gate-source current (Igs), merging both currents into one variable and corrupting the gate terminal behavior."
+	},
+	{
+		"original_line": "        Qgd = area*cgd*(f1 + (1/f2)*(f3*(Vgd - fcp) + (Vgd*Vgd - fcp*fcp)/", 
+		"bug_line": "        Qgd = area*cjs*(f1 + (1/f2)*(f3*(Vgd - fcp) + (Vgd*Vgd - fcp*fcp)/",
+		"error_description": "Replaced 'cgd' (gate-drain capacitance) with 'cjs' (gate-source capacitance) in the gate-drain charge calculation. This incorrectly uses the source junction parameter for drain charge storage, causing erroneous capacitance behavior in the JFET model."
+	},
+	{
+		"original_line": "parameter real lambda=0;", 
+		"bug_line": "parameter real lambda=-0.1;",
+		"error_description": "Lambda (output conductance factor) set to negative value violates physical constraints. This causes unphysical drain current behavior where Id decreases with increasing Vds in forward active region, opposite to normal JFET operation."
+	},
+	{
+		"original_line": "module n_jfet(vdrain, vgate, vsource);", 
+		"bug_line": "module n_jfet(vdrain, vsource, vgate);",
+		"error_description": "Swapped vsource and vgate ports, reversing gate/source connections. This causes incorrect Vgs/Vgd calculations, inverting transistor behavior and violating terminal relationships."
+	},
+	{
+		"original_line": "end else if (Vgd - vto <= -Vds) begin", 
+		"bug_line": "end else if (Vgd - vto <= Vds) begin",
+		"error_description": "In reverse active mode, the saturation condition incorrectly uses Vds instead of -Vds, failing to account for negative Vds magnitude. This flips the saturation/linear region logic when Vds<0."
+	},
+	{
+		"original_line": "Qgs = area*cjs*(f1 + (1/f2)*(f3*(Vgs - fcp) + (Vgs*Vgs - fcp*fcp)/", 
+		"bug_line": "Qgs = area*cjs*(f1 + (1/f2)*(f3*(Vgs - fcp) + (Vgd*Vgd - fcp*fcp)/",
+		"error_description": "Replaced Vgs with Vgd in the quadratic term of Qgs calculation, causing incorrect gate-source charge storage when gate-drain voltage differs from gate-source voltage under forward bias conditions."
+	},
+	{
+		"original_line": "f1 = (phi/(1 - m))*(1 - pow((1 - fc), m));", 
+		"bug_line": "f1 = (phi/(1 - m))*(1 - pow((1 - fc), m+1));",
+		"error_description": "The exponent in the power function is incorrectly set to m+1 instead of m, altering the junction capacitance calculation for forward-biased conditions and violating the charge storage model specifications."
+	},
+	{
+		"original_line": "Vgs = V(vgate, vsource);", 
+		"bug_line": "Vgs = V(vsource, vgate);",
+		"error_description": "Swapped terminal order: Vgs now calculates source-to-gate voltage instead of gate-to-source. This inverts the sign of Vgs, disrupting all subsequent calculations dependent on gate-source voltage polarity (e.g., threshold checks and current equations)."
+	},
+	{
+		"original_line": "fcp = fc*phi;", 
+		"bug_line": "fcp = fc/phi;",
+		"error_description": "Changed multiplication to division, causing the transition voltage fcp to be incorrectly calculated as fc/phi instead of fc*phi. This violates the capacitance model specification where fcp must represent the product of forward bias factor and barrier potential."
+	},
+	{
+		"original_line": "      Igd = is*(exp(Vgd/$vt) - 1) + Vgd*gmin;", 
+		"bug_line": "      Igd = is*(exp(Vgd/$vt) - 1) + Vgs*gmin;",
+		"error_description": "Changed Vgd to Vgs in the gmin term. The gate-drain current (Igd) should use gate-drain voltage (Vgd) for the conductance term, but incorrectly uses gate-source voltage (Vgs), breaking the physical relationship between current and voltage across the drain-gate junction."
+	},
+	{
+		"original_line": "Vgs = V(vgate, vsource);", 
+		"bug_line": "Vgs = V(vgate, vdrain);",
+		"error_description": "Incorrectly sets Vgs as gate-drain voltage instead of gate-source voltage. This fundamentally misrepresents the control voltage, causing wrong current calculations and breaking transistor operation principles."
+	},
+	{
+		"original_line": "parameter real fc=0.5 from (0:1);", 
+		"bug_line": "parameter real fc=1.0 from (0:1];",
+		"error_description": "Setting fc=1.0 allows values at the upper limit (1.0) which causes division by zero in the charge storage calculation. When fc=1.0, the term (1 - fc) becomes 0, leading to f2=0 in initial calculations. This results in 1/f2 causing infinite values during simulation when computing Qgs/Qgd."
+	},
+	{
+		"original_line": "module n_jfet(vdrain, vgate, vsource);", 
+		"bug_line": "module n_jfet(vdrain, vsource, vgate);",
+		"error_description": "Swapped gate and source ports. This reverses the gate-source voltage polarity, causing incorrect biasing and current calculations throughout the model."
+	},
+	{
+		"original_line": "parameter real area=1 from (0:inf);", 
+		"bug_line": "parameter real areas=1 from (0:inf);",
+		"error_description": "Changed parameter name from 'area' to 'areas', making the 'area' variable used in charge storage equations (Qgs/Qgd) undefined. This causes junction capacitances to default to 0, violating device physics."
+	},
+	{
+		"original_line": "Qgd = area*2*phi*cgd*(1 - sqrt(1 - Vgd/phi));", 
+		"bug_line": "Qgd = area*2*phi*cjs*(1 - sqrt(1 - Vgd/phi));",
+		"error_description": "Replaced cgd with cjs, incorrectly using gate-source capacitance parameter for gate-drain charge calculation."
+	},
+	{
+		"original_line": "parameter real cgd=0 from [0:inf);", 
+		"bug_line": "parameter real cgd=-1e-12 from (-inf:inf);",
+		"error_description": "The gate-drain junction capacitance (cgd) is set to a negative value, which is unphysical. This violates the design requirement that capacitance must be non-negative, causing incorrect charge storage calculations in the Qgd equation."
+	},
+	{
+		"original_line": "parameter real phi=1 from (0:inf);", 
+		"bug_line": "parameter real phi=0 from [0:inf);",
+		"error_description": "Setting phi to 0 causes division-by-zero errors in the charge storage equations (e.g., sqrt(1 - Vgs/phi) when Vgs ≠ 0, and violates the physical requirement that junction barrier potential must be positive."
+	},
+	{
+		"original_line": "         end else begin", 
+		"bug_line": "         end else if (Vgs > vto) begin",
+		"error_description": "Replaced unconditional 'else' with conditionally executed 'else if (Vgs > vto)' in reverse active region. This incorrectly introduces gate-source voltage dependency where only gate-drain voltage should matter, creating erroneous current calculations when Vds < 0 and Vgd - vto > -Vds."
+	},
+	{
+		"original_line": "Id = -beta*(1 - lambda*Vds)*pow((Vgd - vto), 2);", 
+		"bug_line": "Id = -beta*(1 + lambda*Vds)*pow((Vgd - vto), 2);",
+		"error_description": "Changed the sign of lambda*Vds from negative to positive, incorrectly modeling channel length modulation in reverse active region by increasing rather than decreasing drain current with Vds."
+	},
+	{
+		"original_line": "parameter real phi=1 from (0:inf);", 
+		"bug_line": "parameter real phi=0 from [0:inf);",
+		"error_description": "Setting phi=0 and including 0 in the valid range causes division by zero in charge storage calculations (e.g., Vgs/phi) and invalid square roots (sqrt(1 - Vgs/phi)), producing simulation errors like NaN."
+	}
+]

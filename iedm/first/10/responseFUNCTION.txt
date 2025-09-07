@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "F(posp,posn) <+ d*ddt(Pos(posp,posn));", 
+		"bug_line": "F(posp,posn) <+ d*Pos(posp,posn);",
+		"error_description": "Replaced velocity term (ddt(Pos)) with position (Pos). This changes the damper into a spring-like element that opposes displacement rather than velocity, fundamentally altering its mechanical behavior from energy dissipation to energy storage."
+	},
+	{
+		"original_line": "    analog", 
+		"bug_line": "    initial",
+		"error_description": "Changed 'analog' to 'initial', converting the continuous behavior block to a one-time initialization block. This prevents the damper force from being continuously updated, causing incorrect static friction instead of dynamic velocity-dependent damping."
+	},
+	{
+		"original_line": "F(posp,posn) <+ d*ddt(Pos(posp,posn));", 
+		"bug_line": "F(posp,posn) <+ d * Pos(posp,posn);",
+		"error_description": "Changed derivative (velocity) to position. Now models a spring instead of a damper - force proportional to displacement rather than rate of change."
+	},
+	{
+		"original_line": "F(posp,posn) <+ d*ddt(Pos(posp,posn));", 
+		"bug_line": "F(posp,posn) <+ d*Pos(posp,posn);",
+		"error_description": "Changed derivative of position (velocity) to position, turning the damper into a spring. Damper should oppose velocity, but now incorrectly opposes displacement."
+	},
+	{
+		"original_line": "inout posp, posn;", 
+		"bug_line": "inout a, b;",
+		"error_description": "Port names changed from posp/posn to a/b, disconnecting the damper internally. The analog block still references original names (Pos(posp,posn)), creating undeclared nodes while leaving actual ports unconnected. This violates the kinematic discipline requirement and breaks force calculation."
+	},
+	{
+		"original_line": "inout posp, posn;", 
+		"bug_line": "input posp, posn;",
+		"error_description": "Changing port direction to input prevents force contribution (F) from driving the ports, violating the damper's mechanical implementation which requires bidirectional force flow."
+	},
+	{
+		"original_line": "module damper (posp, posn);", 
+		"bug_line": "module damper (posp);",
+		"error_description": "Removed the 'posn' port, breaking the damper's force calculation between two terminals. This leaves the internal 'posn' net unconnected, causing undefined behavior in the force equation F(posp,posn)."
+	},
+	{
+		"original_line": "parameter real d = 1000;  // friction coefficient given in N/m", 
+		"bug_line": "parameter real d = -1000;  // friction coefficient given in N/m",
+		"error_description": "Negative friction coefficient causes the damper to add energy to the system instead of dissipating it, violating fundamental physical behavior of dampers."
+	},
+	{
+		"original_line": "parameter real d = 1000;  // friction coefficient given in N/m", 
+		"bug_line": "parameter real d = -1000;  // friction coefficient given in N/m",
+		"error_description": "Negative friction coefficient causes non-physical force amplification instead of damping, violating fundamental damper behavior by adding energy to the system."
+	},
+	{
+		"original_line": "F(posp,posn) <+ d*ddt(Pos(posp,posn));", 
+		"bug_line": "F(posp,posn) <+ d * Pos(posp,posn);",
+		"error_description": "Changed force contribution from velocity (derivative of position) to position. This fundamentally alters the component from a damper (friction force proportional to velocity) to a spring-like element (force proportional to position), violating the mechanical damper design specification."
+	},
+	{
+		"original_line": "inout posp, posn;", 
+		"bug_line": "input posp, posn;",
+		"error_description": "Changing port direction from inout to input prevents force contribution (F<+) in the analog block, violating the bidirectional nature of mechanical terminals required for damper functionality."
+	},
+	{
+		"original_line": "inout posp, posn;", 
+		"bug_line": "input posp, posn;",
+		"error_description": "Changing port direction to input prevents force contributions (F(posp,posn)), breaking the damper's bidirectional force flow requirement. Input ports cannot drive force outputs, violating the mechanical system's conservation principle."
+	},
+	{
+		"original_line": "    analog", 
+		"bug_line": "    analogue",
+		"error_description": "Changed 'analog' keyword to misspelled 'analogue'. This syntax error prevents recognition of the analog behavior block, causing the force equation to be ignored during simulation. The damper will provide zero resistance force."
+	},
+	{
+		"original_line": "kinematic  posp, posn;", 
+		"bug_line": "electrical posp, posn;",
+		"error_description": "Changing discipline from 'kinematic' to 'electrical' makes the ports incompatible with mechanical functions Pos() and F(), causing simulator errors when accessing position/force quantities."
+	},
+	{
+		"original_line": "kinematic  posp, posn;", 
+		"bug_line": "electrical  posp, posn;",
+		"error_description": "Changed discipline from kinematic (mechanical translational) to electrical. This functional error misrepresents the ports as electrical instead of mechanical, causing incorrect physical domain interpretation and simulation failures in mechanical systems."
+	},
+	{
+		"original_line": "inout posp, posn;", 
+		"bug_line": "input posp, posn;",
+		"error_description": "Changed port directions from inout to input. This prevents force contributions (F) to posn since output flows aren't allowed on input ports, breaking the damper's bidirectional force implementation."
+	},
+	{
+		"original_line": "kinematic  posp, posn;", 
+		"bug_line": "electrical posp, posn;",
+		"error_description": "Changing discipline from kinematic (mechanical) to electrical violates the damper's physical nature. The F() force function and Pos() position reference in the analog statement become invalid for electrical nodes, breaking the mechanical behavior simulation."
+	},
+	{
+		"original_line": "inout posp, posn;", 
+		"bug_line": "input posp, posn;",
+		"error_description": "Changing port direction to input prevents driving the force output (F(posp,posn)), violating the damper's requirement to exert force based on position derivative."
+	},
+	{
+		"original_line": "    analog", 
+		"bug_line": "    analog initial",
+		"error_description": "Added 'initial' keyword creating a hybrid block that executes only once at time zero. This prevents continuous force calculation, breaking the damper's dynamic friction behavior as it fails to respond to position changes after initialization."
+	},
+	{
+		"original_line": "module damper (posp, posn);", 
+		"bug_line": "module damper (posp);",
+		"error_description": "Removed the posn port, breaking the discipline declaration and analog block which rely on both ports, causing undeclared identifier errors and invalid force calculations."
+	}
+]

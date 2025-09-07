@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "inout I_in, I_out, Q_in, Q_out;", 
+		"bug_line": "inout I_in, output I_out, inout Q_in, Q_out;",
+		"error_description": "Changing I_out to output breaks the branch contribution I(I_out) which requires reading output voltage (V(I_out)) in the analog block. Output pins cannot be read in VerilogA, causing incorrect current calculation."
+	},
+	{
+		"original_line": "electrical I_in_int, Q_in_int;", 
+		"bug_line": "electrical I_in_int, Q_in_int; // Typo in variable name",
+		"error_description": "The comment falsely indicates a typo in 'Q_in_int', but no actual typo exists. This creates confusion during maintenance, potentially leading to incorrect 'corrections' of the valid variable name elsewhere in the code."
+	},
+	{
+		"original_line": "I(I_out) <+ (-rhoout*V(I_in_int) + V(I_out))/rout;", 
+		"bug_line": "I(I_out) <+ (-rhoout*V(Q_in_int) + V(I_out))/rout;",
+		"error_description": "Cross-channel interference introduced by feeding Q input to I output, violating I/Q separation in baseband processing."
+	},
+	{
+		"original_line": "I(I_out) <+ (-rhoout*V(I_in_int) + V(I_out))/rout;", 
+		"bug_line": "I(I_out) <+ (-rhoout*V(I_in_int) - V(I_out))/rout;",
+		"error_description": "The output voltage term sign is inverted from positive to negative, creating negative resistance at the output node. This violates impedance matching requirements and causes instability due to positive feedback."
+	},
+	{
+		"original_line": "   if(cw == 0) begin", 
+		"bug_line": "   if(cw = 0) begin",
+		"error_description": "Assignment operator (=) used instead of equality comparison (==). This sets cw to 0 and always evaluates to false, preventing the non-rotated branch from executing even when cw=0 is intended."
+	},
+	{
+		"original_line": "rhoinmax = sqrt(a/(3*b));", 
+		"bug_line": "rhoinmax = sqrt(a/(4*b));",
+		"error_description": "Changed denominator constant from 3 to 4, incorrectly calculating the input saturation amplitude (rhoinmax). This violates the amplifier's linear operation range specification by reducing the saturation threshold, causing premature distortion at lower input power levels."
+	},
+	{
+		"original_line": "real theta, beta, tmp, cp;", 
+		"bug_line": "real theta, beta, tmp;",
+		"error_description": "Removed the 'cp' variable declaration, making subsequent assignments and references to 'cp' invalid. This breaks the phase shift calculation since 'cp' is used to compute the normalization point (tmp = pow(rho/cp, shp)), leading to undefined behavior in the AM/PM conversion logic."
+	},
+	{
+		"original_line": "parameter real ip3 = -30;", 
+		"bug_line": "parameter real ip3 = -30 + gain;",
+		"error_description": "The default IP3 value is incorrectly set as output-referred IP3 (input IP3 plus gain) instead of input-referred IP3. This causes the model to interpret user-defined IP3 values as output-referred values, leading to significant distortion calculation errors where compression occurs at much higher input power levels than specified."
+	},
+	{
+		"original_line": "parameter integer cw = 0 from [-1:1];", 
+		"bug_line": "parameter integer cw = 0 from [0:1];",
+		"error_description": "The allowed range for cw incorrectly excludes -1 (clockwise phase shift direction), violating the design specification that requires support for all three phase shift modes (-1, 0, 1). This prevents the module from implementing clockwise AM/PM conversion."
+	},
+	{
+		"original_line": "parameter real shp = 2 from [1:inf);", 
+		"bug_line": "parameter real shp = 0.5 from [1:inf);",
+		"error_description": "Default shp value (0.5) violates minimum constraint [1:inf). This causes simulation failures since shp controls AM/PM conversion rate and values <1 are physically invalid per design specs."
+	},
+	{
+		"original_line": "parameter real psinf = 2 from (pscp:inf);", 
+		"bug_line": "parameter real psinf = 2 from (0:pscp);",
+		"error_description": "Reversed the valid range for psinf to (0:pscp) instead of (pscp:inf). This allows psinf to be set less than pscp, violating the design requirement that the infinite-power phase shift must be larger than the phase shift at the compression point. When psinf < pscp, the phase shift calculation becomes mathematically invalid (negative denominator in beta) and causes instability in the phase shift computation."
+	},
+	{
+		"original_line": "parameter real shp = 2 from [1:inf);", 
+		"bug_line": "parameter real shp = 0 from [0:inf);",
+		"error_description": "Setting shp=0 disables the phase shift dependency on input power. The exponent in pow(rho/cp, shp) becomes 0, making tmp=1 always. This eliminates AM-PM conversion as theta becomes constant, violating the design where shp controls phase shift variation with input power."
+	},
+	{
+		"original_line": "V(Q_in, Q_in_int) <+ white_noise(vn2, "Q_vnoise"); // based on PCR:575553", 
+		"bug_line": "V(Q_in, Q_in_int) <+ white_noise(in2, "Q_vnoise"); // based on PCR:575553",
+		"error_description": "Voltage noise source incorrectly uses current noise PSD (in2) instead of voltage noise PSD (vn2), corrupting Q-branch noise characteristics by mixing incompatible units (A²/Hz vs V²/Hz)."
+	},
+	{
+		"original_line": "I(I_out) <+ (-rhoout*V(I_in_int) + V(I_out))/rout;", 
+		"bug_line": "I(I_out) <+ (-rhoout*V(Q_in_int) + V(I_out))/rout;",
+		"error_description": "In the I branch output, the input voltage from the Q channel (Q_in_int) is incorrectly used instead of the I channel (I_in_int). This creates cross-coupling between I and Q channels when cw=0, violating the design requirement for independent channel processing in non-rotational mode."
+	},
+	{
+		"original_line": "theta = cw*(1+beta)*pscp*tmp/(1+beta*tmp);", 
+		"bug_line": "theta = cw*(1+beta)*pscp*tmp/(beta*tmp);",
+		"error_description": "The denominator was changed from (1+beta*tmp) to (beta*tmp), causing the phase shift calculation to lose its input amplitude dependency. This makes theta constant (cw*(1+beta)*pscp/beta) regardless of input power, breaking the intended AM/PM conversion behavior where phase shift should vary with signal level."
+	},
+	{
+		"original_line": "IP3     = input referenced IP3(dBm)", 
+		"bug_line": "IP3     = output referenced IP3(dBm)",
+		"error_description": "Changed input-referenced IP3 to output-referenced. This incorrectly describes the parameter as output-referenced when the internal calculations expect input-referenced IP3 values. Using output-referenced values would cause incorrect gain compression calculations and distortion behavior."
+	},
+	{
+		"original_line": "psinf   = output phase shift as the input power goes to infinity.", 
+		"bug_line": "psinf   = output phase shift as the input power goes to minus infinity.",
+		"error_description": "Changed direction of phase shift at infinite power from positive to negative infinity, contradicting the intended behavior where phase shift should increase with input power. This violates the design specification and causes incorrect AM-PM conversion in saturation."
+	},
+	{
+		"original_line": "      rnfmin = rnf;", 
+		"bug_line": "      rnfmin = 1;",
+		"error_description": "Sets minimum noise figure to 0 dB (linear=1) regardless of parameter value. Eliminates excess noise calculation since (rnfmin-1)=0, violating noise figure specification by removing amplifier's intrinsic noise contribution."
+	},
+	{
+		"original_line": "tmp = pow(rho/cp, shp);", 
+		"bug_line": "tmp = pow(cp/rho, shp);",
+		"error_description": "Inverted the ratio in the pow() function argument. The original rho/cp ratio correctly normalizes input amplitude against the phase reference point (cp). Swapping to cp/rho reverses the power dependency, causing phase shift to increase when input power decreases and vice versa, fundamentally breaking the AM/PM conversion behavior."
+	},
+	{
+		"original_line": "end // analog", 
+		"bug_line": "endmodule // analog",
+		"error_description": "Changed 'end' to 'endmodule', causing premature termination of the analog block. This prevents all subsequent noise calculations and branch connections from being executed, resulting in missing noise sources and incorrect signal processing."
+	}
+]

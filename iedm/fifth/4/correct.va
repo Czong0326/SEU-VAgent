@@ -1,0 +1,202 @@
+// VerilogA for sources_modules, wcdma_ocns, veriloga
+//
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+`define GAIN(dbVal) pow(10, dbVal/20 )
+`define PSCLENGTH 256
+`define ALENGTH 16
+
+(* instrument_module *)
+module wcdma_ocns(cin_i, cin_q, I_ocns, Q_ocns);
+output I_ocns, Q_ocns;
+input [0:`ALENGTH-1] cin_i;
+input [0:`ALENGTH-1] cin_q;
+electrical I_ocns, Q_ocns;
+electrical [0:`ALENGTH-1] cin_i;
+electrical [0:`ALENGTH-1] cin_q;
+
+parameter real frame_time = 1.0/15000.0 from (0:inf);
+parameter integer sf = 256 ;
+parameter integer numChipsOut = 256;
+parameter integer enable_input = 1;
+parameter integer polarity  = - 1;
+
+real i_out, q_out;
+real local_sample, currenttime, delay_num[0:`ALENGTH];
+integer n, i, j, use_seed[0:`ALENGTH]; 
+integer tmpIndex, tmpSF, tmpInteger;
+real ich[0:`ALENGTH],  ich_sh[0:`ALENGTH],
+      qch[0:`ALENGTH], qch_sh[0:`ALENGTH];
+real tmp, tmp1, tmptotal, gain[0:`ALENGTH];
+integer codeIndex[0:`ALENGTH], ovsfCode[0:sf*`ALENGTH];
+integer  p1, trigged, shifted, in_initialization;
+
+analog begin
+  @(initial_step) begin
+    gain[0]  = `GAIN(-1);
+    gain[1]  = `GAIN(-3);
+    gain[2]  =  gain[1];
+    gain[3]  = `GAIN(-5);
+    gain[4]  = `GAIN(-2);
+    gain[5]  = `GAIN(-4);
+    gain[6]  = `GAIN(-8);
+    gain[7]  = `GAIN(-7);
+    gain[8]  =  gain[5];
+    gain[9]  = `GAIN(-6);
+    gain[10] =  gain[3];
+    gain[11] = `GAIN(-9);
+    gain[12] = `GAIN(-10);
+    gain[13] =  gain[6];
+    gain[14] =  gain[9];
+    gain[15] = `GAIN(0);
+
+    use_seed[0]  = 8686;
+    use_seed[1]  = 134134;
+    use_seed[2]  = 5252;
+    use_seed[3]  = 4545;
+    use_seed[4]  = 143143;
+    use_seed[5]  = 112112;
+    use_seed[6]  = 5959;
+    use_seed[7]  = 2323;
+    use_seed[8]  = 11;
+    use_seed[9]  = 8888;
+    use_seed[10] = 3030;
+    use_seed[11] = 1818;
+    use_seed[12] = 3030;
+    use_seed[13] = 6161;
+    use_seed[14] = 128128;
+    use_seed[15] = 143143;
+
+    delay_num[0]  = 86;
+    delay_num[1]  = 134;
+    delay_num[2]  = 52;
+    delay_num[3]  = 45;
+    delay_num[4]  = 143;
+    delay_num[5]  = 112;
+    delay_num[6]  = 59;
+    delay_num[7]  = 23;
+    delay_num[8]  = 1;
+    delay_num[9]  = 88;
+    delay_num[10] = 30;
+    delay_num[11] = 18;
+    delay_num[12] = 30;
+    delay_num[13] = 61;
+    delay_num[14] = 128;
+    delay_num[15] = 143;
+
+    codeIndex[0]   = 2;
+    codeIndex[1]   = 11;
+    codeIndex[2]   = 17;
+    codeIndex[3]   = 23;
+    codeIndex[4]   = 31;
+    codeIndex[5]   = 38;
+    codeIndex[6]   = 47;
+    codeIndex[7]   = 55;
+    codeIndex[8]   = 62;
+    codeIndex[9]   = 69;
+    codeIndex[10] = 78;
+    codeIndex[11] = 85;
+    codeIndex[12] = 94;
+    codeIndex[13] = 125;
+    codeIndex[14] = 113;
+    codeIndex[15] = 119;
+
+    for ( n = 0; n < `ALENGTH; n = n + 1 ) begin
+      tmpSF = sf;
+      tmpIndex = codeIndex[n];
+      i = 1;
+      tmpInteger = n * sf;
+      ovsfCode[tmpInteger+1] = 1;
+      while ( tmpSF > 1 ) begin
+        tmpSF = tmpSF / 2;
+        for (j = 1; j <=i; j = j + 1 ) begin
+          if ( tmpIndex < tmpSF ) ovsfCode[tmpInteger+j+i] = ovsfCode[tmpInteger+j];
+          else ovsfCode[tmpInteger+j+i] = - ovsfCode[tmpInteger+j];
+        end
+        i = i * 2;
+        if ( tmpIndex >= tmpSF )
+          tmpIndex = tmpIndex - tmpSF;
+      end /* end of While */
+      delay_num[n] = delay_num[n] * frame_time;
+    end
+
+    p1        = 0;
+    shifted = 1;
+    trigged = 1;
+    in_initialization = 1;
+    local_sample = frame_time / numChipsOut;
+  end
+
+  currenttime = $abstime;
+
+
+  generate n ( `ALENGTH - 1, 0 ) begin
+    tmp1 = V(cin_i[n]);
+    tmp   = V(cin_q[n]);
+
+    if ( trigged && (currenttime > 0)  ) begin
+      if ( !enable_input ) begin
+        tmp1 = $rdist_uniform(use_seed[n], -1, 1 );
+        tmp  = $rdist_uniform(use_seed[n], -1, 1 );
+      end
+      if ( tmp > 0.1 ) qch_sh[n] = -`M_SQRT1_2;
+      else qch_sh[n] = `M_SQRT1_2;
+      if ( tmp1 > 0.1 ) ich_sh[n] = -`M_SQRT1_2;
+      else ich_sh[n] = `M_SQRT1_2;
+    end
+    ich[n] =  absdelay(  ich_sh[n], delay_num[n] ) ;
+    qch[n] =  absdelay( qch_sh[n], delay_num[n] ) ;
+  end
+
+  @(timer(local_sample/500, local_sample, local_sample/10000))  begin
+    i_out    = 0;
+    q_out   = 0;
+    trigged = 0;
+    p1        = p1 + 1;
+
+    if ( p1 == 1)  begin
+      tmptotal = 0;
+      for (j = 1; j <=256; j = j + 1 ) begin
+        tmp  = 0;
+        tmp1= 0;
+        for ( n = 0; n < `ALENGTH; n = n + 1 ) begin
+	  if ( ovsfCode[ n * sf + j ] > 0 ) begin
+	    tmp    = tmp   + ich[n]*gain[n];
+	    tmp1  = tmp1 + qch[n]*gain[n];
+	  end else begin
+	    tmp    = tmp   -  ich[n]*gain[n];
+	    tmp1  = tmp1 -  qch[n]*gain[n];
+	  end
+        end /* n loop */
+        tmptotal   = tmptotal + tmp*tmp + tmp1*tmp1;
+      end /* j loop */
+      tmptotal   = sqrt ( tmptotal / 256 + 1.0e-6 );
+    end
+
+    if ( (p1 == 256) || ( p1 == 128) ) begin
+      trigged = 1;
+    end
+
+    for ( n = 0; n < `ALENGTH; n = n + 1 ) begin
+      if ( ovsfCode[ n * sf + p1 ] > 0 ) begin
+        i_out  =  i_out + ich[n]*gain[n];
+        q_out = q_out + qch[n]*gain[n];
+      end else begin
+        i_out  =  i_out - ich[n]*gain[n];
+        q_out = q_out - qch[n]*gain[n];
+      end
+    end /* n loop */
+
+    if ( p1 == 256 ) p1 = 0;
+    i_out  =  i_out / tmptotal;
+    q_out = q_out / tmptotal;
+  end
+
+  V(I_ocns) <+ i_out;
+  V(Q_ocns) <+ q_out;
+
+end
+
+endmodule

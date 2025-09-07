@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "real time_ref;", 
+		"bug_line": "real time_ref = 1.0/0.0;",
+		"error_description": "Initialization with division by zero (1.0/0.0) causes a fatal simulation error during startup due to undefined mathematical operation."
+	},
+	{
+		"original_line": "      else funtheta = `PI / 2;", 
+		"bug_line": "      else funtheta = -`PI / 2;",
+		"error_description": "Changed positive PI/2 to negative PI/2 when denominator is zero and numerator is positive, causing incorrect negative phase calculation in quadrant I conditions."
+	},
+	{
+		"original_line": "qq_ref = V(Q_ref);", 
+		"bug_line": "qq_ref = V(Q_ref) + 0.1;",
+		"error_description": "Added a 0.1V DC offset to the Q_ref signal when assigning to qq_ref, introducing a constant bias in the Q reference component. This corrupts EVM calculations and reference scatter plots by shifting the Q-axis reference values."
+	},
+	{
+		"original_line": "        ave = accum_ave/accum_cycles;", 
+		"bug_line": "        ave = accum_ave * accum_cycles;",
+		"error_description": "Division operator replaced with multiplication, causing the average eye opening calculation to exponentially grow instead of computing the correct mean value. This transforms the average into a product of accumulated values and cycle count, fundamentally breaking the statistical measurement."
+	},
+	{
+		"original_line": "parameter real max_voltage = 1;", 
+		"bug_line": "parameter real max_voltage = min_voltage;",
+		"error_description": "Sets max_voltage equal to min_voltage (-1), causing bin_size calculation to become zero. This leads to division by zero in histogram binning logic and incorrect border assignments, breaking eye-opening histogram functionality."
+	},
+	{
+		"original_line": "   V(Iref_scatter) <+ ii_ref;", 
+		"bug_line": "   V(Iref_scatter) <+ ii;",
+		"error_description": "Iref_scatter incorrectly uses the noisy input signal (ii) instead of the clean reference signal (ii_ref). This contaminates the reference scatter plot with noise, making EVM calculations invalid by comparing noisy signals against corrupted references."
+	},
+	{
+		"original_line": "real delta;", 
+		"bug_line": "integer delta;",
+		"error_description": "Changing 'delta' from real to integer causes truncation of its calculated value (symbol_period/1000.0) to zero. This breaks the eye diagram blanking control since down_time becomes 0, and timer events relying on delta (e.g., total_period-delta) collapse to total_period, disrupting synchronization."
+	},
+	{
+		"original_line": "   V(root_var_eye) <+ rms_eye_temp;", 
+		"bug_line": "   V(root_var_eye) <+ rms_eye_temp * rms_eye_temp;",
+		"error_description": "The module incorrectly outputs the variance (square of standard deviation) instead of the root variance (standard deviation) of the I-output at sampling time, misrepresenting the signal statistics."
+	},
+	{
+		"original_line": "I_noise_volts = pow(I_noise,0.5);", 
+		"bug_line": "I_noise_volts = pow(I_noise,1.0);",
+		"error_description": "Changed exponent from 0.5 to 1.0, incorrectly using noise variance directly as amplitude instead of computing standard deviation, resulting in overestimated noise magnitude."
+	},
+	{
+		"original_line": "   output eye_count_hist;", 
+		"bug_line": "   input eye_count_hist;",
+		"error_description": "Changing port direction from output to input causes a functional error because the module internally drives eye_count_hist, violating input port constraints and preventing histogram data output."
+	},
+	{
+		"original_line": "ttol = symbol_period*1e-6;", 
+		"bug_line": "ttol = symbol_period*1e6;",
+		"error_description": "Changed tolerance multiplier from 1e-6 to 1e6, making ttol 1e12 times larger. This excessive tolerance will cause timing comparisons to accept events occurring far outside the intended window, severely compromising measurement accuracy."
+	},
+	{
+		"original_line": "This module generates traces that can be displayed as eye diagrams, histograms", 
+		"bug_line": "This module generates traces that can be displayed as constellation diagrams, bar charts",
+		"error_description": "The modified comment incorrectly states the module outputs constellation diagrams and bar charts instead of eye diagrams and histograms. This misrepresents the actual functionality where eye diagrams are plotted using 'sawtooth' vs 'I_eye/Q_eye', and histograms use 'eye_hist' vs 'eye_count_hist'."
+	},
+	{
+		"original_line": "symbol_period = 1/symbol_rate;", 
+		"bug_line": "symbol_period = symbol_rate;",
+		"error_description": "Assigns symbol_rate (frequency) to symbol_period instead of calculating period as 1/symbol_rate. This makes symbol_period orders of magnitude larger than intended, breaking all timing calculations that depend on it (eye diagram generation, sampling events, and histogram binning)."
+	},
+	{
+		"original_line": "`define REG_LENGTH 20", 
+		"bug_line": "`define REG_LENGTH 10",
+		"error_description": "Reduced register length from 20 to 10, causing potential out-of-bounds access in shift_reg and coeff_reg arrays which are dimensioned [1:20]. This violates the design specification requiring 20-element registers for signal processing."
+	},
+	{
+		"original_line": "V(Iref_scatter) <+ ii_ref;", 
+		"bug_line": "V(Iref_scatter) <+ ii;",
+		"error_description": "Assigns the noisy input I signal (ii) to the reference I output port (Iref_scatter) instead of the clean reference signal (ii_ref). This functional error swaps the reference and input signals in the scatter plot output."
+	},
+	{
+		"original_line": "real time_ref;", 
+		"bug_line": "real time_ref = 0;",
+		"error_description": "Initializing time_ref to zero creates a constant phase reference, preventing proper phase tracking in the VCO_ref calculation and disrupting the error vector magnitude (EVM) computation by fixing the reference phase instead of allowing dynamic updates."
+	},
+	{
+		"original_line": "input Q_ref;", 
+		"bug_line": "output Q_ref;",
+		"error_description": "Changed Q_ref from input to output direction. This violates the design requirement that Q_ref is an input reference signal, causing incorrect external connections and making internal Q_ref measurements undefined during EVM calculations."
+	},
+	{
+		"original_line": "output Q_scatter;", 
+		"bug_line": "input Q_scatter;",
+		"error_description": "Changed port direction from output to input, creating a functional error where the module attempts to drive an input port (V(Q_scatter) in the analog block, violating VerilogA port direction rules and causing simulation failure."
+	},
+	{
+		"original_line": "V(rms_EVM) <+ rms_evm_out;", 
+		"bug_line": "V(rms_EVM) <+ ave;",
+		"error_description": "Assigned the average eye opening (ave) to rms_EVM output instead of the computed error vector magnitude (rms_evm_out), causing EVM to incorrectly display a DC value representing average signal amplitude rather than modulation error percentage."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* not_instrument *)",
+		"error_description": "Changed attribute 'instrument_module' to invalid 'not_instrument', causing simulation tools to ignore instrumentation directives. This prevents proper eye diagram, histogram, and EVM computations, breaking all module functionality."
+	}
+]

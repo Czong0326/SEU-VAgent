@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "         s11 = s11*mismatch;", 
+		"bug_line": "         s11 = s11 / mismatch;",
+		"error_description": "Division instead of multiplication incorrectly inverts the mismatch effect. When mismatch=1, it maintains s11, but when mismatch=-1, it negates s11 instead of preserving the intended sign reversal for impedance matching."
+	},
+	{
+		"original_line": "`define CAPG(p, val) I(p) <+ val*ddt(V(p))", 
+		"bug_line": "`define CAPG(p, val) I(p) <+ -val*ddt(V(p))",
+		"error_description": "The negative sign inverts the capacitor's current direction, making it behave as a negative capacitor. This causes instability and incorrect AC/transient behavior in circuits using this macro."
+	},
+	{
+		"original_line": "   parameter real ip3 = -10;", 
+		"bug_line": "   parameter real ip3 = -10 from [0:inf);",
+		"error_description": "The added range constraint [0:inf) forces IP3 to be non-negative, contradicting the design requirement that IP3 (3rd-order intercept point) should typically be a negative dBm value in RF systems. This prevents setting valid negative IP3 values and causes instantiation errors for standard specifications."
+	},
+	{
+		"original_line": " *  Copyright (c) 1998", 
+		"bug_line": " */ `define db20_real(x) (1)   // Copyright (c) 1998",
+		"error_description": "The modification prematurely terminates the comment block and redefines the critical 'db20_real' macro to always return 1. This corrupts all S-parameter calculations (s11, s21, s22, s12), causing incorrect gain, return loss, and isolation values. The amplifier will exhibit flat 0dB characteristics instead of specified gain and matching behavior."
+	},
+	{
+		"original_line": "`define CAP(p, n, val) I(p,n) <+ val*ddt(V(p,n))", 
+		"bug_line": "`define CAP(p, n, val) I(p,n) <+ val*ddt(V(p))",
+		"error_description": "Changed capacitor voltage reference from differential (V(p,n)) to single-ended (V(p)). This makes the capacitor model reference node p to ground instead of between nodes p and n, fundamentally altering the component behavior from a two-terminal device to an incorrect single-terminal device."
+	},
+	{
+		"original_line": "I(in_int) <+ V(in)/rin*(1-s11)/(1+s11);", 
+		"bug_line": "I(in_int) <+ V(out)/rin*(1-s11)/(1+s11);",
+		"error_description": "Replaced input voltage (V(in)) with output voltage (V(out)), causing incorrect coupling where input current depends on output voltage instead of its own input voltage."
+	},
+	{
+		"original_line": "rip3 = `db10_real(ip3-30);", 
+		"bug_line": "rip3 = `db10_real(ip3+30);",
+		"error_description": "Changed subtraction to addition in IP3 dBm conversion. This erroneously adds 30 dB instead of subtracting, resulting in incorrect IP3 calculation (e.g., -10 dBm becomes +20 dBm). This distorts nonlinearity modeling and compression point behavior."
+	},
+	{
+		"original_line": "s21 = -`db20_real(gain);", 
+		"bug_line": "s21 = `db20_real(gain);",
+		"error_description": "Removed the negative sign in the gain assignment, causing incorrect phase inversion in the amplifier. The original design requires negative gain for proper signal inversion in the output current calculation, but the modified line makes the gain positive, disrupting the signal phase and amplification behavior."
+	},
+	{
+		"original_line": "s11 = `db20_real(gammain);", 
+		"bug_line": "s11 = `db10_real(gammain);",
+		"error_description": "Replaced voltage-to-dB conversion (db20_real) with power-to-dB conversion (db10_real) for input reflection coefficient. This incorrectly computes s11 as a power ratio instead of voltage ratio, introducing 6dB error in input impedance calculation."
+	},
+	{
+		"original_line": "   parameter real isolation = 200 from (0:inf);", 
+		"bug_line": "   parameter real isolation = 0 from [0:inf);",
+		"error_description": "Changed default isolation value to 0 and range to include 0. This allows zero isolation, causing s12 calculation to become 0 dB (reverse isolation completely broken), where the original design requires positive isolation > 0 dB for proper LNA functionality."
+	},
+	{
+		"original_line": "`define CAP(p, n, val) I(p,n) <+ val*ddt(V(p,n))", 
+		"bug_line": "`define CAP(p, n, val) I(p,n) <+ val*idt(V(p,n))",
+		"error_description": "Replaced derivative (ddt) with integral (idt) in capacitor definition. Capacitors require current proportional to voltage derivative, but using integral causes incorrect accumulation behavior and violates fundamental capacitor physics."
+	},
+	{
+		"original_line": "   parameter real nf = 2 from [0:inf);", 
+		"bug_line": "   parameter real nf = -2 from [-inf:inf);",
+		"error_description": "Changed noise figure (nf) default to -2 dB and allowed negative values. Negative noise figures are physically impossible as they violate the second law of thermodynamics. This causes invalid calculations in the noise_current expression where (rnf-1) becomes negative, leading to square root of negative number errors during simulation."
+	},
+	{
+		"original_line": "analog begin", 
+		"bug_line": "digital begin",
+		"error_description": "Replaced 'analog' with 'digital', changing the simulation domain. VerilogA requires analog blocks for continuous-time behavior. This prevents the amplifier equations from being evaluated during transient simulation."
+	},
+	{
+		"original_line": "electrical in_int, out_int;", 
+		"bug_line": "electrical in_int_wrong, out_int;",
+		"error_description": "Renaming 'in_int' to 'in_int_wrong' causes the node 'in_int' referenced throughout the code (e.g., I(in_int)) to become undeclared. This breaks all input network calculations since the input_int node is missing, violating the amplifier's input impedance modeling requirements."
+	},
+	{
+		"original_line": "I(in_int) <+ -a2*s12/(sqrt(rin)*(1+s11));", 
+		"bug_line": "I(in_int) <+ -a1*s12/(sqrt(rin)*(1+s11));",
+		"error_description": "The reverse isolation term (s12) incorrectly uses input wave variable a1 instead of output wave variable a2, causing improper feedback from output to input and breaking the intended reverse isolation behavior."
+	},
+	{
+		"original_line": "   parameter real gammain = -150 from (-inf:0];", 
+		"bug_line": "   parameter real gammain = 150 from [0:inf);",
+		"error_description": "Changed gammain range to positive values [0:inf) and default to 150. Return loss (gammain) must be negative dB value per specification. Positive values cause invalid reflection coefficient magnitude >1 in S11 calculation, breaking S-parameter model physics."
+	},
+	{
+		"original_line": "rnf = `db10_real(nf);", 
+		"bug_line": "rnf = `db20_real(nf);",
+		"error_description": "Incorrect conversion of noise figure (NF) from dB to linear: used voltage/current ratio (20 dB/decade) instead of power ratio (10 dB/decade). This underestimates the linear noise figure by square-rooting the correct value, leading to insufficient noise current generation."
+	},
+	{
+		"original_line": "real      noise_current;", 
+		"bug_line": "integer      noise_current;",
+		"error_description": "Changed noise_current from real to integer type. This truncates the calculated noise current value to zero (since typical noise values are extremely small fractions), eliminating all amplifier noise and making the noise figure 0 dB instead of the specified NF value."
+	},
+	{
+		"original_line": "s12 = `db20_real(-isolation);", 
+		"bug_line": "s12 = `db20_real(isolation);",
+		"error_description": "Removed the negative sign before 'isolation'. This incorrectly calculates reverse isolation as a large positive gain instead of a small attenuation value, violating the amplifier's isolation specification and causing signal leakage from output to input."
+	},
+	{
+		"original_line": "c3  = 4.0/3.0*s21/(2*rip3*4);", 
+		"bug_line": "c3  = 4.0/3.0*s21/(2*rip3/4);",
+		"error_description": "Changed denominator multiplication to division, making the divisor (2*rip3/4) instead of (8*rip3). This reduces the divisor by factor of 16, causing incorrect third-order coefficient calculation and IP3 distortion modeling."
+	}
+]

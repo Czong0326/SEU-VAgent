@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real iturn_on = 1m from [0:inf);", 
+		"bug_line": "parameter real iturn_on = -1m from [0:inf);",
+		"error_description": "The negative default value (-1mA) violates the valid range [0:inf). Simulators clamp this to 0, making the turn-on condition always true for any positive gate current, causing erratic thyristor triggering."
+	},
+	{
+		"original_line": "   integer thyr_state;", 
+		"bug_line": "   integer thyr_state = `ON;",
+		"error_description": "Initializes thyristor state to ON instead of OFF. This functional error causes the thyristor to conduct immediately without gate triggering, violating the required off-state behavior at startup."
+	},
+	{
+		"original_line": "V(vgate,vcathode) <+ 0.0;", 
+		"bug_line": "I(vgate,vcathode) <+ 0.0;",
+		"error_description": "Changed voltage contribution to current contribution, forcing gate current to zero. This prevents thyristor triggering since gate current must exceed iturn_on to activate the device."
+	},
+	{
+		"original_line": "          && (thyr_state == `OFF) && (V(vanode,vcathode) > von))begin", 
+		"bug_line": "          && (thyr_state == `ON) && (V(vanode,vcathode) > von))begin",
+		"error_description": "The condition incorrectly requires the thyristor to already be ON to trigger turn-on, preventing it from ever switching states since it starts in OFF. This violates the design where gate current should turn the device ON when OFF."
+	},
+	{
+		"original_line": "`define OFF 0", 
+		"bug_line": "`define OFF 1",
+		"error_description": "Changing OFF state to 1 creates a state conflict with ON (defined as 1). This breaks the state machine logic as both states become indistinguishable, causing incorrect thyristor behavior where ON/OFF conditions overlap and state transitions fail."
+	},
+	{
+		"original_line": "`define ON 1", 
+		"bug_line": "`define ON 0",
+		"error_description": "Defining ON as 0 (same value as OFF) causes state confusion. The thyristor's state machine fails because both states share value 0, preventing proper transition between on/off states and permanently disabling conduction."
+	},
+	{
+		"original_line": "`define OFF 0", 
+		"bug_line": "`define OFF 1",
+		"error_description": "Changing `OFF to 1 makes it identical to `ON (both defined as 1). This causes the thyristor state logic to fail: 1) Turn-on condition requires state=OFF (1), which never occurs initially (state=0); 2) After turning ON (state=1), turn-off condition sets state to OFF (1) - same as ON. The thyristor either never triggers or cannot turn off once activated."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   digital begin",
+		"error_description": "Changed 'analog' to 'digital', which creates a fundamental domain error. Verilog-A requires analog blocks for continuous behavior modeling, while digital blocks are for discrete event simulation. This modification prevents the thyristor's analog equations from being processed, rendering the entire model non-functional."
+	},
+	{
+		"original_line": "`define OFF 0", 
+		"bug_line": "`define OFF 1",
+		"error_description": "Sets OFF state to same value as ON state (1), causing state confusion where thyristor cannot distinguish between ON/OFF states, preventing turn-off transitions and corrupting state machine logic."
+	},
+	{
+		"original_line": "      else begin", 
+		"bug_line": "      if (thyr_state == `ON) begin",
+		"error_description": "Replaced 'else' with 'if (thyr_state == `ON)', causing the thyristor's ON-state voltage contribution to become conditional without handling the case when thyr_state is neither ON nor OFF. This violates the design by leaving the branch undriven in uninitialized states and breaks the intended complementary behavior between OFF and ON states."
+	},
+	{
+		"original_line": "electrical vanode, vcathode, vgate;", 
+		"bug_line": "electrical vanode, vcathode; ground vgate;",
+		"error_description": "The gate node (vgate) is incorrectly declared as ground instead of electrical. This fixes the gate at 0V, making the gate input ineffective. The thyristor can no longer be triggered since the gate current measurement (I(vgate,vcathode)) becomes invalid, breaking the control functionality entirely."
+	},
+	{
+		"original_line": "inout vanode, vcathode;", 
+		"bug_line": "input vanode, vcathode;",
+		"error_description": "Changing vanode and vcathode from bidirectional (inout) to input-only prevents the module from driving current/voltage when the thyristor is in the ON state, violating the design requirement to impose the on-voltage (von) between anode and cathode during conduction."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   analog fork begin",
+		"error_description": "Replaced 'begin' with 'fork begin', changing sequential block to parallel execution. This causes all statements in the analog block to execute concurrently rather than sequentially, violating Verilog-A's single-threaded analog context and leading to undefined behavior in state transitions and contributions."
+	},
+	{
+		"original_line": "inout vanode, vcathode;", 
+		"bug_line": "input vanode, vcathode;",
+		"error_description": "Changing both ports to input prevents driving voltage/current between anode and cathode in the analog block, breaking thyristor functionality."
+	},
+	{
+		"original_line": "V(vanode,vcathode) <+ von ;", 
+		"bug_line": "I(vanode,vcathode) <+ von ;",
+		"error_description": "Changes voltage contribution to current contribution in ON state, violating thyristor behavior by incorrectly modeling the forward voltage drop as a current source instead of a voltage source."
+	},
+	{
+		"original_line": "               I(vanode,vcathode) <+ 0.0;", 
+		"bug_line": "               V(vanode,vcathode) <+ 0.0;",
+		"error_description": "Changed current assignment to voltage assignment in OFF state. This incorrectly forces 0V across anode-cathode (short-circuit) instead of blocking current, fundamentally altering thyristor behavior by conducting when it should be off."
+	},
+	{
+		"original_line": "                  && (I(vgate,vcathode) < iturn_on) )begin", 
+		"bug_line": "                  && (I(vgate,vcathode) > iturn_on) )begin",
+		"error_description": "Changed comparison operator from less-than to greater-than. This inverts the gate current condition, requiring gate current to exceed the turn-on threshold to deactivate the thyristor, instead of falling below it."
+	},
+	{
+		"original_line": "         V(vanode,vcathode) <+ von ;", 
+		"bug_line": "         V(vanode,vcathode) <+ 0 ;",
+		"error_description": "Sets voltage drop to 0V in ON state instead of specified 'von' parameter, eliminating the required forward voltage drop when conducting and violating design specifications."
+	},
+	{
+		"original_line": "parameter real ihold = 10m from [0.0:inf);", 
+		"bug_line": "parameter real ihold = -10m from [0.0:inf);",
+		"error_description": "Negative hold current (-10mA) violates the [0.0:inf) range and inverts the thyristor turn-off condition. Since anode current cannot be negative, the turn-off check (I(vanode,vcathode) < ihold) always evaluates to false, preventing the thyristor from ever turning off once activated."
+	},
+	{
+		"original_line": "      if ((I(vgate,vcathode) > iturn_on)", 
+		"bug_line": "      if ((I(vcathode,vgate) > iturn_on)",
+		"error_description": "The condition incorrectly measures current from cathode to gate instead of gate to cathode. Since thyristor gate current flows into the gate (negative in this reversed direction), the triggering condition (I > positive threshold) will never be met, preventing turn-on."
+	}
+]

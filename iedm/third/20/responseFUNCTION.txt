@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "   integer sw_state;", 
+		"bug_line": "   real sw_state;",
+		"error_description": "Changing sw_state from integer to real causes floating-point precision issues in state comparisons. The condition 'if (sw_state == 0)' may fail due to accumulated numerical errors in real-valued assignments, leading to incorrect switch state transitions."
+	},
+	{
+		"original_line": "inout vp, vn;", 
+		"bug_line": "input vp, vn;",
+		"error_description": "Changing ports from inout to input prevents driving the switch terminals. The V(vp,vn) contribution when closed and I(vp,vn) contribution when open become invalid since input ports cannot be driven."
+	},
+	{
+		"original_line": "electrical vp, vn, vctrlp, vctrln;", 
+		"bug_line": "electrical vp, vn, vctrlp;",
+		"error_description": "Removed vctrln terminal declaration. This leaves vctrln undefined in the analog block where V(vctrlp,vctrln) is used, causing incorrect voltage sensing and broken switch control functionality."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Replaced 'analog' with 'initial', causing the switch logic to execute only once at simulation start instead of continuously. This prevents dynamic switching based on control voltage changes during simulation."
+	},
+	{
+		"original_line": "module sw(vp, vn, vctrlp, vctrln);", 
+		"bug_line": "module sw(vp, vn, vctrln, vctrlp);",
+		"error_description": "Swapped control port order: vctrln and vctrlp positions are reversed. This inverts the control voltage measurement (V(vctrln,vctrlp) instead of V(vctrlp,vctrln)), causing the switch to activate when control voltage is below -vth instead of above vth."
+	},
+	{
+		"original_line": "sw_state = (V(vctrlp,vctrln) > vth) ? 1: 0;", 
+		"bug_line": "sw_state = (V(vp,vn) > vth) ? 1: 0;",
+		"error_description": "The condition incorrectly uses the voltage across the switch output (vp,vn) instead of the control voltage (vctrlp,vctrln). This creates a circular dependency where the switch state depends on its own output voltage, leading to unstable behavior and incorrect switching logic."
+	},
+	{
+		"original_line": "      @ (cross(V(vctrlp, vctrln) - vth, -1, 1.0, vctrlp.potential.abstol) )", 
+		"bug_line": "      @ (cross(V(vctrlp, vctrln) - vth, +1, 1.0, vctrlp.potential.abstol) )",
+		"error_description": "Changed cross direction from -1 (falling edge) to +1 (rising edge). This prevents the switch from opening when control voltage drops below threshold, as the falling-edge trigger is disabled."
+	},
+	{
+		"original_line": "module sw(vp, vn, vctrlp, vctrln);", 
+		"bug_line": "module sw(vp, vctrlp, vn, vctrln);",
+		"error_description": "Swapped positions of 'vn' and 'vctrlp' ports, causing incorrect connections between switch terminals and control signals. Now 'vctrlp' is connected where 'vn' should be, and vice versa, leading to reversed voltage measurements and improper switching behavior."
+	},
+	{
+		"original_line": "electrical vp, vn, vctrlp, vctrln;", 
+		"bug_line": "electrical vp, vn, vctrlp, vctrlm;",
+		"error_description": "Misspelled 'vctrln' as 'vctrlm' in terminal declaration, causing the control terminal 'vctrln' to be undeclared. This breaks the voltage measurement V(vctrlp,vctrln) and prevents proper switch operation."
+	},
+	{
+		"original_line": "   integer sw_state;", 
+		"bug_line": "   parameter integer sw_state = 1;",
+		"error_description": "Changing 'sw_state' to a parameter with fixed value 1 forces the switch to permanently stay closed, preventing dynamic state changes based on control voltage comparisons and violating the required switching behavior."
+	},
+	{
+		"original_line": "module sw(vp, vn, vctrlp, vctrln);", 
+		"bug_line": "module sw(vp, vn, vctrln, vctrlp);",
+		"error_description": "Swapped control signal ports 'vctrlp' and 'vctrln' causes reversed polarity detection. The threshold comparison now uses (V(vctrln,vctrlp)) instead of (V(vctrlp,vctrln)), inverting the switch activation logic and violating design requirements."
+	},
+	{
+		"original_line": "       else begin", 
+		"bug_line": "       else if (sw_state == 0) begin",
+		"error_description": "The condition 'sw_state == 0' in the else-if branch duplicates the preceding if condition. Since the first branch already handles state 0, this else-if branch never executes. This prevents the closed-switch branch (state 1) from being handled, leaving the switch permanently open."
+	},
+	{
+		"original_line": "       V(vp,vn) <+ 0.0 ;", 
+		"bug_line": "       I(vp,vn) <+ 0.0 ;",
+		"error_description": "Replaced voltage contribution with current contribution. When the switch is on, this incorrectly models an open circuit (zero current) instead of a short circuit (zero voltage), violating the fundamental switch behavior where ON state should force identical potentials at vp and vn."
+	},
+	{
+		"original_line": "parameter real vth = 2;", 
+		"bug_line": "parameter real vth = -2;",
+		"error_description": "Negative threshold voltage inverts switch logic: switch activates when control voltage drops below -2V instead of activating above 2V, violating the intended functionality."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   analog begin real vth;",
+		"error_description": "Declaring a local real variable 'vth' shadows the module parameter 'vth'. The uninitialized local variable defaults to 0.0, overriding the intended threshold voltage (2V). This causes incorrect switch behavior where control voltages > 0V activate the switch instead of > 2V."
+	},
+	{
+		"original_line": "      if (sw_state == 0)begin", 
+		"bug_line": "      if (sw_state == 1)begin",
+		"error_description": "Condition inverted - switch now opens when control voltage is above threshold (should close) and closes when below threshold (should open), reversing intended behavior."
+	},
+	{
+		"original_line": "      else begin", 
+		"bug_line": "      if (sw_state == 0) begin",
+		"error_description": "Changes the else block to a redundant if condition for the open state, causing the closed state logic (short) to never execute. The switch remains permanently open regardless of control voltage."
+	},
+	{
+		"original_line": "       V(vp,vn) <+ 0.0 ;", 
+		"bug_line": "       I(vp,vn) <+ 0.0 ;",
+		"error_description": "In the closed state (sw_state=1), the switch should enforce zero voltage between terminals by contributing a voltage constraint (V <+ 0.0). Changing this to a zero current contribution (I <+ 0.0) fails to short the terminals, leaving the voltage unconstrained and making the switch behave as open in both states."
+	},
+	{
+		"original_line": "sw_state = (V(vctrlp,vctrln) > vth) ? 1: 0;", 
+		"bug_line": "sw_state = (V(vctrlp,vctrln) > 0) ? 1: 0;",
+		"error_description": "Replaced threshold parameter 'vth' with fixed value 0, causing the switch to ignore its configured threshold voltage and always trigger at 0V control voltage difference."
+	},
+	{
+		"original_line": "       I(vp,vn) <+ 0.0;", 
+		"bug_line": "       V(vp,vn) <+ 0.0;",
+		"error_description": "In the open state (sw_state==0), the module incorrectly forces the voltage across vp and vn to 0V (a short) instead of forcing 0A (an open). This causes the switch to be permanently shorted regardless of control voltage, violating the design specification."
+	}
+]

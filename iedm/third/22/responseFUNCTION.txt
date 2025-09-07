@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "if ( theta == 0.0 )", 
+		"bug_line": "if ( theta = 0.0 )",
+		"error_description": "Assignment operator '=' used instead of equality comparison '=='. This sets theta to 0.0 instead of checking its value, causing the else branch to always execute and producing incorrect angle normalization for all cases."
+	},
+	{
+		"original_line": "      if ( theta == 0.0 )", 
+		"bug_line": "      if ( theta > 0.0 )",
+		"error_description": "Changed condition from equality check to greater-than check. This prevents normalization of theta at exactly 0.0, causing unnormalized shaft angles to accumulate indefinitely during motor operation. This affects back EMF and torque calculations which rely on periodic trigonometric functions of theta modulo 2π."
+	},
+	{
+		"original_line": "inout shaft_w, com;", 
+		"bug_line": "input shaft_w, com;",
+		"error_description": "Changing port direction from inout to input prevents driving torque values back to the shaft_w and com rotational nodes. This breaks conservation of energy in the rotational system since the module can only read mechanical speeds but cannot apply generated torque to the shaft."
+	},
+	{
+		"original_line": "V(vp1,vn1) <+ back_emf*cos(theta) + rm*I(vp1, vn1) + ddt(lm*I(vp1,vn1));", 
+		"bug_line": "V(vp1,vn1) <+ back_emf*sin(theta) + rm*I(vp1, vn1) + ddt(lm*I(vp1,vn1));",
+		"error_description": "Replaced cosine with sine for back_emf calculation. This breaks the 3-phase symmetry since other phases use cosine with phase offsets, causing torque ripple and position errors."
+	},
+	{
+		"original_line": "theta = idt(Omega(shaft_w,com), 0.0);", 
+		"bug_line": "theta = ddt(Omega(shaft_w,com));",
+		"error_description": "Changed integral (idt) to derivative (ddt). Now theta becomes angular acceleration instead of angular position, corrupting all position-dependent calculations (back EMF, torque, and shaft position)."
+	},
+	{
+		"original_line": "parameter real j = 0.0004;", 
+		"bug_line": "parameter real j = 0.0;",
+		"error_description": "Setting inertia parameter to zero removes the motor's rotational inertia effect, violating the design specification that requires inertial behavior for accurate motor dynamics simulation."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   digital begin",
+		"error_description": "Changed 'analog' to 'digital', converting the continuous-time analog block to a discrete digital block. This fundamentally breaks motor modeling since physical motor equations require continuous-time differential expressions which digital blocks cannot support."
+	},
+	{
+		"original_line": "                         + I(vp3, vn3)*cos(theta+2*`PI/3))", 
+		"bug_line": "                         + I(vp3, vn2)*cos(theta+2*`PI/3))",
+		"error_description": "Terminal direction error: vn2 (phase2 negative) used instead of vn3 (phase3 negative). This incorrectly measures current between phase3 positive and phase2 negative, corrupting torque calculation by introducing cross-phase current dependency."
+	},
+	{
+		"original_line": "   real theta, back_emf;", 
+		"bug_line": "   real theta;",
+		"error_description": "Removed the 'back_emf' variable declaration. This causes 'back_emf' to be an implicit net (default wire type) instead of a real variable, leading to incorrect back EMF computation and simulation failures since real-valued calculations require proper real variable storage."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   digital begin",
+		"error_description": "Changed 'analog' to 'digital', which fundamentally alters the simulation domain from continuous analog behavior to discrete event-driven logic. This prevents proper evaluation of motor dynamics and causes immediate simulation failure since VerilogA requires analog blocks for physical modeling."
+	},
+	{
+		"original_line": "      Theta(shaft_pos) <+ theta;", 
+		"bug_line": "      Theta(shaft_pos) <+ 0.0;",
+		"error_description": "The shaft position is incorrectly fixed at 0.0 radians instead of tracking the actual angle (theta), violating the position reporting requirement and causing external controllers to receive incorrect positional data."
+	},
+	{
+		"original_line": "rotational shaft_pos;", 
+		"bug_line": "rotational_omega shaft_pos;",
+		"error_description": "Changed position terminal to velocity discipline. Theta(shaft_pos) assignment requires rotational (position) node, but now receives rotational_omega (velocity) node causing discipline mismatch and simulation failure."
+	},
+	{
+		"original_line": "parameter real j = 0.0004;", 
+		"bug_line": "parameter real j = 0.0;",
+		"error_description": "Inertia factor j set to zero, eliminating rotational inertia in motor dynamics. This violates physical behavior where inertia resists acceleration changes, causing unrealistic instantaneous speed responses."
+	},
+	{
+		"original_line": "parameter real rm = 0.2;", 
+		"bug_line": "parameter real rm = 0.0;",
+		"error_description": "Motor resistance set to zero causes unrealistic short-circuit behavior, eliminating voltage drop across windings and disrupting torque generation physics."
+	},
+	{
+		"original_line": "integer nu;", 
+		"bug_line": "real nu;",
+		"error_description": "Changing 'nu' from integer to real prevents truncation to whole cycles during angle normalization. This causes theta to accumulate unbounded values over time, leading to numerical instability and incorrect back EMF/torque calculations due to large-angle trigonometric inaccuracies."
+	},
+	{
+		"original_line": "                                 + I(vp2, vn2)*cos(theta-2*`PI/3)", 
+		"bug_line": "                                 - I(vp2, vn2)*cos(theta-2*`PI/3)",
+		"error_description": "Sign inversion error: The negative sign incorrectly inverts the torque contribution from phase 2 current, violating the motor's torque equation which requires additive summation of all phase contributions."
+	},
+	{
+		"original_line": "nu = 0.0;", 
+		"bug_line": "nu = 1;",
+		"error_description": "Sets nu to 1 instead of 0 when theta is exactly zero. This incorrectly adjusts theta to -2π instead of 0, causing erroneous position calculations and periodic errors in back EMF/torque due to cosine term mismatches."
+	},
+	{
+		"original_line": "theta = idt(Omega(shaft_w,com), 0.0);", 
+		"bug_line": "theta = idt(Omega(com,shaft_w), 0.0);",
+		"error_description": "Reversed rotational terminals in Omega() call swaps reference direction, causing incorrect angular position calculation. This inverts back EMF and torque relationships."
+	},
+	{
+		"original_line": "      Tau(shaft_w, com) <+   kf *( I(vp1, vn1)*cos(theta)", 
+		"bug_line": "      Tau(shaft_w, com) <+   kf *( I(vp1, vn1)*sin(theta)",
+		"error_description": "Replaced cosine with sine for phase 1 torque calculation, violating the motor's torque equation which requires alignment between phase currents and rotor position using cosine terms for proper torque production."
+	},
+	{
+		"original_line": "                                 + I(vp3, vn3)*cos(theta+2*`PI/3))", 
+		"bug_line": "                                 + I(vp1, vn1)*cos(theta+2*`PI/3))",
+		"error_description": "Replaced phase 3 current (I(vp3,vn3)) with phase 1 current (I(vp1,vn1)) in the torque equation, causing incorrect summation where phase 1 contributes twice while phase 3 is omitted, disrupting balanced torque generation."
+	}
+]

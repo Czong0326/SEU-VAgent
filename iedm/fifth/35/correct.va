@@ -1,0 +1,80 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright @ 2016 Purdue University.
+//  
+// The terms under which the software and associated documentation (the Software) is provided are as the following:
+//  
+// The Software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, 
+// fitness for a particular purpose and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages or other 
+// liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the Software or the use or other dealings
+// in the Software.
+//   
+// Purdue grants, free of charge, to any users the right to modify, copy, and redistribute the Software, both within the user's 
+// organization and externally, subject to the following restrictions:
+//  
+// 1. The users agree not to charge for the code itself but may charge for additions, extensions, or support.
+//  
+// 2. In any product based on the Software, the users agree to acknowledge the Research Group that developed the software. This acknowledgment shall 
+//    appear in the product documentation.
+//  
+// 3. The users agree to obey all U.S. Government restrictions governing redistribution or export of the software.
+//  
+// 4. The users agree to reproduce any copyright notice which appears on the software on any copy or modification of such made available to others.
+// 
+// Agreed to by 
+// Yanfei Shen, Scott Calvert, Jeffrey F. Rhoads, Saeed Mohammadi, Purdue University
+// Feb. 17, 2016
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// Verilog_A compact model for double clamped silicon nano-resonators
+// Mechanical Forcing Model by S. Calvert, Mechanical Engineering, Purdue Univsersity
+// Implemented by Y. Shen, Birck Nanotechnology Center, Purdue Univsersity
+// Version 1.0.0
+//
+
+`include "constants.vams"
+`include "disciplines.vams"
+`include "gateInteractionVA.va"
+`include "piezoResVA.va"
+`define  CURRENT_ABSTOL 1.0e-15
+`define  CHARGE_ABSTOL  1.0e-15
+`define  POSITION_ABSTOL 1.0e-13
+`define  VELOCITY_ABSTOL 1.0e-13
+`define  BLOWUP 1.0e12
+
+module NEMS_model_verilog_A(Back,Drain,Side,Source);
+
+        parameter real L = 6.0e-6                     from (0:inf);         // length of the beam [m]
+        parameter real W = 120.0e-9                   from (0:inf);         // width of the beam [m]
+        parameter real H = 110.0e-9                   from (0:inf);         // height of the beam [m]
+        parameter real gap = 144.0e-9                 from [0:inf);         // the initial gap between the beam and gate[m]
+        parameter real C = 0.6e-6                     from [-inf:inf);      // the specific damping coefficient for the beam
+        parameter real Sr = 0.0e9                     from (-inf:inf);      // the residual stress in the beam [GPa]
+        parameter real Rg = 263.0e3                   from [0:inf);         // resistance between two gates, back and side
+        parameter real Rsubs = 10.0e12                from [0:inf);         // substrate resistance 
+        parameter real Cs = 2.9218e-17                from [0:inf);         // side gate capacitance
+        parameter real RESIS = 0.00022535527511173582 from [0:inf);         // resistivity of the doped Si
+        parameter real POIS  = 0.17                   from [0:inf);         // poisson's ratio for Si in <111> dir
+        parameter real piEff = 1.403e-9               from [0:inf);         // effective longitudinal piezoresistive coefficient
+	
+        inout Back,Drain,Side,Source;
+        electrical Back,Drain,Side,Source;
+        electrical net9;
+        kinematic net10;
+        real Q;
+
+        piezoResVA #(.L(L),.W(W),.H(H),.RESIS(RESIS),.POIS(POIS),.piEff(piEff)) I0(net9,Source,net10);
+        piezoResVA #(.L(L),.W(W),.H(H),.RESIS(RESIS),.POIS(POIS),.piEff(piEff)) I1(Drain,net9,net10);
+        gateInteractionVA #(.L(L),.W(W),.H(H),.gap(gap),.C(C),.Sr(Sr)) I2(net9,Back,net10);
+        
+        analog begin
+               I(Back, Side) <+ V(Back, Side)/Rg;
+               I(Drain, Source) <+ V(Drain, Source)/Rsubs;
+               
+               Q = Cs*V(Side, net9);
+               I(Side, net9) <+ ddt(Q);
+        end
+	
+endmodule
+
+

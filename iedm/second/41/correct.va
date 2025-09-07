@@ -1,0 +1,142 @@
+// VerilogA file for MFM capacitor (details in S. Deng et al., "A Comprehensive Model for Ferroelectric FET Capturing the Key Behaviors: 
+// Scalability, Variation, Stochasticity, and Accumulation," VLSI 2020)
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+module MFM(vtop, vbot);                            // vtop: top electrode; vbot: bottom electrode
+inout vtop, vbot;
+electrical vtop, vbot;
+    
+parameter real width = 1u from (0:inf);            // MFM's width (m)
+parameter real length = 1u from (0:inf);           // MFM's length (m)
+parameter real vfb = 0.5 from [0:inf);             // standard deviation of offset voltage (V)
+parameter real tfe = 8n from (0:inf);              // thickness of ferroelectrics (m)
+parameter real epiv = 8.85e-12 from (0:inf);       // vaccum permittivity (F/m)
+parameter real a = 8 from (0:inf);                 // mean of activation field distribution (MV/cm)
+parameter real b = 2 from (0:inf);                 // standard deviation of activation field distribution (MV/cm)
+parameter real p = 0.6775 from (0:inf);            // adjustment coefficient to calculate activation field
+parameter real q = 0.8115 from (0:inf);            // adjustment coefficient to calculate activation field
+parameter real Ps = 18 from (0:inf);               // saturated polarization (uC/cm2)
+parameter real tauo = 1e-7 from (0:inf);           // switching time constant (s)
+parameter real alpha = 3.2975 from (0:inf);        // exponent when calculating tau
+parameter real beta = 2 from (0:inf);              // exponent when calculating P(t)
+parameter real epife = 30 from (0:inf);            // relative permittivity of ferroelectrics
+parameter real TIMELIMIT = 1e9 from (0:inf);       // time limitation to calculate the lower bound of switching field (s)
+parameter integer ndom = 2000 from (0:inf);        // number of domains
+parameter integer seed = 20 from (0:inf);          // random seed to set initial state
+
+   real vtb;
+   real vswitchlimit[0:ndom-1], vswitch[0:ndom-1], r_Ea[0:ndom-1], f_Ea[0:ndom-1], r_voff[0:ndom-1], h[0:ndom-1], hpre[0:ndom-1], St[0:ndom-1], taus[0:ndom-1];
+   real vpre, Pcurr, time_pre, srand;
+   (*desc="the FE charge"*) real sumq;
+   real f_distr[0:9999], l[0:9999], Ea, k, E, sum, pswi;
+   integer i, j, m, flag;
+   
+   analog function real gamma_function;
+      input x;
+      real x, fact, c[0:19], accm;
+      integer i;
+      begin
+         fact = 1.0;
+         c[0] = sqrt(2.0 * `M_PI);
+         for (i = 1; i < 20; i = i + 1) begin
+            c[i] = exp(20-i) * pow(20-i, i-0.5) / fact;
+            fact = -fact * i;
+         end
+         accm = c[0];
+         for (i = 0; i < 20; i = i + 1) begin
+            accm = accm + c[i] / (x + i);
+         end
+         accm = accm * exp(-(x+20)) * pow(x+20, x+0.5);
+         gamma_function = accm/x;
+      end
+   endfunction
+
+   analog function real beta_function;
+      input x, y;
+      real x, y;
+      begin
+         beta_function = gamma_function(x) * gamma_function(y) / gamma_function(x + y);
+      end
+   endfunction
+      
+   analog begin
+
+      @ ( initial_step or initial_step("static") ) begin
+         time_pre = $abstime;
+         for (i = 0; i < ndom; i = i + 1) begin
+            Ea = i * 8.0 / ndom;
+            f_Ea[i] = (a/b) * pow(Ea/b, a*p-1) / beta_function(p,q) / pow((1 + pow(Ea/b, a)), p+q);
+            r_voff[i] = $rdist_normal(seed, 0, vfb);
+            St[i] = 1;
+            h[i] = 0;
+         end
+         for (i = 0; i < 10000; i = i + 1) begin
+            k = ndom / 10000.0 * i;
+            m = floor(k);
+            if (m >= ndom - 1) begin
+               l[i] = f_Ea[ndom - 1];
+            end else begin 
+               l[i] = f_Ea[m] * (1 + m - k) + f_Ea[m + 1] * (k - m);
+            end
+            if (i >= 1) begin
+               f_distr[i] = f_distr[i - 1] + (l[i] + l[i - 1]) * 4.0 / 10000.0;
+            end else begin
+               f_distr[i] = 0;
+            end
+         end
+         for (i = 0; i < 10000; i = i + 1) begin
+            f_distr[i] = f_distr[i] / f_distr[9999];
+         end
+         for (i = 0; i < ndom; i = i + 1) begin
+            E = $rdist_uniform(seed, 0, 1);
+			r_Ea[i] = 0;
+            flag = 0;
+            for (j = 1; j < 10000; j = j + 1) begin
+               if (f_distr[j] > E && !flag) begin
+                  r_Ea[i] = j * 8.0 / 10000.0;
+                  flag = 1;
+               end
+            end
+         end
+      end
+
+      
+      vtb = V(vtop, vbot);
+      
+      
+      sum = 0;
+      for (i = 0; i < ndom; i = i + 1) begin
+         vswitchlimit[i] = r_Ea[i]/pow(ln(TIMELIMIT/tauo), 1.0/alpha);
+         vswitch[i] = (vtb + vpre) / 2.0 - r_voff[i];
+         taus[i] = tauo * exp(pow(r_Ea[i]/max(abs(vswitch[i]), vswitchlimit[i]), alpha));
+         h[i] = hpre[i] + ($abstime - time_pre) * (vswitch[i] * St[i] <= 0 ? 1.0 : -1.0) / taus[i];
+         
+         if (hpre[i] > h[i]) begin
+            pswi = -0.1;
+         end else begin
+            pswi = 1 - exp(pow(hpre[i], beta) - pow(h[i], beta));
+         end
+         if (h[i] < 0 || pswi > 0.5) begin
+            h[i] = 0;
+         end
+         
+         srand = $rdist_uniform(seed, 0, 1);
+         
+         if (pswi > srand) begin
+            St[i] = -St[i];
+         end
+         
+         hpre[i] = h[i];
+         sum = sum + St[i];
+      end
+      
+      vpre = vtb;
+      time_pre = $abstime;
+      Pcurr = Ps * sum / ndom + 100 * vtb * epife * epiv / tfe;
+	  sumq = Ps * sum / ndom;
+      I(vtop, vbot) <+ ddt(Pcurr/100*width*length);
+      
+   end
+endmodule

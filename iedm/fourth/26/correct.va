@@ -1,0 +1,167 @@
+//  VerilogA baseband behavioral model of an up-converting IQ mixer pair.
+//  Copyright (c) 1999
+//  by Cadence Design Systems, Inc.  All rights reserved.
+ 
+// 11/20/99
+ 
+/*
+This is a simple baseband model of an up-converting mixer stage. The local
+oscillator is absorbed into this model.
+*/
+ 
+/* PARAMETER DEFINITIONS:
+======================
+I_gain    = available power gain in dB. 
+I_cpdb    = 1 db compression point, measured in dbm,
+          referred to the output.
+I_psinf   = output phase shift as the input power goes to infinity.
+I_cmp     = input power pt for phase point.[dBm]
+I_pscp    = output phase shift at cmp.[radians]
+I_shp     = determines how fast the phase shift occurs with increasing
+          input power. A larger number delays the shift but makes
+          the shift rise faster as a function of input signal level.
+I_cw      = determines the direction of the phase shift. The phase
+          shift is only in one direction. +1 means counter-clockwise, -1
+          means clockwise, and 0 means no phase shift (no am/pm conversion).
+
+Q_gain    = voltage gain in dB.
+Q_IP3     = input referenced IP3(dBm)
+Q_psinf   = output phase shift as the input power goes to infinity.
+Q_cmp     = input power pt for phase point.[dBm]
+Q_pscp    = output phase shift at cmp.[radians]
+Q_shp     = determines how fast the phase shift occurs with increasing
+          input power. A larger number delays the shift but makes
+          the shift rise faster as a function of input signal level.
+Q_cw      = determines the direction of the phase shift. The phase
+          shift is only in one direction. +1 means counter-clockwise, -1
+          means clockwise, and 0 means no phase shift (no am/pm conversion).
+ 
+
+nf      = noise figure [dB]
+rin     = input resistance
+rout    = output resistance
+=====================
+*/
+ 
+`define PI 3.1415926535897932384626433
+
+`include "constants.h"
+`include "discipline.h"
+
+module IQ_mod_BB(I_in , I_out, Q_in, Q_out, phase_err);
+inout I_in ;
+electrical I_in ;
+inout I_out;
+electrical I_out;
+inout Q_in;
+electrical Q_in;
+inout Q_out;
+electrical Q_out;
+inout phase_err;
+electrical phase_err;
+
+parameter real I_gain = 40;
+parameter real Q_gain = 40;
+parameter real I_cpdb = -30;
+parameter real Q_cpdb = -30;
+parameter real rin = 50 from (0:inf);
+parameter real rout = 50 from (0:inf);
+ 
+parameter real I_pscp = 0.7 from (0:inf);
+parameter real Q_pscp = 0.7 from (0:inf);
+parameter real I_psinf = 2 from (I_pscp:inf);
+parameter real Q_psinf = 2 from (Q_pscp:inf);
+parameter real I_shp = 2 from [0:inf);
+parameter real Q_shp = 2 from [0:inf);
+parameter integer I_cw = 0 from [-1:1];
+parameter integer Q_cw = 0 from [-1:1];
+parameter real nf = 2 from [0:inf];
+
+parameter real quad_error = 0;
+ 
+real I_a;
+real Q_a;
+real I_b;
+real Q_b;
+real I_cmp;
+real Q_cmp;
+real I_rho;
+real Q_rho;
+real I_rhooutmax;
+real Q_rhooutmax;
+real I_rhoinmax;
+real Q_rhoinmax;
+real I_rhoout;
+real Q_rhoout;
+real I_theta;
+real Q_theta;
+real I_beta;
+real Q_beta;
+real tmp;
+real I_cp;
+real Q_cp;
+real noise_current;
+real rnf;
+real root2x2;
+ 
+analog begin
+ 
+// The initial block converts the input parameters from engineering
+// units to implementation units.
+   @(initial_step) begin
+
+     I_a = sqrt(pow(10,I_gain/10)*rout/rin);
+     I_cmp = sqrt(pow(10,(I_cpdb+1)/10)*2*rout*0.001)/I_a;
+     I_b = I_a*(0.145)/(I_cmp*I_cmp);
+     I_rhoinmax = sqrt(I_a/(3*I_b));
+     I_rhooutmax = (2*I_a/3)*I_rhoinmax;
+     I_beta = I_pscp/(I_psinf-I_pscp);
+
+     Q_a = sqrt(pow(10,Q_gain/10)*rout/rin);
+     Q_cmp = sqrt(pow(10,(Q_cpdb+1)/10)*2*rout*0.001)/Q_a;
+     Q_b = Q_a*(0.145)/(Q_cmp*Q_cmp);
+     Q_rhoinmax = sqrt(Q_a/(3*Q_b));
+     Q_rhooutmax = (2*Q_a/3)*Q_rhoinmax;
+     Q_theta = 0;
+     Q_beta = Q_pscp/(Q_psinf-Q_pscp);
+
+     root2x2 = 2*sqrt(2);
+
+     rnf = pow(10,nf/10);
+     noise_current = sqrt(4*(rnf-1)*1.380620e-23*$temperature/rin);
+ 
+   end
+
+   I_rho = V(I_in);
+   Q_rho = V(Q_in);
+ 
+// Apply the third order non-linearity. Clamp the
+// output for extreme inputs.
+  if ( abs(I_rho) < I_rhoinmax ) I_rhoout = (I_a - I_b*I_rho*I_rho)*I_rho;
+  else if (I_rho < 0) I_rhoout = -I_rhooutmax;
+  else I_rhoout = I_rhooutmax;
+  if ( abs(Q_rho) < Q_rhoinmax ) Q_rhoout = (Q_a - Q_b*Q_rho*Q_rho)*Q_rho;
+  else if (Q_rho < 0) Q_rhoout = -Q_rhooutmax;
+  else Q_rhoout = Q_rhooutmax;
+
+ 
+// Rotate the output for am/pm conversion.
+  tmp = pow(I_rho/I_cmp,I_shp);
+  I_theta = I_cw*(1+I_beta)*I_pscp*tmp/(1+I_beta*tmp)+V(phase_err)+quad_error/2;
+
+  tmp = pow(Q_rho/Q_cmp,Q_shp);
+  Q_theta = Q_cw*(1+Q_beta)*Q_pscp*tmp/(1+Q_beta*tmp)+V(phase_err)-quad_error/2;
+
+  I(phase_err) <+ V(phase_err)/50;
+  I(I_in) <+ V(I_in)/rin;
+  I(Q_in) <+ V(Q_in)/rin;
+  I(I_out) <+ (-root2x2*(I_rhoout*cos(I_theta)-Q_rhoout*sin(Q_theta)) + V(I_out))/rout;
+  I(Q_out) <+ (-root2x2*(I_rhoout*sin(I_theta)+Q_rhoout*cos(Q_theta)) + V(Q_out))/rout;
+
+ 
+  I(I_in) <+ white_noise(noise_current*noise_current, "IQ_mod_BB_i");
+  I(Q_in) <+ white_noise(noise_current*noise_current, "IQ_mod_BB_q");
+ 
+end
+
+endmodule

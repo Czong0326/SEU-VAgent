@@ -1,0 +1,214 @@
+//#######################################################################
+//#
+//#  File :  ndtfet.va
+//#  Authors : Trond Ytterdal, Hao Lu and Alan Seabaugh
+//#  Date : Nov. 25, 2014
+//#  Description : University of Notre Dame TFET Model
+//#  References : Based on Lu et al., "Universal analytic model for
+//#  tunnel FET circuit simulation", Solid-State Electronics, 2014
+//#  Restrictions :
+//#
+//#######################################################################
+//#
+//#  Version history:
+//#
+//#   v1.6.8 Nov. 25, 2014  Hao Lu: Initial version for NEEDS
+//#
+//#######################################################################
+
+
+//`define DEBUG_CV
+
+
+`ifdef insideADMS
+
+ `define P(p) (*p*)
+
+ `define PGIVEN(p)		$given(p)
+
+ `define INITIAL_MODEL		@(initial_model)
+
+ `define INITIAL_INSTANCE	@(initial_instance)
+
+`else
+
+ `define P(p)
+
+ `define PGIVEN(p)		p
+
+ `define INITIAL_MODEL		@(initial_step or initial_step("static"))
+
+ `define INITIAL_INSTANCE
+
+`endif
+
+
+
+`include "discipline.h"
+
+`define n_type 1
+`define p_type -1
+
+`define CHARGE 1.6021918e-19
+`define HBAR 1.05458e-34
+`define PI 3.141592653
+`define EPS0 8.85418782e-12
+`define VDSMIN 1e-12
+`define DELTA 5
+`define VMIN 0.0001
+`define AMIN 0.0001
+
+
+module ndtfet(drain, gate, source);
+  inout drain, gate, source;
+  electrical drain, gate, source;
+
+  electrical drainprime, gateprime, sourceprime;
+
+
+  parameter real l = 20n from (0:inf) `P(spice:name="w" type="instance");
+
+  parameter real w = 1u from (0:inf) `P(spice:name="w" type="instance");
+
+  parameter real alpha = 1.14;
+  parameter real beta = 0.02;
+  parameter real cgs0 = 6.9e-11;
+
+  parameter real e0 = 0.527e8;
+  parameter real eg = 0.35;
+  parameter real eot = 0.2n;
+  parameter real eta = 0.1;
+  parameter real epsi = 1.0;
+  parameter real gamma = 0.06;
+  parameter real gammac = 0.18;
+  parameter real j0 = 1e7;
+  parameter real jp = 2e8;
+  parameter real k = 2;
+  parameter real lambda = 0.19;
+  parameter real mc = 2;
+  parameter real mr = 0.012;
+
+  parameter real n1 = 1.8;
+  parameter real n2 = 1.1;
+
+  parameter real r0 = 0.5;
+
+  parameter real r1 = 0.01;
+
+  parameter real r2 = 1.3;
+  parameter real rdw = 0;
+  parameter real rgwl = 0;
+  parameter real rsw = 0;
+  parameter real s = 1;
+
+  parameter real tch = 5e-9;
+
+  parameter integer type = `n_type;
+  parameter real vp = 0.05;
+
+  parameter real vth = 0.17;
+
+  real vds, vsd, vdse, vsde, vgs, vgd, mrvalue, egvalue, u0, a, b, ru, gi, q, r0p, deltas;
+  real ci, cgs, cgd, cgdmax, cgdmin, ac, ace;
+  real vgt, vgo, vgoe, vgoen, f, u, e, id;
+  real vgta, vgoa, vgoea, vgoena, fa, ua, ea, ida, ide;
+  real rd, rg, rs, gd, gg, gs;
+
+  analog
+    begin
+      `INITIAL_MODEL
+
+        begin
+
+          q = `CHARGE;
+
+          u0 = n1*$vt;
+
+          mrvalue = mr*9.1095e-31;
+
+          egvalue = eg*q;
+
+          ru = r0*u0;
+
+          gi = 1/gamma;
+
+          r0p = 1-r0;
+          deltas = `DELTA*`DELTA;
+        end
+
+      `INITIAL_INSTANCE
+
+        begin
+
+          a = w*tch*q*q*q/(8*`PI*`PI*`HBAR*`HBAR)*sqrt(2*mrvalue/egvalue);
+
+          b = 4*egvalue*sqrt(2*mrvalue*egvalue)/(3*q*`HBAR);
+          ci = `EPS0*epsi*w*l/eot;
+          cgdmax = 0.9*ci;
+          cgdmin = 0.13*ci;
+          rd = rdw/(w*1e6);
+          rg = rgwl*w/l;
+          rs = rsw/(w*1e6);
+          if(rd > 0)
+            gd = 1/rd;
+          else
+            gd = 0;
+          if(rg > 0)
+            gg = 1/rg;
+          else
+            gg = 0;
+          if(rs > 0)
+            gs = 1/rs;
+          else
+            gs = 0;
+        end
+      vds = type*V(drainprime,sourceprime);
+      vgd = type*V(gateprime,drainprime);
+      vgs = type*V(gateprime,sourceprime);
+      vgt  = vgs-vth;
+      vdse = `VDSMIN*(0.5*vds/`VDSMIN+sqrt(deltas+(0.5*vds/`VDSMIN-1)*(0.5*vds/`VDSMIN-1))-sqrt(deltas+1));
+      // main drain-source tunneling current
+      vgo  = vgs;
+      vgoe = `VMIN*(1+0.5*vgo/`VMIN+sqrt(deltas+(0.5*vgo/`VMIN-1)*(0.5*vgo/`VMIN-1)));
+      vgoen = vgoe/(vth);
+      f = (1-limexp(-vdse*gi))/(1+limexp((lambda*tanh(vgo)-vdse)*gi));
+      u = ru+r0p*u0*vgoen;
+      e = e0*(1+r1*vdse+r2*vgoe);
+      id = a*f*u*ln(1+limexp((vgt)/u))*e*limexp(-b/e);
+      // ambipolar drain-source current   
+      vgta = -vgs-vth;
+      vgoa  = -vgo;
+      vgoea = `VMIN*(1+0.5*vgoa/`VMIN+sqrt(deltas+(0.5*vgoa/`VMIN-1)*(0.5*vgoa/`VMIN-1)));
+      vgoena = vgoea/vth;
+      fa = (1-limexp(-vdse*gi))/(1+limexp((lambda*tanh(vgoa)-vdse)*gi));
+      ua = ru+r0p*u0*vgoena;
+      ea = e0*(1+r1*vdse+r2*vgoea);
+      ida = s*a*fa*ua*ln(1+limexp((vgta)/ua))*ea*limexp(-b/ea);
+      // RTD drain-source current
+      vsd = -vds;
+      vsde = `VDSMIN*(0.5*vsd/`VDSMIN+sqrt(deltas+(0.5*vsd/`VDSMIN-1)*(0.5*vsd/`VDSMIN-1))-sqrt(deltas+1));
+      ide = -w*tch*(jp*vsde/vp*k*vgoe*limexp(1+(-vsde+eta*vgs)/vp)+j0*(limexp(vsde/n2/$vt)-1));
+      // capacitance calculations
+      ac = ((1+beta*pow(vgs,mc))-limexp(-vgo/gammac))/(1+limexp((vth+alpha*vdse-vgo)/gammac));
+      ace = `AMIN*(1+0.5*ac/`AMIN+sqrt(deltas+(0.5*ac/`AMIN-1)*(0.5*ac/`AMIN-1)));
+      cgs = cgs0*w;
+      cgd = cgdmin + (cgdmax - cgdmin)*ace;
+      // Augment the matrix
+      I(gateprime,sourceprime) <+ type*cgs*ddt(vgs);
+      I(gateprime,drainprime) <+ type*cgd*ddt(vgd);
+      I(drainprime,sourceprime) <+ type*(id+ida+ide);
+      if(rd > 0)
+        I(drain,drainprime) <+ gd*V(drain,drainprime);
+      else
+        V(drain,drainprime) <+ 0.0;
+      if(rs > 0)
+        I(source,sourceprime) <+ gs*V(source,sourceprime);
+      else
+        V(source,sourceprime) <+ 0.0;
+      if(rg > 0)
+        I(gate,gateprime) <+ gg*V(gate,gateprime);
+      else
+        V(gate,gateprime) <+ 0.0;
+    end
+endmodule
+

@@ -1,0 +1,245 @@
+//======================================================================
+//Copyright @ 2016 Massachusetts Institute of Technology (MIT)
+// 
+// The terms under which the software and associated documentation
+// (the Software) is provided are as the following:
+// 
+// The Software is provided "as is", without warranty of any kind,
+// express or implied, including but not limited to the warranties of
+// merchantability, fitness for a particular purpose and noninfringement.
+// In no event shall the authors or copyright holders be liable for any claim,
+// damages or other liability, whether in an action of contract,
+// tort or otherwise, arising from, out of or in connection with the Software
+// or the use or other dealings in the Software.
+// 
+// MIT grants, free of charge, to any users the right to modify, copy,
+// and redistribute the Software, both within the user's organization and
+// externally, subject to the following restrictions:
+// 
+// 1. The users agree not to charge for the MIT code itself but may charge
+//      for additions, extensions, or support.
+// 
+// 2. In any product based on the Software, the users agree to acknowledge
+//      the MIT Computational Prototyping Research Group that developed
+//      the software. This acknowledgment shall appear in the product
+//      documentation.
+// 
+// 3. The users agree to obey all U.S. Government restrictions governing
+//      redistribution or export of the software.
+// 
+// 4. The users agree to reproduce any copyright notice which appears on
+//      the software on any copy or modification of such made available to others.
+// 
+// Agreed to by 
+// Luca Daniel, MIT
+// March 1st, 2016
+//======================================================================
+// rbt.va
+//======================================================================
+// RBT compact model (top level module)
+//
+// Version: 1.0.0
+// Tested on: Cadence Spectre 15.1.0.284.isr1
+//
+// Author: Bichoy Bahr [bichoy at mit dot edu]
+// Last Modified: March 31st, 2016
+
+`ifdef __RBT_VA__
+`else
+`define __RBT_VA__
+
+`include "constants.vams"
+`include "disciplines.vams"
+`include "rbtConst.va"
+`include "rbtParasitics.va"
+`include "rbtThermal.va"
+`include "rbtCapTrans.va"
+`include "rbtBody.va"
+`include "rbtMVSSense.va"
+
+
+module rbt(p,n,d,g,s,b,T);
+
+inout p,n;
+inout d, g, s, b;
+inout T;
+
+electrical p,n;
+electrical d, g, s, b;
+thermal T;
+
+
+//======================================================================
+// Model parameters
+//======================================================================
+
+parameter real version = 1.00;                          // Verion
+
+// Dimensional parameters
+parameter real rbt_L       = `RBT_L       from (0:inf); // Cavity resonator length
+parameter real rbt_LA      = `RBT_LA      from (0:inf); // Termination length of material A
+parameter real rbt_LB      = `RBT_LB      from (0:inf); // Termination length of material B
+parameter real rbt_W       = `RBT_W       from (0:inf); // Width of the bar
+parameter real rbt_THK     = `RBT_THK     from (0:inf); // Thickness of the bar
+
+parameter real rbt_g       = `RBT_G       from (0:inf); // Drive dielectric thickness
+
+// Material properties
+parameter real rbt_epsd    = `RBT_EPSD    from [1:inf); // Drive dielectric permittivity
+
+parameter real rbt_rho     = `RBT_RHO     from (0:inf); // Density
+parameter real rbt_Y       = `RBT_Y       from (0:inf); // Young's Modulus
+parameter real rbt_nu      = `RBT_NU      from [0:0.5]; // Poisson's ratio
+
+parameter real rbt_rhoB    = `RBT_RHOB    from (0:inf); // Density for material B
+parameter real rbt_YB      = `RBT_YB      from (0:inf); // Young's Modulus for material B
+parameter real rbt_nuB     = `RBT_NUB     from [0:0.5]; // Poisson's ratio for material B
+
+parameter real rbt_fQ      = `RBT_FQ      from (0:inf); // Resonator Quality factor
+parameter real rbt_fQfo    = `RBT_FQFO    from [1:inf); // Frequency for which fQ is calculated 
+parameter real rbt_Qother  = `RBT_QOTHER  from (0:inf); // Other damping
+
+parameter real rbt_QotherB = `RBT_QOTHERB from (0:inf); // Other losses for material B
+parameter real rbt_fQB     = `RBT_FQB     from (0:inf); // Resonator Quality factor for material B
+parameter real rbt_fQfoB   = `RBT_FQFOB   from [1:inf); // Harmonic for which fQ is calculated material B
+
+
+// Scaling parameters
+parameter real rbt_wgVtoT   = `RBT_WGVTOT   from (0:inf);   // scaling parameter from voltage to stress
+parameter real rbt_wgLtoRho = `RBT_WGLTORHO from (0:inf);   // scaling parameter from inductance to density
+
+parameter real rbt_driveMSF = `RBT_DRIVEMSF from (0:inf);       // Mode shape factor for driving
+parameter real rbt_senseMSF = `RBT_SENSEMSF from (0:inf); // Mode shape factor for sensing
+
+
+// Thermal properties
+parameter real rbt_Tnom   = `RBT_T0   from [0:inf); // Nominal temperature
+parameter real rbt_dT     = 0;                      // Nominal temperature
+parameter real rbt_Rth    = `RBT_RTH  from (0:inf); // Thermal resistance
+parameter real rbt_cm     = `RBT_CM   from (0:inf); // Mass heat capacity
+
+parameter real rbt_LTC    = `RBT_LTC  from [0:inf); // Expansion coefficient
+parameter real rbt_LDTC   = `RBT_LDTC from [0:inf); // Driving dielectric expansion coefficient
+parameter real rbt_LSTC   = `RBT_LSTC from [0:inf); // Sensing dielectric expansion coefficient
+parameter real rbt_rhoTC  = `RBT_RHOTC; // Density TC
+parameter real rbt_YTC    = `RBT_YTC;   // Young's Modulus TC
+parameter real rbt_nuTC   = `RBT_NUTC;  // Poisson's ratio TC
+parameter real rbt_fQTC   = `RBT_FQTC;  // fQ TC
+
+parameter real rbt_LTCB    = `RBT_LTCB   from [0:inf);  // Expansion coefficient for material B
+parameter real rbt_rhoTCB  = `RBT_RHOTCB;               // Density TC for material B
+parameter real rbt_YTCB    = `RBT_YTCB;                 // Young's Modulus TC for material B
+parameter real rbt_nuTCB   = `RBT_NUTCB;                        // Poisson's ratio TC for material B
+parameter real rbt_fQTCB   = `RBT_FQTCB;                        // rbt_fQ TC for material A
+
+
+// Sensing parameters
+parameter real rbt_pilong  = `RBT_PILONG;  // Transverse Piezoresistivity coefficient
+
+// Parasitics parameters
+// Feed-through capacitances
+parameter real rbt_Cfpd = `RBT_CFPD from [0:inf); // p to d series R
+parameter real rbt_Cfpg = `RBT_CFPG from [0:inf); // p to g series R
+parameter real rbt_Cfps = `RBT_CFPS from [0:inf); // p to s series R
+parameter real rbt_Cfpb = `RBT_CFPB from [0:inf); // p to b series R
+// Feed-through resistances
+parameter real rbt_Rfpd = `RBT_RFPD from [0:inf); // p to d series C
+parameter real rbt_Rfpg = `RBT_RFPG from [0:inf); // p to g series C
+parameter real rbt_Rfps = `RBT_RFPS from [0:inf); // p to s series C
+parameter real rbt_Rfpb = `RBT_RFPB from [0:inf); // p to b series C
+// Body resistance
+parameter real rbt_Rfnb = `RBT_RFNB from (0:inf); // n to b series R
+
+// Sensing  MVS parameters
+parameter real          mvss_version    = 1.10;                                 // MVS model mvss_version = 1.0.1
+parameter integer       mvss_type       = 1             from [-1 : 1] exclude 0;// mvss_type of transistor. nFET mvss_type=1; pFET mvss_type=-1
+parameter real          mvss_W          = `MVSS_WFET    from (0:inf);           // Transistor width [cm]
+parameter real          mvss_Lgdr       = `MVSS_LFET    from (0:inf);           // Physical gate length [cm]. //        This is the designed gate length for litho printing.
+parameter real          mvss_dLg        = 10.5e-7       from (0:inf);           // Overlap length including both source and drain sides [cm]  
+parameter real          mvss_Cg         = `MVSS_CG      from (0:inf);           // Gate-to-channel areal capacitance at the virtual source [F/cm^2]
+parameter real          mvss_etov       = `MVSS_EOTV    from (0:inf);           // Equivalent thickness of dielectric at S/D-G overlap [cm]
+parameter real          mvss_delta      = `MVSS_DELTA   from [0:inf);           // Drain-induced-barrier-lowering (DIBL) [V/V]
+parameter real          mvss_n0         = 1.5           from [0:inf);           // Subthreshold swing factor [unit-less] {typically between 1.0 and 2.0}
+parameter real          mvss_Rs0        = 100           from (0:inf);           // Access resistance on s-terminal [Ohms-micron]
+parameter real          mvss_Rd0        = 100           from (0:inf);           // Access resistance on d-terminal [Ohms-micron] 
+                                                                                // Generally, mvss_Rs0 = mvss_Rd0 for symmetric source and drain
+parameter real          mvss_Cif        = 1e-12         from [0:inf);           // Inner fringing S or D capacitance [F/cm] 
+parameter real          mvss_Cof        = 2e-13         from [0:inf);           // Outer fringing S or D capacitance [F/cm] 
+parameter real          mvss_vxo        = 0.765e7       from (0:inf);           // Virtual source injection velocity [cm/s]
+parameter real          mvss_mu         = 200           from (0:inf);           // Low-field mobility [cm^2/V.s]
+parameter real          mvss_beta       = `MVSS_BETA    from (0:inf);           // Saturation factor. Typ. nFET=1.8, pFET=1.6
+parameter real          mvss_Tjun       = 298           from [173:inf);         // Junction temperature [K]
+parameter real          mvss_phib       = 1.2;                                  // ~abs(2*phif)>0 [V]
+parameter real          mvss_gamma      = 0.0           from [0:inf);           // Body factor  [sqrt(V)]
+parameter real          mvss_Vt0        = `MVSS_VT0;                            // Strong inversion threshold voltage [V] 
+parameter real          mvss_alpha      = 3.5;                                  // Empirical parameter for threshold voltage shift between strong and weak inversion.
+parameter real          mvss_mc         = 0.2           from [0.01 : 10];       // Choose an appropriate value between 0.01 to 10 
+                                                                                // For, values outside of this range,convergence or accuracy of results is not guaranteed
+parameter integer       mvss_CTM_select = 1             from [1 : inf);         // If mvss_CTM_select = 1, then classic DD-NVSAT model is used
+                                                                                // For mvss_CTM_select other than 1,blended DD-NVSAT and ballistic charge transport model is used 
+parameter real          mvss_CC         = 0             from [0:inf);           // Fitting parameter to adjust Vg-dependent inner fringe capacitances(Not used in this mvss_version)
+parameter real          mvss_nd         = 0             from [0:inf);           // Punch-through factor [1/V]
+parameter real          mvss_zeta       = 1.0           from (0:1];             // Energy-transfer factor
+
+
+//======================================================================
+// Internal nodes
+//======================================================================
+electrical x;
+
+//======================================================================
+// Model Instances
+//======================================================================
+
+// Driving capacitor
+rbtCapTrans #(
+        .rbt_g(rbt_g), .rbt_epsd(rbt_epsd), .rbt_L(rbt_L), .rbt_W(rbt_W),
+        .rbt_THK(rbt_THK), .rbt_LTC(rbt_LTC), .rbt_LDTC(rbt_LDTC),
+        .rbt_dT(rbt_dT), .rbt_driveMSF(rbt_driveMSF),
+        .rbt_wgVtoT(rbt_wgVtoT), .rbt_wgLtoRho(rbt_wgLtoRho)
+)  rbtCapTransInst (p,n,x,b);
+
+// Resonant body module
+rbtBody #(
+        .rbt_L(rbt_L), .rbt_LA(rbt_LA), .rbt_LB(rbt_LB),
+        .rbt_rho(rbt_rho), .rbt_Y(rbt_Y), .rbt_nu(rbt_nu), .rbt_fQ(rbt_fQ),
+        .rbt_fQfo(rbt_fQfo), .rbt_Qother(rbt_Qother),
+        .rbt_rhoB(rbt_rhoB), .rbt_YB(rbt_YB), .rbt_nuB(rbt_nuB), .rbt_fQB(rbt_fQB),
+        .rbt_fQfoB(rbt_fQfoB), .rbt_QotherB(rbt_QotherB),
+        .rbt_LTC(rbt_LTC), .rbt_rhoTC(rbt_rhoTC), 
+        .rbt_YTC(rbt_YTC), .rbt_nuTC(rbt_nuTC), .rbt_fQTC(rbt_fQTC), 
+        .rbt_LTCB(rbt_LTCB), .rbt_rhoTCB(rbt_rhoTCB), 
+        .rbt_YTCB(rbt_YTCB), .rbt_nuTCB(rbt_nuTCB), .rbt_fQTCB(rbt_fQTCB), 
+        .rbt_dT(rbt_dT),
+        .rbt_wgVtoT(rbt_wgVtoT), .rbt_wgLtoRho(rbt_wgLtoRho)
+)  rbtBodyInst (x,b);
+
+// Thermal module
+rbtThermal #(
+        .rbt_L(rbt_L), .rbt_Rth(rbt_Rth), .rbt_cm(rbt_cm), 
+        .rbt_W(rbt_W), .rbt_THK(rbt_THK), .rbt_rho(rbt_rho)
+) rbtThermalInst (T);
+
+// Parasitics module
+rbtParasitics #(
+        .rbt_Cfpd(rbt_Cfpd), .rbt_Cfpg(rbt_Cfpg), .rbt_Cfps(rbt_Cfps), .rbt_Cfpb(rbt_Cfpb),
+        .rbt_Rfpd(rbt_Rfpd), .rbt_Rfpg(rbt_Rfpg), .rbt_Rfps(rbt_Rfps), .rbt_Rfpb(rbt_Rfpb),
+        .rbt_Rfnb(rbt_Rfnb), .rbt_Tnom(rbt_Tnom)
+) rbtParasiticsInst(p,n,d,g,s,b,x,T);
+
+// MVS sensing FET
+rbtMVSSense #(
+        .rbt_pilong(rbt_pilong), 
+        .rbt_wgVtoT(rbt_wgVtoT), .rbt_senseMSF(rbt_senseMSF),
+        .mvss_version(mvss_version), .mvss_type(mvss_type), .mvss_W(mvss_W), .mvss_Lgdr(mvss_Lgdr), .mvss_dLg(mvss_dLg), 
+        .mvss_Cg(mvss_Cg), .mvss_etov(mvss_etov), .mvss_delta(mvss_delta), .mvss_n0(mvss_n0), .mvss_Rs0(mvss_Rs0), 
+        .mvss_Rd0(mvss_Rd0), .mvss_Cif(mvss_Cif), .mvss_Cof(mvss_Cof), .mvss_vxo(mvss_vxo), .mvss_mu(mvss_mu), 
+        .mvss_beta(mvss_beta), .mvss_Tjun(mvss_Tjun), .mvss_phib(mvss_phib), .mvss_gamma(mvss_gamma), .mvss_Vt0(mvss_Vt0), 
+        .mvss_alpha(mvss_alpha), .mvss_mc(mvss_mc), .mvss_CTM_select(mvss_CTM_select), .mvss_CC(mvss_CC), .mvss_nd(mvss_nd), 
+        .mvss_zeta(mvss_zeta) 
+) rbtMVSSenseInst (d,g,s,b, x,b,T);
+
+
+endmodule 
+
+`endif

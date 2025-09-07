@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "tfire_dir_p = $abstime + V(tfire);", 
+		"bug_line": "tfire_dir_p = $abstime + vdrop_rect;",
+		"error_description": "Replaced input signal V(tfire) with parameter vdrop_rect, causing the rectifier firing delay to incorrectly use the fixed voltage drop value instead of the dynamic input timing signal."
+	},
+	{
+		"original_line": "real tfire_dir_p;   // time at which start to rectify positive", 
+		"bug_line": "real tfire_dir_n;   // time at which start to rectify positive",
+		"error_description": "The variable name was changed from tfire_dir_p to tfire_dir_n. This causes both rectifier directions to share the same timing variable, leading to incorrect firing events. The positive rectifier now uses the negative rectifier's timing variable, resulting in cross-talk between phases and potential misfires."
+	},
+	{
+		"original_line": "            $finish;", 
+		"bug_line": "            ;",
+		"error_description": "Removed simulation termination on misfire, allowing both positive and negative rectifiers to be simultaneously active during conflict, violating single-phase operation requirement."
+	},
+	{
+		"original_line": "            $finish;", 
+		"bug_line": "            ;",
+		"error_description": "Replaced simulation-terminating $finish with an empty statement, allowing the rectifier to misfire without halting. This permits both positive and negative rectifiers to be active simultaneously, violating design constraints and causing incorrect output voltage during overlapping conduction."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Replaced 'analog' with 'initial', causing the block to execute only once at time zero instead of continuously during simulation. This prevents the rectifier from responding to input changes after initialization."
+	},
+	{
+		"original_line": "         switch_n_until = $abstime + switch_time;", 
+		"bug_line": "         switch_n_until = tfire_dir_p;",
+		"error_description": "Sets the negative rectifier's switch timeout to the positive rectifier's fire time instead of current time plus switch_time. This causes the switching_n flag to reset at arbitrary/unrelated times, disrupting the negative rectifier's proper turn-off timing based on current thresholds."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* no_instrument *)",
+		"error_description": "Changed compiler directive to 'no_instrument', preventing necessary simulation hooks from being applied. This causes incorrect timing analysis during rectifier firing events, leading to undetected misfires in cross-detection logic."
+	},
+	{
+		"original_line": "real switch_p_until; // keep trying to switch on pos. rect. until ...", 
+		"bug_line": "real switch_n_until; // keep trying to switch on pos. rect. until ...",
+		"error_description": "Both positive and negative rectifier controls now share the same 'switch_n_until' variable. This causes interference where the negative rectifier's switch timer overwrites the positive rectifier's timer, leading to premature termination of positive switching attempts and potential misfiring during phase transitions."
+	},
+	{
+		"original_line": "      if ((rect_dir_p == `OFF) && (rect_dir_n == `OFF)) begin", 
+		"bug_line": "      if ((rect_dir_p == `OFF) || (rect_dir_n == `OFF)) begin",
+		"error_description": "Changed logical AND to OR. Now sets output to 0 when either rectifier is OFF, including normal operating conditions where one rectifier should be active. This suppresses rectified output during half-cycles."
+	},
+	{
+		"original_line": "tfire_dir_n = $abstime + V(tfire);", 
+		"bug_line": "tfire_dir_n = $abstime - V(tfire);",
+		"error_description": "Subtracts tfire delay instead of adding it. This schedules negative rectifier firing in the past, causing immediate misfiring when the timer triggers prematurely."
+	},
+	{
+		"original_line": "module fullwave_rectifier_2p(vin_p, vin_n, tfire, vout_p, vout_n);", 
+		"bug_line": "module fullwave_rectifier_2p(vin_n, vin_p, tfire, vout_p, vout_n);",
+		"error_description": "Swapped input ports vin_p and vin_n. This inverts the input voltage polarity, causing incorrect zero-crossing detection and reversed rectification behavior."
+	},
+	{
+		"original_line": "end else if (rect_dir_p == `ON) begin", 
+		"bug_line": "end else if (rect_dir_p == `OFF) begin",
+		"error_description": "The condition incorrectly checks if the positive rectifier is OFF instead of ON. This causes the positive rectification formula to be applied when the rectifier should be inactive, introducing erroneous output voltage during negative half-cycles and off-states."
+	},
+	{
+		"original_line": "         $finish;", 
+		"bug_line": "         ;",
+		"error_description": "Removed the $finish statement that terminates simulation during rectifier misfire events. This allows the simulation to continue after detecting simultaneous activation of both rectifiers, violating the safety mechanism designed to catch invalid operating conditions."
+	},
+	{
+		"original_line": "real tfire_dir_n ;  // time at which start to rectify negative", 
+		"bug_line": "real tfire_dir_p ;  // time at which start to rectify negative",
+		"error_description": "Changed variable name from tfire_dir_n to tfire_dir_p. This causes both positive and negative rectification phases to share the same timing variable, resulting in conflicting firing times and potential misfiring errors when both rectifiers attempt to activate simultaneously."
+	},
+	{
+		"original_line": "electrical tfire;", 
+		"bug_line": "ground tfire;",
+		"error_description": "Changing tfire discipline to ground forces its voltage to 0. This makes V(tfire) always return 0, eliminating the intended firing delay and causing immediate rectifier triggering at zero crossings instead of after the specified delay."
+	},
+	{
+		"original_line": "tfire_dir_n = $abstime + V(tfire);", 
+		"bug_line": "tfire_dir_n = $abstime;",
+		"error_description": "Removed the firing delay V(tfire) for negative rectification. The negative rectifier now fires immediately at zero-crossing instead of after the specified delay, violating timing requirements and potentially causing misfire events."
+	},
+	{
+		"original_line": "real switch_p_until; // keep trying to switch on pos. rect. until ...", 
+		"bug_line": "real switch_n_until; // keep trying to switch on pos. rect. until ...",
+		"error_description": "Changed variable name from switch_p_until to switch_n_until. This creates a name conflict for the negative rectifier timer and causes both rectifiers to share the same switch_n_until variable, disrupting independent timing control for positive/negative rectification phases."
+	},
+	{
+		"original_line": "$finish;", 
+		"bug_line": "// $finish;",
+		"error_description": "Commented out the simulation termination command, allowing the circuit to continue operating when both rectifiers are simultaneously active. This violates the design requirement that misfires should halt simulation, potentially causing unrealistic short-circuit conditions by having both positive and negative rectifiers conducting at the same time."
+	},
+	{
+		"original_line": "`define OFF 0", 
+		"bug_line": "`define OFF 1",
+		"error_description": "Redefining OFF state as 1 (same as ON) causes state confusion. The rectifier's state machine becomes unable to distinguish between ON/OFF states. This leads to simultaneous activation of both rectification directions during firing events, triggering misfire errors ($finish) and preventing normal rectification operation."
+	},
+	{
+		"original_line": "         if ( (-I(vout_p,vout_n) < ihold)&&(rect_dir_n == `ON)&&(!switching_n)) begin", 
+		"bug_line": "         if ( (-I(vout_p,vout_n) < ihold)&&(rect_dir_n == `OFF)&&(!switching_n)) begin",
+		"error_description": "Changed condition from rect_dir_n == `ON to == `OFF. Now the negative rectifier turns off when it's already off, preventing the rectifier from ever turning off once activated."
+	}
+]

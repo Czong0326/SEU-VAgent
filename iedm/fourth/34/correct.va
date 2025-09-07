@@ -1,0 +1,430 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Copyright @ 2013 Massachusetts Institute of Technology (MIT)
+ 
+//The terms under which the software and associated documentation (the Software) is provided are as the following:
+ 
+//The Software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages or other liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the Software or the use or other dealings in the Software.
+ 
+//NEEDS grants, free of charge, to any users the right to modify, copy, and redistribute the Software, both within the user's organization and externally, subject to the following restrictions:
+ 
+//1. The users agree not to charge for the NEEDS code itself but may charge for additions, extensions, or support.
+ 
+//2. In any product based on the Software, the users agree to acknowledge the MIT VS  GaNFET Model Research Group that developed the software. This acknowledgment shall appear in the product documentation.
+ 
+//3. The users agree to obey all U.S. Government restrictions governing redistribution or export of the software.
+ 
+//4. The users agree to reproduce any copyright notice which appears on the software on any copy or modification of such made available to others.
+ 
+//Agreed to by 
+//Dimitri A. Antoniadis, MIT
+//Dec 23 2013
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// VerilogA for MVS-G-RF GaN HEMT model based self-consistent transport/capacitance models for scaled GaN HEMT devices for RF applications
+// Model details:  U. Radhakrishna, et al, IEDM 2012.
+// Implemented on Dec 20, 2013 by U. Radhakrishna
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+module MVSG_RF_1_0_0(d, g, s);
+inout d, g, s;
+electrical d, g, s;
+electrical di, si, src, drc;
+thermal dt;
+
+//Default parameters for Lg=105 nm device
+
+parameter real 		version 	= 1.00;                                         		// MVSG model version = 1.0.0
+parameter integer 	type 		= 1 			                from [-1 : 1] exclude 0;// Type of transistor. nFET type=1; pFET type=-1
+parameter real 		W         	= 25e-6         			from (0:inf);           // Width of the device [m]
+parameter real 		L         	= 105e-9         			from (0:inf);           // Length of gate [m]
+parameter real 		Cg        	= 6.5e-7        			from (0:inf);           // Gate areal capacitance [F/cm2]
+
+parameter real 		delta1		= 0.10          			from [0:inf);           // DIBL
+parameter real 		S         	= 0.14         				from [0:inf);           // Subthreshold slope V/Dec
+parameter real 		nd        	= 0.2          				from [0:inf);           // Punchthrough factor affects slope change in subthreshold
+parameter real 		Rsh       	= 200           			from [0:inf);           // Access region sheet resistance [ohm/square]
+parameter real 		Cifm      	= 110e-12             			from [0:inf);           // Inner fringing cap on each side[F/m]
+parameter real 		Cofsm     	= 40e-12    				from [0:inf);           // Outer fringing cap on source side[F/m]
+parameter real 		Cofdm    	= 40e-12     				from [0:inf);           // Outer fringing cap on drain side[F/m]
+
+parameter real 		vxo       	= 1.30e7         			from [0:inf);           // Source injection velocity [cm/s]
+parameter real 		mu0      	= 1650          			from [0:inf);           // Low field mobility [cm2/Vs]
+parameter real 		beta            = 1.5             			from [0:inf);           // Linear to saturation transition parameter
+parameter real 		VtO      	=-3.2894;        					        // Threshold voltage [V]
+parameter real 		alpha    	= 3.5;              						// Strong to weak inversion transistion parameter//fixed... not to be changed
+parameter real 		mc        	= 5e0           			from [0:inf);           // Effective mass parameter
+
+parameter real 		Lgs       	= 0.46e-6        			from [0:inf);           // Source access region length [m]
+parameter real 		Lgd       	= 0.46e-6       			from [0:inf);           // Drain access region length [m]
+parameter real 		vzeta     	= 3e-3          			from [0:inf);           // Self heating parameter (scalable)
+
+parameter real 		epsilon   	= 2.3           			from [0:inf); 		// Self heating mobility parameter (fixed)
+parameter real 		vtheta    	= 0.05           			from [0:inf);           // Scattering: velocity reduction parameter with Vg (dont activate unless necessary)
+parameter real 		mtheta    	= 0             			from [0:inf);           // Scattering: mobility reduction parameter with Vg
+parameter real          lamda           = 0			                from [0:inf);           // CLM parameter [1/V]
+parameter real 		Rc        	= 0.0240          			from [0:inf);           // Contact resistance on each side [ohm-cm]
+
+parameter real 		Rth       	= 10           				from [0:inf);           // Thermal resistance (To be kept equal to zeta)
+parameter real 		Cth       	= 0             			from [0:inf);           // Thermal capacitance
+parameter real 		Tnom      	= 27.0          			from [-100:inf);        // Nominal (extraction) temperature
+
+parameter real 		vxord       	= 1.30e7         			from [0:inf);           // Source injection velocity [cm/s]
+parameter real 		VtOrd     	= -2.0;	         						// Threshold voltage of drain access transistor[V]
+parameter real 		Cgrd      	= 5.0e-7         			from (0:inf);           // Drain access areal capacitance [F/cm2]
+parameter real 		delta1rd  	= 1.3          				from [0:inf);           // DIBL for drain access transitor
+parameter real 		delta2rd  	= 0.30          			from [0:inf);           // DIBL for drain access transitor
+parameter real 		Vdibsat  	= 2.0          				from [0:inf);           // DIBL for drain access transitor
+parameter real 		Srd       	= 0.35         				from [0:inf);           // Subthreshold slope for drain access transitor [V/Dec]
+parameter real 		zeta      	= 0.0		 			from [0:inf);           // Self heating parameter (scalable)
+parameter real 		betard    	= 1.3           			from [0:inf);           // Linear to saturation transition parameter
+parameter real 		vthetard  	= 0.05             			from [0:inf);           // Scattering: velocity reduction parameter with Vg 
+parameter real 		ndrd      	= 0*0.80             			from [0:inf);           // Punchthrough factor affects slope change in subthreshold
+
+parameter real 		vxors       	= vxord         			from [0:inf);           // Source injection velocity [cm/s]
+parameter real 		VtOrs     	= VtOrd;		         				// Threshold voltage of drain access transistor[V]
+parameter real 		Cgrs      	= Cgrd    				from (0:inf);           // Drain access areal capacitance [F/cm2]
+parameter real 		delta1rs  	= delta1rd          			from [0:inf);           // DIBL for drain access transitor
+parameter real 		delta2rs  	= delta2rd          			from [0:inf);           // DIBL for drain access transitor
+parameter real 		Srs       	= Srd         				from [0:inf);           // Subthreshold slope for drain access transitor [V/Dec]
+parameter real 		vthetars  	= 0.05             			from [0:inf);           // Scattering: velocity reduction parameter with Vg 
+parameter real 		ndrs      	= ndrd             			from [0:inf);           // Punchthrough factor affects slope change in subthreshold
+parameter real 		betars      	= betard             			from [0:inf);           // Linear to saturation transition parameter
+
+`define  SMALL_VALUE  (1e-10)
+`define  LARGE_VALUE  (80)  
+
+real Leff, Wg, Wgacc, Ls, Ld, Lmeff, phit;
+real FFs, FFd, Fsd, etas, etad, Vdx, Qinvs, Qinvd, Vdsc, vx01 ;
+real Ec1, A, B, Vds_smooth, qsv1,qdv1, dvg, VtOb, n, Qrefs, Qrefd;
+real Qinv, Vdsats, Vdsat, Fsat;
+real v, dir, Qsif, Qdif, Qsov, Qdov, vx0, mu;
+real Rs, Fs, Fd, Fscc, Fdcc, Qscc, Qdcc, FFx, FFy;
+real Cofs, Cofd, Cif;
+real n_phit, Fs_arg, Fd_arg;
+real me, kFsatq, Ap, Bp, Ecs;
+real qsv, qdv, kvsatq, Qg, Qb, Qs, Qd, Qinvx, Qinvy;
+real qs, qd, qd1, dQinv; 
+real Qinvi, etai, Fsatq;
+real qsb, qdb, kq4, kq2, kq, tol;
+real qsc, qdc, den, t, alp, Vdsatq, Vgt, beta1;
+real Tsh, T, TambK, Tfac,  Tvfac, TnomK, Ids,Vdsats1, Vdsat1, delta;
+real Vgs_raw,  Vgd_raw, dvg_raw;
+real alpha_phit, two_ns_phit, two_nd_phit;
+
+real Ldtot, Vgsrd_raw, Vgdrd_raw, dirrd  ; 
+real FFsrd, FFdrd, Fsdrd, etasrd, etaFFsrd, etadrd, etaFFdrd, Vdxrd, Qinvsrd,Qinvdrd, Vdscrd, vx01rd ; 
+real VtObrd, nrd, Qrefsrd, Qrefdrd; 
+real Vdsatsrd, Vdsatrd, Fsatrd; 
+real vrd, vx0rd, murd, Tfacrd;   
+real Vdsi, Vgsi, Vgdi;  
+real Idsrd, Vdsats1rd, Vdsat1rd, deltard; 
+real two_ns_phitrd, two_nd_phitrd, Vdsrdi, Vgsrdi;
+
+real Vgsrs_raw, Vgdrs_raw, dirrs  ; 
+real FFsrs, FFdrs, Fsdrs, etasrs, etaFFsrs, etadrs, etaFFdrs, Vdxrs, Qinvsrs,Qinvdrs, Vdscrs, vx01rs ; 
+real VtObrs, nrs, Qrefsrs, Qrefdrs; 
+real Vdsatsrs, Vdsatrs, Fsatrs; 
+real vrs, vx0rs, murs, Tfacrs;    
+real Idsrs, Vdsats1rs, Vdsat1rs, deltars; 
+real two_ns_phitrs, two_nd_phitrs, Vdsrsi, Vgsrsi;
+real dibsatrd, dibsatrs;
+
+analog begin
+
+    //Conversion of lengths from [m] to [cm]
+    Wg         		= W * 100.0;
+    Leff       		= L * 100.0;
+    Ls         		= Lgs * 100.0;
+    Ldtot      		= Lgd * 100.0;
+    Ld	       		= Ldtot;
+    Cofs       		= Cofsm / 100.0;
+    Cofd       		= Cofdm / 100.0;
+    Cif        		= Cifm / 100.0; 
+
+    //If-statments for Vdsi,Vgsi,dir
+    //Conditional statements to be put to enable source drain symmetry
+
+    Vgs_raw    		= type * ( V(g)-V(si) );
+    Vgd_raw    		= type * ( V(g)-V(di) );
+    if ( Vgs_raw >=  Vgd_raw ) begin // forward mode
+    	Vdsi       	= type * ( V(di)-V(si) );
+    	Vgsi       	= Vgs_raw;
+	dir        	= 1;
+    end else begin // reverse mode
+    	Vdsi       	= type * ( V(si)-V(di) );
+    	Vgsi       	= Vgd_raw;
+    	dir        	= -1;
+    end
+
+    Vgsrs_raw  		= type * ( VtOrs + 1.0 / ( Rsh * Cgrs * mu0 ) - V(src) );
+    Vgdrs_raw  		= type * ( VtOrs + 1.0 / ( Rsh * Cgrs * mu0 ) - V(si) );
+    if ( type * ( V(si) - V(src) ) >=  0.0 ) begin // forward mode
+    	Vdsrsi     	= type * ( V(si)-V(src) );
+    	Vgsrsi     	= Vgsrs_raw;
+	dirrs      	= 1;
+    end else begin // reverse mode
+    	Vdsrsi     	= type * ( V(src)-V(si) );
+    	Vgsrsi     	= Vgdrs_raw;
+    	dirrs      	= -1;
+    end
+
+
+    Vgsrd_raw  = type * ( VtOrd + 1.0 / ( Rsh * Cgrd * mu0 ) - V(di) );
+    Vgdrd_raw  = type * ( VtOrd + 1.0 / ( Rsh * Cgrd * mu0 ) - V(drc) );
+    if ( type * ( V(drc) - V(di) ) >=  0.0 ) begin // forward mode
+    	Vdsrdi     	= type * ( V(drc)-V(di) );
+    	Vgsrdi     	= Vgsrd_raw;
+	dirrd      	= 1;
+    end else begin // reverse mode
+    	Vdsrdi     	= type * ( V(di)-V(drc) );
+    	Vgsrdi     	= Vgdrd_raw;
+    	dirrd      	= -1;
+    end
+
+    //Temperature dependant expressions
+    TambK      		= $temperature;
+    TnomK      		= Tnom + `P_CELSIUS0;
+    Tsh       		= Temp(dt);
+    T	       		= TambK + Tsh;
+    Tfac       		= pow( T/TnomK , epsilon );
+    Tfacrd     		= Tfac;
+    Tfacrs     		= Tfac;
+    Tvfac      		= ( 1.0 + vzeta * TnomK ) / ( 1.0 + vzeta * T );
+    phit       		= $vt(T);
+
+    //The calculation of DC current
+    alpha_phit 		= alpha * phit;
+    delta      		= delta1 * Vdsi;
+    n          		= S / ( 2.3 * phit ) + nd * Vdsi; 
+    VtOb       		= VtO;    
+    FFs        		= 1.0 / ( 1 + exp( ( Vgsi - ( VtOb - delta - alpha_phit / 2.0 ) ) / ( n * alpha_phit ) ) );
+    two_ns_phit		= 1.0 * n * phit;
+    Qrefs      		= Cg * two_ns_phit;
+    etas       		= ( Vgsi - ( VtOb - delta - 0.5 * alpha_phit * FFs ) ) / two_ns_phit;
+    if ( etas  <= `LARGE_VALUE ) begin
+        Qinvs      	= Qrefs * ln( 1.0 + exp( etas ) ); 
+    end else begin
+        Qinvs      	= Qrefs * ( etas ); 
+    end
+    Qinv		= Qinvs;
+    mu         		= mu0 / Tfac / ( 1.0  +  mtheta * Qinvs / Cg );
+    vx01       		= vxo / ( 1.0 + vtheta * ( Qinvs / Cg ) ) * Tvfac * ( 1.0 + lamda *  Vdsi / Leff );
+    vx0        		= FFs * phit  + ( 1 - FFs) * vx01;
+    Vdsats     		= vx01 * Leff / mu;
+    Vdsats1    		= vx01 * Leff / mu ;
+    Vdsat      		= Vdsats  * ( 1 - FFs ) + two_ns_phit * FFs;
+    Vdsat1     		= Vdsats1 * ( 1 - FFs ) + two_ns_phit * FFs;
+    Vdsc       		= Vdsi;
+    Fsat       		= Vdsc / Vdsat / ( pow( 1.0 + pow( abs( Vdsc / Vdsat ), beta ), 1.0 / beta ) );
+    v          		= vx01 * Fsat;
+    Ids        		= dir * type * Wg  * Qinvs * v;
+    I(di,si)   		<+ Ids;
+
+
+    //Current in drain side access transistor
+    dibsatrd  		= Vdsrdi / ( pow ( 1.0 + pow( abs( Vdsrdi / Vdibsat ), betard ), 1.0 / betard ) );
+    deltard   		= ( delta1rd - delta2rd * dibsatrd ) * Vdsrdi;
+    nrd       		= Srd / ( 2.3 * phit ) + ndrd * Vdsrdi; 
+    VtObrd    		= VtOrd;     
+    etaFFsrd  		= ( Vgsrdi - ( VtObrd - deltard - alpha_phit / 2.0 ) ) / ( nrd * alpha_phit );
+    if ( etaFFsrd <= `LARGE_VALUE ) begin
+	FFsrd     	= 1.0 / (1 + exp( etaFFsrd ) );
+    end else begin
+        FFsrd     	= exp( -etaFFsrd );
+    end
+    two_ns_phitrd	= 2.0 * nrd  * phit;
+    Qrefsrd   		= Cgrd * two_ns_phitrd; 
+    etasrd    		= ( ( Vgsrdi ) - ( VtObrd - deltard - 0.5 * alpha_phit * FFsrd ) ) / two_ns_phitrd; 
+    if ( etasrd  <= `LARGE_VALUE ) begin
+        Qinvsrd      	= Qrefsrd * ln( 1.0 + exp( etasrd ) );   
+    end else begin
+        Qinvsrd      	= Qrefsrd * ( etasrd ); 
+    end
+    murd      		= mu0 / Tfacrd / ( 1.0 + mtheta * Qinvsrd / Cgrd );
+    vx01rd    		= vxo / ( 1.0 + vthetard * ( Qinvsrd / Cgrd ) ) * Tvfac; 
+    vx0rd     		= 2.0 * FFsrd * phit * murd / Ld + ( 1 - FFsrd ) * vx01rd; 
+    Vdsatsrd  		= vx01rd * Ld / murd;
+    Vdsats1rd 		= vx01rd * Ld / murd;
+    Vdsatrd   		= Vdsatsrd  * ( 1 - FFsrd ) + two_ns_phitrd * FFsrd;
+    Vdsat1rd  		= Vdsats1rd * ( 1 - FFsrd ) + two_ns_phitrd * FFsrd;  
+    Fsdrd     		= 1.0 / pow( 1.0 + pow( abs( Vdsrdi / Vdsat1rd ) , betard ), 1.0 / betard );
+    Vdxrd     		= Vdsrdi * Fsdrd;
+    etaFFdrd  		=( Vgsrdi - Vdsrdi - ( VtObrd - deltard - alpha_phit / 2.0 ) ) / ( nrd * alpha_phit );
+    if ( etaFFdrd <= `LARGE_VALUE ) begin
+	FFdrd     	= 1.0 / ( 1 + exp( etaFFdrd ) );
+    end else begin
+        FFdrd     	= exp( -etaFFdrd );
+    end
+    two_nd_phitrd	= 2.0 * nrd * phit;
+    Qrefdrd   		= Cgrd * two_nd_phitrd;
+    etadrd    		= ( Vgsrdi - Vdxrd - ( VtObrd - deltard - 0.5 * alpha_phit * FFdrd ) ) / two_nd_phitrd; 
+    if ( etadrd  <= `LARGE_VALUE ) begin
+        Qinvdrd      	= Qrefdrd * ln( 1.0 + exp( etadrd ) );   
+    end else begin
+        Qinvdrd      	= Qrefdrd * ( etadrd ); 
+    end
+    Vdscrd    		= ( Qinvsrd - Qinvdrd ) / Cgrd;
+    Fsatrd    		= Vdscrd / Vdsatrd / ( pow( 1.0 + pow( abs( Vdscrd / Vdsatrd ), betard ), 1.0 / betard ) );
+    vrd       		= vx0rd * Fsatrd; 
+    Idsrd     		= dirrd * type * Wg * 0.5 * ( Qinvsrd + Qinvdrd ) * vrd;
+    if (Rsh > 0 && Ld > 0)
+        I(drc,di)	<+ Idsrd; 
+    else 
+       	V(drc,di)	<+ 0; 
+
+    //Drain side contact resistance 
+    if (Rc > 0) 
+       I(drc,d)    	<+ V(drc,d) / ( Rc / Wg ); 
+    else 
+       V(drc,d)    	<+ 0;
+
+    //Current in source side access transistor
+    dibsatrs  		= Vdsrsi / ( pow( 1.0 + pow( abs( Vdsrsi / Vdibsat ), betars ), 1.0 / betars ) );
+    deltars   		= ( delta1rs - delta2rs * dibsatrs ) * Vdsrsi;
+    nrs       		= Srs / ( 2.3 * phit ) + ndrs * Vdsrsi; 
+    VtObrs    		= VtOrs;     
+    etaFFsrs  		= ( Vgsrsi - ( VtObrs - deltars - alpha_phit / 2.0 ) ) / ( nrs * alpha_phit );
+    if ( etaFFsrs <= `LARGE_VALUE ) begin
+	FFsrs     	= 1.0 / ( 1 + exp( etaFFsrs ) );
+    end else begin
+        FFsrs     	= exp( -etaFFsrs );
+    end
+    two_ns_phitrs       = 2.0 * nrs * phit;
+    Qrefsrs  		= Cgrs * two_ns_phitrs; 
+    etasrs    		= ( ( Vgsrsi ) - ( VtObrs - deltars - 0.5 * alpha_phit * FFsrs ) ) / two_ns_phitrs; 
+    if ( etasrs  <= `LARGE_VALUE ) begin
+        Qinvsrs      	= Qrefsrs * ln( 1.0 + exp( etasrs ) );   
+    end else begin
+        Qinvsrs      	= Qrefsrs * ( etasrs ); 
+    end
+    murs      		= mu0 / Tfacrs / ( 1.0 + mtheta * Qinvsrs / Cgrs );
+    vx01rs    		= vxo / ( 1.0 + vthetars * ( Qinvsrs / Cgrs ) ) * Tvfac; 
+    vx0rs     		= 2.0 * FFsrs * phit * murs / Ls + ( 1 - FFsrs ) * vx01rs; 
+    Vdsatsrs  		= vx01rs * Ls / murs;
+    Vdsats1rs 		= vx01rs * Ls / murs;
+    Vdsatrs   		= Vdsatsrs  * ( 1 - FFsrs ) + two_ns_phitrs * FFsrs;
+    Vdsat1rs  		= Vdsats1rs * ( 1 - FFsrs ) + two_ns_phitrs * FFsrs;  
+    Fsdrs     		= 1.0 / pow( 1.0 + pow( abs( Vdsrsi / Vdsat1rs ), betars), 1.0 / betars );
+    Vdxrs     		= Vdsrsi * Fsdrs;
+    etaFFdrs  		=( Vgsrsi - Vdsrsi - ( VtObrs - deltars - alpha_phit / 2.0 ) ) / ( nrs * alpha_phit );
+    if (etaFFdrs <= `LARGE_VALUE) begin
+	FFdrs     	= 1.0 / ( 1 + exp( etaFFdrs ) );
+    end else begin
+        FFdrs     	= exp( -etaFFdrs );
+    end
+    two_nd_phitrs	= 2.0 * nrs * phit;
+    Qrefdrs   		= Cgrs * two_nd_phitrs;
+    etadrs    		= ( Vgsrsi - Vdxrs - ( VtObrs - deltars - 0.5 * alpha_phit * FFdrs ) ) / two_nd_phitrs; 
+    if (etadrs  <= `LARGE_VALUE) begin
+        Qinvdrs      	= Qrefdrs * ln( 1.0 + exp( etadrs ) );   
+    end else begin
+        Qinvdrs      	= Qrefdrs * ( etadrs ); 
+    end
+    Vdscrs    		= ( Qinvsrs - Qinvdrs ) / Cgrs;
+    Fsatrs    		= Vdscrs / Vdsatrs / ( pow( 1.0 + pow( abs( Vdscrs / Vdsatrs ), betars ), 1.0 / betars ) );
+    vrs       		= vx0rs * Fsatrs; 
+    Idsrs     		= dirrs * type * Wg * 0.5 * ( Qinvsrs + Qinvdrs ) * vrs;
+    if (Rsh > 0 && Ls > 0)
+       	 I(si,src)	<+ Idsrs; 
+    else 
+       	V(src,si)	<+ 0; 
+
+    //Source side contact resistance 
+    if (Rc > 0) 
+       I(src,s)    	<+ V(src,s) / ( Rc / Wg ); 
+    else 
+       V(src,s)    	<+ 0;
+
+    // Charge computation
+    // NVsat model
+    Vgt        		= Qinv / Cg;
+    alp       		= 1.0;
+    Vdsatq     		= sqrt( 9.0 * phit * phit + Vgt * Vgt / ( alp * alp ) );
+    beta1      		= 1.5;
+    Fsatq      		= ( ( Vdsi ) / Vdsatq ) / ( 1.0 + pow( pow( Vdsi / Vdsatq, beta1 ), 1.0 / beta1 ) );
+    t          		= 1.0 - Fsatq;
+    den        		= 15.0 * ( 1.0 + t ) * ( 1.0 + t );
+    qsc       	 	= ( 6.0 + t * ( 12.0 + t * ( 8.0 + 4.0 * t ) ) ) / den;
+    qdc        		= ( 4.0 + t * ( 8.0 + t * ( 12.0 + 6.0 * t ) ) ) / den;
+ 
+    //QB model
+    me         		= 9.1e-31 * mc;
+    kq         		= 0.0;
+    tol        		= ( `SMALL_VALUE * vxo / 100 ) * ( `SMALL_VALUE * vxo / 100 ) * me / ( 2 * `P_Q );
+    if  ( Vdsi <= tol ) begin    
+	kq2    		= ( 2.0 * `P_Q / me * Vdsi ) / ( vxo * vxo ) * 10000.0;
+        kq4    		= kq2 * kq2;
+        qsb    		= 0.5 - kq2 / 24.0 + kq4 / 80.0;
+        qdb    		= 0.5 - 0.125 * kq2 + kq4 / 16.0;
+    end
+    else begin
+        kq     		= sqrt( 2.0 * `P_Q / me * Vdsi ) / vxo * 100.0;
+        kq2    		= kq  * kq;
+        qsb    		= asinh( kq ) / kq - ( sqrt( kq2 + 1.0 )-1.0 ) / kq2;
+        qdb    		= ( sqrt( kq2 + 1.0 )-1.0 ) / kq2;
+    end
+
+    qs         		= Qinv * ( qsc * ( 1.0 - Fsat ) + qsb * Fsat );
+    qd1        		= Qinv * ( qdc * ( 1.0 - Fsat ) + qdb * Fsat );
+  
+    //DIBL correction
+    etai       		= ( Vgsi - ( VtOb - FFs * alpha_phit ) ) / ( n * phit );
+    if ( etai <= `LARGE_VALUE )
+        Qinvi  		= Qrefs * ln( 1.0 + exp( etai ) );
+    else
+        Qinvi  		= Qrefs * etai;
+    dQinv      		= Qinv - Qinvi;
+    qd         		= qd1 - ( 1.0 - Fsat ) * ( qs + qd1 ) * dQinv;
+
+    //Inner fringing Caps
+    Fs_arg 		= ( Vgs_raw - VtOb ) / ( 1.0 * n * phit );
+    if ( Fs_arg <= `LARGE_VALUE ) begin
+        Fs     		= 1.0 + exp( Fs_arg );
+        FFx    		= Vgs_raw - n * phit * ln( Fs );
+    end else begin
+        Fs     		= 0.0; // not used
+        FFx    		= Vgs_raw - n * phit * Fs_arg;
+    end
+
+    Fd_arg		= ( Vgd_raw - VtOb ) / ( 5.0 * n * phit );
+    if ( Fd_arg <= `LARGE_VALUE ) begin
+        Fd     		= 1.0 + exp( Fd_arg );
+        FFy    		= Vgd_raw - n * phit * ln( Fd );
+    end else begin
+        Fd     		= 0.0; // not used
+        FFy    		= Vgd_raw - n * phit * Fd_arg;
+    end
+
+    Qsif       		= type * Cif * FFx ;
+    Qdif       		= type * Cif * FFy ;
+
+    //Channel charges/Caps
+    Qinvx      		= type * Leff *  0.5 * ( ( 1 + dir ) * qs + ( 1 - dir ) * qd );
+    Qinvy      		= type * Leff *  0.5 * ( ( 1 - dir ) * qs + ( 1 + dir ) * qd );
+
+    //Outer fringing Caps
+    Qsov       		= Cofs * (V(g) - V(si));
+    Qdov       		= Cofd * (V(g) - V(di));
+
+    Qs         		= -Wg * ( Qinvx + Qsov + Qsif );
+    Qd         		= -Wg * ( Qinvy + Qdov + Qdif );
+    Qb         		= 0;
+    Qg         		= - ( Qs + Qd + Qb );
+
+    I(g,si)    		<+ -ddt(Qs);
+    I(g,di)    		<+ -ddt(Qd);
+
+
+    // Self-heating
+    if (Rth !=0) begin
+        Pwr(dt)    	<+ ddt( Cth * Temp(dt) );
+        Pwr(dt)   	<+ - ( I(di,si) * V(di,si) + I(d,drc) * V(d,drc) + I(src,s) * V(src,s) + V(drc,di) * I(drc,di) + V(src,si) * I(src,si) );
+        Pwr(dt)   	<+ Temp(dt) / Rth;
+    end
+    else
+       Temp(dt)   <+0.0;
+
+end
+
+endmodule

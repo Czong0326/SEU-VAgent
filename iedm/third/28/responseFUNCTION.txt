@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "rhooutmax = (2*a/3)*rhoinmax;", 
+		"bug_line": "rhooutmax = (2*a/3)*ip;",
+		"error_description": "Substituted 'rhoinmax' with 'ip' (input IP3 voltage), causing incorrect clamping level calculation. The maximum output radius now incorrectly depends on IP3 voltage instead of maximum input radius, disrupting the non-linear compression characteristic and output signal clamping behavior."
+	},
+	{
+		"original_line": "real ip;", 
+		"bug_line": "real ip = 0;",
+		"error_description": "Initializing 'ip' to 0 overrides the correct IP3 voltage calculation in the initial block. This forces the third-order intercept point calculation to always use 0V, making the nonlinearity coefficient (b) infinite and causing division by zero in the output amplitude computation."
+	},
+	{
+		"original_line": "parameter real pscp = 0.7 from (0:inf);", 
+		"bug_line": "parameter real pscp = -0.7 from (-inf:inf);",
+		"error_description": "The negative default value and expanded range for pscp violate the model's requirement for positive phase shifts. This inverts the phase rotation direction during AM/PM conversion, corrupting the output signal's phase relationship and causing incorrect quadrature modulation."
+	},
+	{
+		"original_line": "else rhoout = rhooutmax;", 
+		"bug_line": "else rhoout = rhoinmax;",
+		"error_description": "For large input signals exceeding rhoinmax, the output amplitude rhoout incorrectly uses the input saturation threshold rhoinmax instead of the correct output saturation limit rhooutmax. This violates the design specification where output amplitude should be clamped to rhooutmax (the maximum output level) rather than the input threshold value."
+	},
+	{
+		"original_line": "parameter real rin = 50 from (0:inf);", 
+		"bug_line": "parameter real rin = 0 from [0:inf);",
+		"error_description": "Changed input resistance default to 0 and allowed zero in range. Causes division by zero in gain/phase calculations ('a = sqrt(...*rout/rin)') and noise computation, corrupting all output signals."
+	},
+	{
+		"original_line": "electrical phase_err;", 
+		"bug_line": "voltage phase_err;",
+		"error_description": "Changing the discipline from 'electrical' to 'voltage' violates Verilog-A port declaration rules. The 'voltage' discipline is undefined, causing compilation failure. The 'electrical' discipline is required for proper voltage/current access (V/I functions), and its absence breaks the phase error handling functionality."
+	},
+	{
+		"original_line": "electrical phase_err;", 
+		"bug_line": "input electrical phase_err;",
+		"error_description": "Changing phase_err from inout to input direction breaks the current injection (I(phase_err) in the analog block. The mixer's phase error correction circuit requires bidirectional signal flow to both read voltage and inject current, but an input port only allows voltage sensing, disrupting the feedback mechanism."
+	},
+	{
+		"original_line": "`define PI 3.1415926535897932384626433", 
+		"bug_line": "`define PI 0",
+		"error_description": "Setting PI to 0 breaks trigonometric calculations. In quadrant detection (lines 70-72), negative Q_in values incorrectly get theta=0 instead of -PI/2, causing rotation errors in I/Q outputs."
+	},
+	{
+		"original_line": "IP3     = input referenced IP3(dBm)", 
+		"bug_line": "IP3     = output referenced IP3(dBm)",
+		"error_description": "Changed input-referenced IP3 to output-referenced while keeping calculation logic unchanged. This directional error causes the IP3 parameter to be misinterpreted during configuration, leading to incorrect distortion calculations since the behavioral model expects an input-referenced value for its nonlinearity computations."
+	},
+	{
+		"original_line": "ip = sqrt(pow(10,ip3/10)*2*rin*0.001);", 
+		"bug_line": "ip = sqrt(pow(10,ip3/10)*2*rout*0.001);",
+		"error_description": "The calculation incorrectly uses output resistance (rout) instead of input resistance (rin) for IP3 conversion, violating the input-referenced specification and causing incorrect non-linear distortion modeling."
+	},
+	{
+		"original_line": "real b;", 
+		"bug_line": "real b = 0;",
+		"error_description": "Initializing 'b' to 0 creates a persistent divide-by-zero risk in 'b = a/(ip*ip)' since 'ip' could be zero during transient simulation, causing numerical instability and violating the IP3 parameter specification."
+	},
+	{
+		"original_line": "  else theta = -`PI/2;", 
+		"bug_line": "  else theta = `PI/2;",
+		"error_description": "Incorrect angle assignment when I_in=0 and Q_in<0: sets theta to +90° instead of -90°, causing phase reversal in the negative imaginary quadrant and distorting output signal constellation."
+	},
+	{
+		"original_line": "module up_cnvrt(I_in , I_out, Q_in, Q_out, phase_err);", 
+		"bug_line": "module up_cnvrt(I_in , I_out, Q_in, phase_err, Q_out);",
+		"error_description": "Swapped Q_out and phase_err ports. This connects the phase error input to the quadrature output port and vice versa, causing incorrect signal routing and corrupted output modulation."
+	},
+	{
+		"original_line": "I(Q_in) <+ white_noise(noise_current*noise_current, "up_cnvrt_q");", 
+		"bug_line": "I(Q_in) <+ white_noise(noise_current, "up_cnvrt_q");",
+		"error_description": "The noise PSD argument incorrectly uses noise_current (amplitude) instead of noise_current squared (power), resulting in underestimated noise on Q_in by orders of magnitude."
+	},
+	{
+		"original_line": "nf      = noise figure [dB]", 
+		"bug_line": "nf      = noise figure [dBm]",
+		"error_description": "Changed the noise figure unit from dB to dBm. The code expects nf in dB for the calculation 'rnf = pow(10,nf/10)'. Using dBm would cause incorrect noise_current computation since dBm is a power unit referenced to 1mW, leading to inaccurate noise simulation."
+	},
+	{
+		"original_line": "  I(Q_in) <+ V(Q_in)/rin;", 
+		"bug_line": "  I(Q_in) <+ V(I_in)/rin;",
+		"error_description": "The current contribution for the Q_in input incorrectly uses the voltage from I_in instead of Q_in. This introduces erroneous cross-coupling between the I and Q input channels, corrupting the quadrature signal processing at the input stage."
+	},
+	{
+		"original_line": "module up_cnvrt(I_in , I_out, Q_in, Q_out, phase_err);", 
+		"bug_line": "module up_cnvrt(I_in , I_out, Q_in, phase_err, Q_out);",
+		"error_description": "Swapped Q_out and phase_err port order. This reverses I/Q output connections during positional instantiation, causing phase error input to drive Q_out and vice versa, corrupting signal paths."
+	},
+	{
+		"original_line": "`include "constants.h"", 
+		"bug_line": "`include "wrong_constants.h"",
+		"error_description": "Changed header filename to a non-existent file, causing compilation failure due to missing essential constant definitions required for analog simulation."
+	},
+	{
+		"original_line": "a = sqrt(pow(10,gain/10)*rout/rin);", 
+		"bug_line": "a = sqrt(pow(10,gain/10)*rin/rout);",
+		"error_description": "Swapped rin and rout in impedance ratio calculation, causing incorrect gain scaling. The mixer gain now inversely correlates with impedance ratio instead of being proportional, violating available power gain specification."
+	},
+	{
+		"original_line": "parameter real psinf = 2 from (pscp:inf);", 
+		"bug_line": "parameter real psinf = 0.5 from (pscp:inf);",
+		"error_description": "The default value of psinf (0.5) is less than pscp (0.7), violating the condition that psinf must be greater than pscp. This causes negative beta values during phase shift calculation, fundamentally breaking the AM/PM conversion logic and producing incorrect output phase modulation."
+	}
+]

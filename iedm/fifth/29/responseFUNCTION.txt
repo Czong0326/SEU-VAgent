@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "inout vout, vsrc;", 
+		"bug_line": "input vout, vsrc;",
+		"error_description": "Both vout and vsrc are changed to input ports, preventing the internal current source I(vsrc, vout) from driving these terminals. This violates the charge pump's requirement to actively source/sink current between these nodes."
+	},
+	{
+		"original_line": "iout_val = iamp*i_mult(V(siginc), V(sigdec), vtrans);", 
+		"bug_line": "iout_val = iamp*i_mult(V(sigdec), V(siginc), vtrans);",
+		"error_description": "The arguments to i_mult are swapped, causing reversed pump/suck behavior: siginc now triggers current sinking while sigdec triggers sourcing, violating the control logic specification."
+	},
+	{
+		"original_line": "input siginc, sigdec;", 
+		"bug_line": "output siginc, sigdec;",
+		"error_description": "Changed input ports to outputs. The model requires siginc/sigdec as inputs to read control signals. Making them outputs prevents external driving, causing undefined logic states and breaking charge pump control functionality."
+	},
+	{
+		"original_line": "   input inc;", 
+		"bug_line": "   input inc = 0;",
+		"error_description": "Assigning default value 0 to input port 'inc' creates a constant input that ignores the actual siginc signal. This prevents the charge pump from responding to input changes, breaking the control logic for current pumping/sucking."
+	},
+	{
+		"original_line": "   real dec;", 
+		"bug_line": "   integer dec;",
+		"error_description": "Changing the data type of 'dec' from real to integer causes truncation of the input voltage. This leads to incorrect threshold detection for the 'sigdec' input, as fractional voltage values (e.g., 2.6V) become integers (2) and may falsely register below vtrans (2.5V)."
+	},
+	{
+		"original_line": "      @ (cross(V(siginc) - vtrans, 0)) begin", 
+		"bug_line": "      @ (cross(V(siginc) - vtrans, +1)) begin",
+		"error_description": "Changed cross direction from any edge (0) to only rising edge (+1). This causes the charge pump to miss falling edge transitions of siginc, violating the requirement to update on any logic transition."
+	},
+	{
+		"original_line": "iout_val = iamp*i_mult(V(siginc),V(sigdec),vtrans);", 
+		"bug_line": "iout_val = iamp*i_mult(V(sigdec),V(siginc),vtrans);",
+		"error_description": "Swapped siginc and sigdec arguments in the i_mult function call, reversing the charge pump's direction: now pumps current when it should sink and vice versa."
+	},
+	{
+		"original_line": "   real vtrans;", 
+		"bug_line": "   real vtrans = iamp;",
+		"error_description": "Initializes voltage threshold 'vtrans' with current value 'iamp' instead of the parameter value. This causes incorrect logic triggering as the threshold becomes ~0.5V (for default iamp=0.5mA) rather than the intended 2.5V."
+	},
+	{
+		"original_line": "iout_val = iamp*i_mult(V(siginc),V(sigdec),vtrans);", 
+		"bug_line": "iout_val = iamp*i_mult(V(sigdec),V(siginc),vtrans);",
+		"error_description": "Swapped siginc and sigdec arguments in i_mult function call, reversing the interpretation of increment/decrement signals. This causes the charge pump to source current when it should sink and vice versa, inverting the intended operation."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   analog begin I(vout, vsrc) <+ transition(iout_val,tdel,trise,tfall);",
+		"error_description": "Reversed current direction by swapping terminal order in I() statement. This makes the pump sink current when it should source and vice versa, violating the intended charge pumping/sucking behavior."
+	},
+	{
+		"original_line": "iout_val = iamp*i_mult(V(siginc),V(sigdec),vtrans);", 
+		"bug_line": "iout_val = iamp*i_mult(V(sigdec),V(sigdec),vtrans);",
+		"error_description": "Replaced first argument V(siginc) with V(sigdec), causing both function inputs to be sigdec. This prevents the pump operation when only siginc is high (no current pumped), violating the design requirement where siginc high should pump current from the output."
+	},
+	{
+		"original_line": "input siginc, sigdec;", 
+		"bug_line": "output siginc, sigdec;",
+		"error_description": "Changed port direction from input to output. This prevents external signals from controlling the charge pump, leaving both control signals floating since the module never drives them. The charge pump will remain inactive due to undefined control inputs."
+	},
+	{
+		"original_line": "   real inc;", 
+		"bug_line": "   integer inc;",
+		"error_description": "Changing 'inc' from real to integer truncates voltage values, causing incorrect logic level detection since fractional voltages (e.g., 2.6V) become integer 2, which may fall below vtrans threshold despite being logically high."
+	},
+	{
+		"original_line": "   @ ( initial_step ) begin", 
+		"bug_line": "   @ ( final_step ) begin",
+		"error_description": "Changed 'initial_step' to 'final_step', causing the charge pump's initial current state to be set at simulation end instead of start. This ignores initial input signal states (siginc/sigdec), leading to incorrect current output (e.g., zero when active) until a signal transition occurs."
+	},
+	{
+		"original_line": "      @ ( initial_step ) begin", 
+		"bug_line": "      @ ( initial_step("ic") ) begin",
+		"error_description": "The 'initial_step' event incorrectly specifies "ic" argument, which prevents the initial condition setup. Without this, the pump starts at zero current regardless of control signals, violating immediate response requirements."
+	},
+	{
+		"original_line": "inout vout, vsrc;", 
+		"bug_line": "input vout, vsrc;",
+		"error_description": "Changing port direction from inout to input prevents current flow through vout/vsrc. The charge pump requires bidirectional current flow to source/sink current, but input ports only allow voltage sensing, breaking the core functionality."
+	},
+	{
+		"original_line": "parameter real trise=1n from (0:inf);", 
+		"bug_line": "parameter real trise=-1n from [-inf:inf);",
+		"error_description": "Sets negative rise time (-1n) and allows negative values via constraint change. The transition function requires non-negative rise times, causing undefined behavior or simulation errors when processing negative values."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "parameter real iamp = 0; // (* instrument_module *)",
+		"error_description": "The parameter 'iamp' is incorrectly redefined to 0 inside the module, overriding the instance parameter setting and forcing the charge pump current to zero regardless of the configured iamp value, violating the variable current magnitude requirement."
+	},
+	{
+		"original_line": "@ (cross(V(siginc) - vtrans, 0)) begin", 
+		"bug_line": "@ (cross(V(siginc), 0)) begin",
+		"error_description": "The voltage threshold parameter 'vtrans' is omitted from the cross event, causing the charge pump to trigger at 0V instead of the specified threshold. This ignores the design's intended switching voltage, leading to incorrect current output timing."
+	},
+	{
+		"original_line": "   endfunction", 
+		"bug_line": "   endfunction : wrong_name",
+		"error_description": "Added mismatched function name 'wrong_name' in endfunction statement. This causes a compilation error since the declared function name is 'i_mult', violating VerilogA function naming consistency rules."
+	}
+]

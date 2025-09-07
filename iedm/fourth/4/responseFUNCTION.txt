@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "poles[IntegTmp+7] =  im_pole - imagtmp;", 
+		"bug_line": "poles[IntegTmp+7] =  im_pole + imagtmp;",
+		"error_description": "The sign error breaks conjugate symmetry for pole pairs, creating unstable complex poles. This violates filter stability requirements for real systems and corrupts the frequency response."
+	},
+	{
+		"original_line": "real tmp, realtmp, imagtmp;", 
+		"bug_line": "real tmp, realtmp, imagtmp = 0;",
+		"error_description": "Initializing imagtmp to 0 introduces a fixed zero value that overrides calculated imaginary pole components, corrupting the complex pole generation algorithm and causing incorrect filter frequency response."
+	},
+	{
+		"original_line": "        Sqr_Rep2PlusImp2 = ReP2 + ImP2;", 
+		"bug_line": "        Sqr_Rep2PlusImp2 = ReP2 - ImP2;",
+		"error_description": "Replaced addition with subtraction, incorrectly computing the squared magnitude of complex poles. This causes incorrect denominator terms in pole denormalization, distorting filter frequency response."
+	},
+	{
+		"original_line": "poles[IntegTmp]   =  re_pole + realtmp;", 
+		"bug_line": "poles[IntegTmp]   =  re_pole - realtmp;",
+		"error_description": "Changed addition to subtraction, miscalculating the real part of the pole. This distorts pole placement, causing incorrect filter frequency response by shifting critical frequencies."
+	},
+	{
+		"original_line": " I(inp) <+ V(inp)/rin;", 
+		"bug_line": " I(inp) <+ V(inn)/rin;",
+		"error_description": "Changed input voltage reference from V(inp) to V(inn). This cross-wires the input currents, causing the differential input to short-circuit internally since both input branches now reference the opposite node's voltage."
+	},
+	{
+		"original_line": "          realtmp = 0.0;", 
+		"bug_line": "          realtmp = wg;",
+		"error_description": "Incorrectly sets realtmp to wg (center frequency) instead of 0.0 when handling negative discriminant. This corrupts the pole calculation by introducing an invalid real part offset and forcing sqrt(-wg) for the imaginary component, which produces NaN due to negative input. This breaks the complex conjugate pole structure required for Butterworth filters."
+	},
+	{
+		"original_line": "for (k=0; k<Np1p; k=k+1) begin", 
+		"bug_line": "for (k=0; k<Np1p-1; k=k+1) begin",
+		"error_description": "The loop runs one less iteration than required, skipping the last normalized pole initialization. This causes missing pole calculations during denormalization, resulting in an incorrect filter order and broken frequency response since not all Butterworth poles are processed."
+	},
+	{
+		"original_line": "   real ReP2, ImP2, Sqr_Rep2PlusImp2, Rep2MinusImp2;", 
+		"bug_line": "   real ReP2, ImP2, Sqr_Rep2PlusImp2, Rep2PlusImp2;",
+		"error_description": "Changed variable name 'Rep2MinusImp2' to 'Rep2PlusImp2', creating an undeclared variable error in the loop where 'Rep2MinusImp2' is assigned and used. The calculation for realtmp will use an uninitialized variable, corrupting pole computations."
+	},
+	{
+		"original_line": "   parameter real rin = 50 from (0:inf);", 
+		"bug_line": "   parameter real rin = -50 from (0:inf);",
+		"error_description": "Negative input resistance violates physical constraints and causes simulation instability due to invalid impedance value (range requires positive values)."
+	},
+	{
+		"original_line": "   for (i=0; i<Npair; i=i+1) begin", 
+		"bug_line": "   for (i=0; i<=Npair; i=i+1) begin",
+		"error_description": "The loop condition uses <= instead of <, causing an extra iteration where i=Npair. This accesses uninitialized elements in ReP/ImP arrays (indexed 0 to Np1p-1) when Npair == Np1p, leading to division by zero due to uninitialized pole values."
+	},
+	{
+		"original_line": "ReP2 = ReP[i]* ReP[i]; ImP2 = ImP[i]* ImP[i];", 
+		"bug_line": "ReP2 = ReP[i]* ReP[i]; ImP2 = ImP[i]* ImP[i+1];",
+		"error_description": "ImP2 incorrectly uses ImP[i+1] instead of ImP[i], causing mismatched pole calculations and distorted filter response due to adjacent pole value contamination."
+	},
+	{
+		"original_line": "        poles[IntegTmp+3] = -im_pole - imagtmp;", 
+		"bug_line": "        poles[IntegTmp+3] = -im_pole + imagtmp;",
+		"error_description": "Sign error in conjugate pole imaginary part. The term should be subtracted to maintain complex conjugate symmetry, but addition breaks pole pairing, causing instability and distorted frequency response."
+	},
+	{
+		"original_line": "        poles[IntegTmp+5] = -im_pole + imagtmp;", 
+		"bug_line": "        poles[IntegTmp+5] = im_pole + imagtmp;",
+		"error_description": "Changed the sign of the first term in the imaginary part calculation, breaking complex conjugate symmetry. This violates the requirement for real-valued system poles and creates an unstable/non-physical filter response."
+	},
+	{
+		"original_line": "  else if (realtmp > 0 ) teta = atan(imagtmp/realtmp);", 
+		"bug_line": "  else if (realtmp > 0 ) teta = atan(realtmp/imagtmp);",
+		"error_description": "Swapped numerator and denominator in arctangent calculation. Instead of computing the angle using imagtmp/realtmp (correct ratio for quadrant determination), the modified code uses realtmp/imagtmp. This inverts the tangent calculation, producing incorrect angles for pole placement and distorting the filter's frequency response."
+	},
+	{
+		"original_line": "real  ReP[0:`N/2], ImP[0:`N/2];", 
+		"bug_line": "real  ReP[0:`N/2-1], ImP[0:`N/2-1];",
+		"error_description": "The array bounds are reduced by 1, causing out-of-bounds access during pole initialization. For odd-order filters, the loop accesses index `N/2` (e.g., index 4 when N=7), which exceeds the new upper bound of `N/2-1` (e.g., 3 when N=7), leading to undefined behavior and incorrect pole calculations."
+	},
+	{
+		"original_line": "        $stop(1);", 
+		"bug_line": "        ;",
+		"error_description": "The simulation does not stop when the filter order is less than 2, allowing invalid filter configurations to proceed which violates the design requirement of order >= 2."
+	},
+	{
+		"original_line": "if (imagtmp > 0) begin", 
+		"bug_line": "if (imagtmp < 0) begin",
+		"error_description": "Flipped the comparison operator incorrectly handles the complex plane quadrant calculation. The original condition properly computes the angle for positive imaginary components, while the bug triggers the wrong branch, corrupting pole placement and filter frequency response."
+	},
+	{
+		"original_line": "IntegTmp = 8*i;", 
+		"bug_line": "IntegTmp = 8*(i-1);",
+		"error_description": "Changing the index calculation to '8*(i-1)' causes negative array indexing when i=0. During the first loop iteration, this accesses invalid memory location poles[-8:-1], resulting in undefined behavior and incorrect pole placement."
+	},
+	{
+		"original_line": "        realtmp = wb2 / ReP[i] / ReP[i] - 4 * wg2;", 
+		"bug_line": "        realtmp = wb2 / ReP[i] / ReP[i] + 4 * wg2;",
+		"error_description": "Changed subtraction to addition, altering the pole calculation formula. This causes incorrect computation of realtmp for odd-order filters, resulting in erroneous pole locations and distorted frequency response."
+	},
+	{
+		"original_line": "real  poles[0:4 *`N-1], zeros[0:4*`N-1];", 
+		"bug_line": "real  poles[0:4 *`N-1], zeros[0:4*`N-2];",
+		"error_description": "The zeros array is declared with 4*N-1 elements (indices 0 to 4*N-2) but the initialization loop writes 4*N zeros (indices 0 to 4*N-1). This causes an out-of-bounds write during initialization, leading to undefined behavior and corrupted filter coefficients."
+	}
+]

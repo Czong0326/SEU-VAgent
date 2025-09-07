@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real W = 180.0e-9                   from (0:inf);         // width of the beam [m]", 
+		"bug_line": "parameter real W = 180.0e-6                   from (0:inf);         // width of the beam [m]",
+		"error_description": "Changed beam width from 180nm to 180μm. This 1000x larger value incorrectly reduces resistance R0 by 1000x since R0 ∝ 1/(W·H), distorting piezoresistive modulation voltage."
+	},
+	{
+		"original_line": "Rbeam = R0 + R0*Strain*(piEff*`E+1.0+2.0*POIS);", 
+		"bug_line": "Rbeam = R0 + R0*Strain*(piEff*`E-1.0-2.0*POIS);",
+		"error_description": "Changed the '+' operator to '-' for the geometric effect terms (1.0 and 2.0*POIS), incorrectly reducing resistance instead of increasing it under tensile strain and violating piezoresistive physics."
+	},
+	{
+		"original_line": "input z;", 
+		"bug_line": "input w;",
+		"error_description": "Changed input port name from 'z' to 'w'. This breaks the connection between the displacement input and the strain calculation. The analog block still references 'z' (line 47), which becomes an undefined internal node defaulting to 0. This causes zero strain regardless of actual input, resulting in incorrect constant resistance."
+	},
+	{
+		"original_line": "        parameter real RESIS = 0.00022535527511173582 from [0:inf);         // resistivity of the doped Si", 
+		"bug_line": "        parameter real resis = 0.00022535527511173582 from [0:inf);         // resistivity of the doped Si",
+		"error_description": "Changed parameter name 'RESIS' to lowercase 'resis' making it undefined in the analog block where uppercase 'RESIS' is used. Verilog is case-sensitive, causing compilation/simulation failure due to unresolved variable."
+	},
+	{
+		"original_line": "input z;", 
+		"bug_line": "output z;",
+		"error_description": "Changing z from input to output causes a functional error because displacement (z) must be an input to calculate strain. As an output, z becomes undriven, resulting in undefined strain values and incorrect resistance modulation."
+	},
+	{
+		"original_line": "real Strain;", 
+		"bug_line": "integer Strain;",
+		"error_description": "Changing Strain from real to integer causes truncation of fractional strain values during calculation. This results in loss of precision in the piezoresistive effect computation since strain values are typically fractional (e.g., 0.005 becomes 0), leading to incorrect resistance modulation."
+	},
+	{
+		"original_line": "parameter real W = 180.0e-9                   from (0:inf);         // width of the beam [m]", 
+		"bug_line": "parameter real W = H                   from (0:inf);         // width of the beam [m]",
+		"error_description": "Incorrectly sets beam width equal to height (H) instead of 180 nm. This causes resistance calculation to use 110 nm for both dimensions, violating design specifications and altering electrical behavior."
+	},
+	{
+		"original_line": "	       V(a,b) <+ Rbeam*I(a,b);	", 
+		"bug_line": "	       V(a,b) <+ R0*I(a,b);	",
+		"error_description": "Replaced Rbeam with R0, removing the strain-dependent piezoresistive effect. This results in a constant resistance value regardless of mechanical stress, violating the core functionality of piezoresistive modulation."
+	},
+	{
+		"original_line": "parameter real piEff = 1.403e-9               from [0:inf);         // effective longitudinal piezoresistive coefficient", 
+		"bug_line": "parameter real piEff = -1.403e-9               from (-inf:inf);         // effective longitudinal piezoresistive coefficient",
+		"error_description": "Changed the piezoresistive coefficient to a negative value and allowed negative values in the range. This inverts the piezoresistive effect (resistance decreases with tensile strain instead of increasing), violating the physical design requirements."
+	},
+	{
+		"original_line": "parameter real W = 180.0e-9                   from (0:inf);         // width of the beam [m]", 
+		"bug_line": "parameter real W = 0.0                   from [0:inf);         // width of the beam [m]",
+		"error_description": "Changed width value to 0 and range to include 0, causing division by zero in resistance calculation (R0 = RESIS*(L/2.0)/W/H) during simulation."
+	},
+	{
+		"original_line": "real Rbeam;", 
+		"bug_line": "real Rbeam = 1000;",
+		"error_description": "Initialized Rbeam to a fixed 1000 ohms, hardcoding the resistance value and preventing dynamic strain-based calculation in the analog block."
+	},
+	{
+		"original_line": "parameter real piEff = 1.403e-9               from [0:inf);         // effective longitudinal piezoresistive coefficient", 
+		"bug_line": "parameter real piEff = 1.403e-6               from [0:inf);         // effective longitudinal piezoresistive coefficient",
+		"error_description": "The effective longitudinal piezoresistive coefficient is increased by 1000x (from 1.403e-9 to 1.403e-6). This magnitude error causes exaggerated resistance changes in the piezoresistive effect, violating the design specifications."
+	},
+	{
+		"original_line": "real R0;", 
+		"bug_line": "real R0 = 0.0;",
+		"error_description": "Initializing R0 to 0.0 overrides the subsequent analog block assignment (R0 = RESIS*(L/2.0)/W/H), forcing the nominal resistance to always be zero. This nullifies the strain-dependent resistance change since Rbeam = 0 + 0*Strain*(...), making the piezoresistive effect non-functional."
+	},
+	{
+		"original_line": "Rbeam = R0 + R0*Strain*(piEff*`E+1.0+2.0*POIS);", 
+		"bug_line": "Rbeam = R0 + R0*Strain*(piEff*`E+1.0-2.0*POIS);",
+		"error_description": "The Poisson ratio term sign is inverted. The correct geometric contribution to resistance change should add 2*POIS due to cross-sectional area reduction, but subtracting it reduces the effect and creates incorrect compression/tension response."
+	},
+	{
+		"original_line": "input z;", 
+		"bug_line": "output z;",
+		"error_description": "Changed port direction from input to output. The module requires 'z' as an input to read position data, but declaring it as output prevents external driving of this signal, causing undefined behavior in strain calculation."
+	},
+	{
+		"original_line": "input z;", 
+		"bug_line": "output z;",
+		"error_description": "Changing direction of displacement port 'z' from input to output violates design specification where displacement must be an input signal. This causes undefined behavior in strain calculation since no external driver provides displacement values."
+	},
+	{
+		"original_line": "V(a,b) <+ Rbeam*I(a,b);", 
+		"bug_line": "V(a,b) <+ Rbeam*I(b,a);",
+		"error_description": "Reversed current direction in the constitutive equation. Using I(b,a) instead of I(a,b) inverts the current sign, causing incorrect voltage drop calculation and violating Ohm's Law for the piezoresistive element."
+	},
+	{
+		"original_line": "parameter real POIS  = 0.17                   from [0:inf);         // poisson's ratio for Si in <111> dir", 
+		"bug_line": "parameter real POIS  = 0.0                   from [0:inf);         // poisson's ratio for Si in <111> dir",
+		"error_description": "Setting Poisson's ratio to 0.0 instead of 0.17 incorrectly eliminates the 2.0*POIS term in the piezoresistive effect calculation, leading to underestimated resistance changes under strain."
+	},
+	{
+		"original_line": "        kinematic z;", 
+		"bug_line": "        electrical z;",
+		"error_description": "Changed discipline of 'z' from kinematic to electrical. This breaks the Pos(z) function call which requires kinematic input, causing simulation errors as displacement sensing functionality is lost."
+	},
+	{
+		"original_line": "`include "constants.vams"", 
+		"bug_line": "`define E 0.0",
+		"error_description": "Redefines `E to 0.0, causing the Young's modulus term in the piezoresistive effect calculation to vanish. This removes the core material-stress contribution to resistance modulation, leaving only geometric effects and corrupting the output."
+	}
+]

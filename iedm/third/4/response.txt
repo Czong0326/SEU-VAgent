@@ -1,0 +1,202 @@
+[
+	{
+		"original_line": "if(Vtb < 0) begin", 
+		"bug_line": "if(Vtb > 0) begin",
+		"error_description": "Reversed voltage polarity condition for gamma_ini assignment, causing inverted switching behavior. The enhancement factor gamma_ini=16 now activates during positive voltage (SET) instead of negative (RESET), violating the bipolar switching mechanism where RESET should occur at negative bias with higher field enhancement."
+	},
+	{
+		"original_line": "gap = idt(gap_ddt+gap_random_ddt, gap_ini);", 
+		"bug_line": "gap = idt(gap_ddt - gap_random_ddt, gap_ini);",
+		"error_description": "Subtracts random variation component instead of adding, inverting the impact of stochastic fluctuations on gap evolution. This reverses the intended probabilistic oxygen vacancy migration effects in dynamic mode (model_switch=1)."
+	},
+	{
+		"original_line": "if(gap<gap_min) begin", 
+		"bug_line": "if(gap>gap_min) begin",
+		"error_description": "Reversed inequality prevents proper gap clamping: allows gap values below gap_min while incorrectly clamping values above gap_min. This violates the design's requirement to maintain minimum conductive filament spacing, potentially enabling unphysical low-resistance states."
+	},
+	{
+		"original_line": "                        rand_seed = rand_seed_ini;", 
+		"bug_line": "                        rand_seed = 0;",
+		"error_description": "Hardcodes initial random seed to 0 instead of using parameter rand_seed_ini, preventing user-controlled variation initialization and making all stochastic behavior deterministic regardless of parameter setting."
+	},
+	{
+		"original_line": "if(gap<gap_min) begin", 
+		"bug_line": "if(gap>gap_min) begin",
+		"error_description": "Reversed gap_min comparison condition incorrectly clamps gap to minimum value when gap exceeds gap_min instead of when below threshold. This allows gap to decrease below gap_min, violating the minimum filament gap constraint and enabling unphysically low resistance states."
+	},
+	{
+		"original_line": "inout			TE, BE;", 
+		"bug_line": "input			TE, BE;",
+		"error_description": "Changed port direction from bidirectional (inout) to unidirectional (input), preventing current flow through electrodes and violating RRAM's fundamental current-voltage relationship requirements."
+	},
+	{
+		"original_line": "@(initial_step)", 
+		"bug_line": "@(final_step)",
+		"error_description": "Changes random seed initialization from simulation start (initial_step) to simulation end (final_step), leaving the seed uninitialized during operation. This prevents proper initialization of the random number generator, causing unpredictable variation behavior and violating the reproducibility requirement when using model_switch=1."
+	},
+	{
+		"original_line": "parameter integer	model_switch		= 0    from[0, 1];", 
+		"bug_line": "parameter real	model_switch		= 0    from[0, 1];",
+		"error_description": "Changing model_switch to real type enables fractional values (e.g., 0.5), incorrectly scaling dynamic variations instead of providing binary mode selection (0=Standard, 1=Dynamic)."
+	},
+	{
+		"original_line": "parameter real		Rth		= 2.1e3 from(0:inf);", 
+		"bug_line": "parameter real		Rth		= 2.1e-3 from(0:inf);",
+		"error_description": "Reduces thermal resistance by 6 orders of magnitude (2.1e3 -> 2.1e-3), effectively disabling Joule heating effects. This prevents temperature-driven gap variations since T_cur remains near ambient, violating the thermal dynamics required for vacancy migration modeling."
+	},
+	{
+		"original_line": "@(initial_step)", 
+		"bug_line": "@(final_step)",
+		"error_description": "Changes random seed initialization from simulation start to simulation end, leaving the seed uninitialized during operation. This breaks reproducibility of dynamic variations as the random number generator uses undefined seed values throughout the simulation."
+	},
+	{
+		"original_line": "       With Dynamic Variations", 
+		"bug_line": "       With Dynamic Variation",
+		"error_description": "Removed the plural form 'Variations' breaks parameter reference in code that expects dynamic variation components, causing undefined behavior in variation calculations."
+	},
+	{
+		"original_line": "Vtb = V(TE,BE);", 
+		"bug_line": "Vtb = V(BE,TE);",
+		"error_description": "Reversed voltage polarity measurement between TE and BE electrodes, inverting the actual device voltage. This disrupts the asymmetric switching behavior by making positive voltages appear negative and vice versa, corrupting field enhancement (gamma) calculations and reversing SET/RESET operation directions."
+	},
+	{
+		"original_line": "parameter real		gamma0		= 16  from(0:inf);", 
+		"bug_line": "parameter real		gamma0		= -16  from(0:inf);",
+		"error_description": "Negative gamma0 value violates physical constraints as field enhancement factor cannot be negative. This inverts the electric field effect in gap evolution calculations, causing incorrect SET/RESET behavior polarity."
+	},
+	{
+		"original_line": "parameter real		tox		= 12e-9 from(0:100e-9);", 
+		"bug_line": "parameter real		tox		= 12e-6 from(0:100e-9);",
+		"error_description": "Changed oxide thickness from 12nm to 12μm (1000x thicker) while keeping range check. Violates design's 2-100nm oxide requirement, causing incorrect field calculations and preventing filament formation due to dramatically reduced electric field (V/tox)."
+	},
+	{
+		"original_line": "       VerilogA Models ", 
+		"bug_line": "       Verilog Models",
+		"error_description": "Removes critical 'A' designation, breaking Verilog-A compiler recognition and disabling analog behavior modeling."
+	},
+	{
+		"original_line": "deltaGap = deltaGap0 * model_switch;", 
+		"bug_line": "deltaGap = deltaGap0 * (1 - model_switch);",
+		"error_description": "Inverts model_switch effect: variations are enabled in Standard mode (model_switch=0) and disabled in Dynamic mode (model_switch=1), directly opposing the intended variation control mechanism."
+	},
+	{
+		"original_line": "1. The users agree not to charge for the Stanford code itself but may charge for additions, extensions, or support.", 
+		"bug_line": "1. The users agree not to charge for the Stanford code itself but may charge for additions, extensions, or support. parameter real Vel0 = 10 from(0:20);",
+		"error_description": "Inserting parameter declaration in license comment creates syntax error by mixing code with documentation, breaking module compilation while appearing valid to casual inspection."
+	},
+	{
+		"original_line": "1. The users agree not to charge for the Stanford code itself but may charge for additions, extensions, or support.", 
+		"bug_line": "1. The users agree not to charge for the Stanford code itself but may charge for any derivative works.",
+		"error_description": "Changed permitted charges from 'additions/extensions/support' to 'any derivative works', violating license restrictions by allowing monetization of modified core code"
+	},
+	{
+		"original_line": "parameter real		F_min		= 1.4e9 from(0:3e9);", 
+		"bug_line": "parameter real		F_min		= 3e9 from(0:3e9);",
+		"error_description": "Excessive F_min (3e9 vs original 1.4e9) prevents field enhancement activation. This violates the design requirement for minimum field (1.4GV/m) to initiate oxygen vacancy migration, effectively blocking all resistive switching by keeping gamma=0 under normal operating voltages."
+	},
+	{
+		"original_line": "parameter real		q		= `P_Q;", 
+		"bug_line": "parameter real		q		= `P_K;",
+		"error_description": "Replaced electron charge (q) with Boltzmann constant (kb) value, fundamentally altering all charge-dependent calculations including ion migration rate and thermal activation energy terms, causing incorrect switching dynamics and temperature dependence."
+	},
+	{
+		"original_line": "parameter real		version		= 1.00 from(0:inf);", 
+		"bug_line": "parameter real		version		= 1.00 from(2.00:inf);",
+		"error_description": "The version parameter's valid range is incorrectly set to (2.00:inf), excluding the actual version value 1.00. This creates a parameter validation error since the default value violates the specified range constraint."
+	},
+	{
+		"original_line": "parameter real		V0		= 0.25    from(0:10);", 
+		"bug_line": "parameter real		V0		= 0.25    from(0:0.2);",
+		"error_description": "Parameter range violation: Default V0 value (0.25) exceeds specified upper limit (0.2), making the parameter definition invalid as default values must reside within declared bounds."
+	},
+	{
+		"original_line": "parameter real		q		= `P_Q;", 
+		"bug_line": "parameter real		q		= `P_K;",
+		"error_description": "Replaced electron charge (q) with Boltzmann's constant (kb), corrupting all charge-dependent calculations including activation energy and ion migration rates."
+	},
+	{
+		"original_line": "* Stanford Leland Junior University and the authors ("Stanford") ", 
+		"bug_line": "Stanford Leland Junior University and the authors ("Stanford") ",
+		"error_description": "Removed comment asterisk creates invalid Verilog-A syntax (missing port declaration), breaking module interface definition"
+	},
+	{
+		"original_line": "parameter real		q		= `P_Q;", 
+		"bug_line": "parameter real		q		= `P_K;",
+		"error_description": "Replaced electron charge (q) with Boltzmann constant (kb) value, fundamentally altering all charge-dependent calculations including activation energy and ion migration rates, causing incorrect switching dynamics and thermal modeling."
+	},
+	{
+		"original_line": "            gap = gap_min;", 
+		"bug_line": "            gap = gap_max;",
+		"error_description": "Incorrectly sets gap to maximum value when below minimum threshold, reversing the clamping direction. This causes the device to enter high resistance state (gap_max) instead of low resistance state (gap_min) when the gap collapses, fundamentally breaking the SET/RESET switching mechanism."
+	},
+	{
+		"original_line": "parameter real		T_smth		= 500		from(400, 600);//  activation energy for vacancy generation", 
+		"bug_line": "parameter real		T_smth		= 50		from(0:1000);//  activation energy for vacancy generation",
+		"error_description": "Changed T_smth from 500 to 50 and expanded range to 0-1000. This drastically reduces the temperature smoothing factor, making random variations overly sensitive to small temperature changes and active across wider temperature ranges, violating the intended thermal-dependent variation behavior."
+	},
+	{
+		"original_line": "parameter real		V0		= 0.25    from(0:10);", 
+		"bug_line": "parameter real		V0		= 2.5    from(0:10);",
+		"error_description": "Increased V0 from 0.25 to 2.5 reduces current magnitude by 10x in sinh(Vtb/V0) term, preventing proper resistive switching as SET/RESET voltages become insufficient to generate required ionic drift currents."
+	},
+	{
+		"original_line": "parameter real		q		= `P_Q;", 
+		"bug_line": "parameter real		q		= -`P_Q;",
+		"error_description": "Negating electron charge reverses ion migration direction, inverting SET/RESET voltage polarity requirements and violating bipolar switching behavior specifications."
+	},
+	{
+		"original_line": "electrical		TE, BE;", 
+		"bug_line": "electrical		BE, TE;",
+		"error_description": "Swapped electrode declaration order reverses voltage polarity handling, invalidating asymmetric SET/RESET behavior. TE/BE directional dependence critical for proper switching is violated as positive TE voltage becomes negative in calculations."
+	},
+	{
+		"original_line": "parameter real		a0		= 0.25e-9 from(0:inf);", 
+		"bug_line": "parameter real		a0		= 0.25e-6 from(0:inf);",
+		"error_description": "Incorrect atom spacing a0 increased from 0.25nm to 250nm, drastically exaggerating the ion hopping distance. This error causes unrealistic acceleration of filament growth/rupture dynamics, violating the physical model's time constants and leading to incorrect SET/RESET timing."
+	},
+	{
+		"original_line": "inout			TE, BE;", 
+		"bug_line": "inout			BE, TE;",
+		"error_description": "Swapped port order causes polarity inversion - voltage calculations (Vtb = V(TE,BE)) will use reversed electrode potentials, corrupting SET/RESET operations that depend on correct voltage polarity between top and bottom electrodes."
+	},
+	{
+		"original_line": "parameter real		version		= 1.00 from(0:inf);", 
+		"bug_line": "parameter real		version		= -1.00 from(-1:inf);",
+		"error_description": "Negative version number allowed (invalid range) and default value set to -1.00, violating the design's versioning constraints which require non-negative values."
+	},
+	{
+		"original_line": "real			gamma;", 
+		"bug_line": "integer			gamma;",
+		"error_description": "Changed gamma from real to integer type, causing truncation of field enhancement factor calculations. This disrupts precise analog dynamics of oxygen vacancy migration critical for SET/RESET operations, violating the asymmetric switching specification."
+	},
+	{
+		"original_line": "     Version 1.0.0", 
+		"bug_line": "     Version 1.0.0); // Syntax error inserted",
+		"error_description": "Added closing parenthesis and semicolon in comment, creating invalid syntax by improperly terminating the version declaration comment line."
+	},
+	{
+		"original_line": "real			T_cur;", 
+		"bug_line": "integer			T_cur;",
+		"error_description": "Changing temperature variable to integer type introduces quantization errors in thermal calculations, truncating critical fractional temperature values needed for accurate activation energy and stochastic variation computations."
+	},
+	{
+		"original_line": "$bound_step(time_step);", 
+		"bug_line": "$bound_step(-time_step);",
+		"error_description": "Negating time_step parameter reverses time direction, violating causality in analog simulation. The bound_step() function requires positive time values - this modification creates non-physical backward time stepping that breaks the gap evolution equations and thermodynamic calculations."
+	},
+	{
+		"original_line": "real			T_cur;", 
+		"bug_line": "integer			T_cur;",
+		"error_description": "Changing temperature variable to integer type causes truncation of thermal calculations, breaking temperature-dependent gap evolution and random variation models that require precise fractional Kelvin values."
+	},
+	{
+		"original_line": "Metal Oxide Resistive Random Access Memory", 
+		"bug_line": "Metal Oxide Resistive Random Access Memry",
+		"error_description": "Changed 'Memory' to 'Memry' in module description comment. While non-functional, this typo violates documentation accuracy requirements specified in the design description's manual review notes requiring precise technical terminology."
+	},
+	{
+		"original_line": "gamma_ini = gamma0;", 
+		"bug_line": "gamma_ini = 0;",
+		"error_description": "Sets initial field enhancement factor to zero for positive voltages, eliminating polarity-dependent switching asymmetry required for SET operations. This prevents filament formation during positive bias (SET), breaking bipolar switching functionality."
+	}
+]

@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "        tbd   = SDTProb( Et,-Efsd-vdsi,Ei,Lh,Eg,lambda );", 
+		"bug_line": "        tbd   = SDTProb( Et,-Efsd+vdsi,Ei,Lh,Eg,lambda );",
+		"error_description": "Changed the sign of vdsi from minus to plus. This incorrectly increases the drain-side energy barrier by vdsi instead of decreasing it, violating the voltage drop physics and undercalculating tunneling current."
+	},
+	{
+		"original_line": "        real Lext, Lg, Hg, kspa, W;", 
+		"bug_line": "        real Lext, Lg, Hg, kspa;",
+		"error_description": "Removed 'W' from the variable declaration list. This causes the function to lose access to the device width parameter, making the capacitance calculation (cgtc = CapGateToContact(...)) use an undefined 'W' value. This results in incorrect parasitic capacitance values and potential simulation errors due to undefined variables."
+	},
+	{
+		"original_line": "qdi = FETtype*qs;", 
+		"bug_line": "qdi = qs;",
+		"error_description": "Missing FETtype multiplier for PMOS charge sign correction. In the else branch (dir=-1), the drain charge (qdi) must be multiplied by FETtype (-1 for PMOS) to maintain correct charge polarity. Without this, PMOS devices will have inverted drain charge signs, distorting terminal charge calculations."
+	},
+	{
+		"original_line": "        if (rs > 0) begin", 
+		"bug_line": "        if (rs < 0) begin",
+		"error_description": "Changed resistance check from positive to negative. Since resistance values are always non-negative, this condition will never be true. This error disables the series resistance branch even when resistance is present, causing incorrect current modeling."
+	},
+	{
+		"original_line": "if (zeta2 >= 1) begin", 
+		"bug_line": "if (zeta2 <= 1) begin",
+		"error_description": "Changed the condition from 'zeta2 >= 1' to 'zeta2 <= 1', reversing the logical branch selection for tunneling probability calculation. This causes the SDTProb function to use the complex integration path (Eq 32.1) for small |zeta| values and the simplified path (Eq 32.2) for large |zeta| values, inverting the proper mathematical behavior for source-drain tunneling."
+	},
+	{
+		"original_line": "        nsd   = CarrierDensity(Eg,Efsd+Eg/2);  // Doping density in S/D extensions", 
+		"bug_line": "        nsd   = CarrierDensity(Eg,Efsd-Eg/2);  // Doping density in S/D extensions",
+		"error_description": "Changed Fermi level calculation from Efsd+Eg/2 to Efsd-Eg/2. This incorrectly positions the Fermi level below the valence band instead of above it, violating the design assumption that Efsd is measured from the conduction band edge. This will cause negative carrier density calculations and break series resistance computations."
+	},
+	{
+		"original_line": "parameter integer Geomod  = 1 from [1:3];              // Device structure. 1:gate-all-around; 2:top-gate w/ screening; 3: top-gate w/o screening", 
+		"bug_line": "parameter integer Geomod  = 1 from [1:2];              // Device structure. 1:gate-all-around; 2:top-gate w/ screening; 3: top-gate w/o screening",
+		"error_description": "The valid range for Geomod is reduced from [1:3] to [1:2], excluding value 3. This prevents users from selecting the top-gate without screening structure (Geomod=3), causing the model to clamp or reject this valid configuration."
+	},
+	{
+		"original_line": "Idsdt = Idsdt+Ii;", 
+		"bug_line": "Idsdt = Idsdt - Ii;",
+		"error_description": "Changed '+' to '-' in the accumulation of S-D tunneling current components. This inverts the sign of each tunneling contribution, causing the total tunneling current to flow in the opposite direction and violating the physical behavior described in Eq. (24) of the model."
+	},
+	{
+		"original_line": "Lof_dt = (0.0263*kspa+0.056)*tox;    // Eq. (33)", 
+		"bug_line": "Lof_dt = (0.0263*kspa+0.056)/tox;    // Eq. (33)",
+		"error_description": "Division replaces multiplication, making Lof_dt inversely proportional to tox instead of proportional. This inverts the physical relationship where fringe length should increase with oxide thickness, causing significant errors in tunneling calculations."
+	},
+	{
+		"original_line": "vdsat     = vdsats*(1-Ff)+$vt*Ff;                                         // Eq (1.5)", 
+		"bug_line": "vdsat     = vdsats*(1-Ff)-$vt*Ff;                                         // Eq (1.5)",
+		"error_description": "Changed '+' to '-' in vdsat calculation. This inverts the thermal voltage contribution, causing underestimation of saturation voltage in subthreshold region and potential negative vdsat values during diffusion-dominated transport."
+	},
+	{
+		"original_line": "        Ffb    = 1/(1+exp((vgsi-(vthb-bvt/2))/bvt));                            // Eq. (1.2)", 
+		"bug_line": "        Ffb    = 1/(1+exp((vgsi-(vthb+bvt/2))/bvt));                            // Eq. (1.2)",
+		"error_description": "Changed the offset term from subtraction to addition. Original used (vthb - bvt/2) to set the transition point, but modification uses (vthb + bvt/2). This shifts the smoothing function threshold by bvt (~90mV at room temp), causing incorrect charge calculations in the subthreshold region and affecting the entire IV characteristic."
+	},
+	{
+		"original_line": "gamma      = sqrt(2/mfp*beta+beta*beta);", 
+		"bug_line": "gamma      = sqrt(2/mfp*beta - beta*beta);",
+		"error_description": "Changed the '+' to '-' in the gamma calculation. This makes the expression under the square root potentially negative for certain parameter values, causing NaN errors during simulation. The original additive term ensured positive values for physical consistency in contact resistance modeling."
+	},
+	{
+		"original_line": "            cqinf  = 3.2e-10*Ncnt;", 
+		"bug_line": "            cqinf  = 3.2e-10/Ncnt;",
+		"error_description": "Changed multiplication to division, causing inversion charge quantum capacitance (cqinf) to decrease with increasing CNT count (Ncnt) instead of increasing. This violates the physical principle that total quantum capacitance should scale with the number of parallel conduction paths."
+	},
+	{
+		"original_line": "Ii    = Ti*(1/(1+exp((Ei-Efsd-vdsi)/$vt))-1/(1+exp(((Ei-Efsd))/$vt)));    // Eq. (24)", 
+		"bug_line": "Ii    = Ti*(1/(1+exp((Ei-Efsd-vdsi)/$vt))-1/(1+exp(((Ei-Efsd))/$vt));    // Eq. (24)",
+		"error_description": "Removed closing parenthesis for the second Fermi function, causing incorrect Fermi level calculation in BTBT current. This makes the exponent term '((Ei-Efsd)/$vt' instead of '((Ei-Efsd)/$vt)', disrupting the tunneling probability calculation."
+	},
+	{
+		"original_line": "if ( Qxo == 0 ) begin", 
+		"bug_line": "if ( Qxo != 0 ) begin",
+		"error_description": "The condition is inverted. When Qxo is zero, the logarithmic formula is incorrectly used instead of the safe fallback, causing ln(0) → -∞ in psys calculation and invalid tunneling current."
+	},
+	{
+		"original_line": "module vscnfet_1_0_1(D,G,S);", 
+		"bug_line": "module vscnfet_1_0_1(D,S,G);",
+		"error_description": "Swapped gate (G) and source (S) terminals in port order. This reverses gate and source connections, causing incorrect biasing and terminal functions since gate controls channel while source is the reference terminal."
+	},
+	{
+		"original_line": "for ( Ei = -Efsd+dE/2 ; Ei < Eitop ; Ei = Ei+dE ) begin", 
+		"bug_line": "for ( Ei = -Efsd+dE/2 ; Ei < Eitop ; Ei = Ei-dE ) begin",
+		"error_description": "Changed loop increment from +dE to -dE. This reverses the energy integration direction, causing the loop to start at -Efsd+dE/2 and move downward (away from Eitop) instead of upward. The loop will either run indefinitely (if Eitop is very low) or skip all valid energies, resulting in zero SDT current calculation."
+	},
+	{
+		"original_line": "    Ibtbt   = 0;", 
+		"bug_line": "    Ibtbt   = 1e-9;",
+		"error_description": "Initializes band-to-band tunneling current with 1nA offset instead of zero, introducing constant error in BTBT current calculation under enabled conditions."
+	},
+	{
+		"original_line": "rs = (ContactRes(Lc,d,Rcmod) + ExtensionRes(Lext,nsd,d))/Ncnt;", 
+		"bug_line": "rs = (ContactRes(Lc,d,Rcmod) + ExtensionRes(Lext,nss,d))/Ncnt;",
+		"error_description": "Changed nsd (doping density) to nss (subthreshold slope factor) in ExtensionRes, causing incorrect carrier density input for source/drain extension resistance calculation."
+	},
+	{
+		"original_line": "A    = sr*2*`M_PI*kspa*`P_EPS0*Lext;", 
+		"bug_line": "A    = sr*2*`M_PI*kspa*`P_EPS0/Lext;",
+		"error_description": "Changed multiplication by Lext to division, inverting the physical relationship where fringe capacitance should increase with longer extensions but now decreases instead."
+	}
+]

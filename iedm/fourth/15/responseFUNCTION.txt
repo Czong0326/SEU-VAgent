@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "taps[40] = 0.037071;", 
+		"bug_line": "taps[40] = -0.037071;",
+		"error_description": "The sign of tap coefficient 40 is inverted, altering the FIR filter's impulse response and causing distortion in the filtered CDMA output signals."
+	},
+	{
+		"original_line": "integer i_coeffs[1:`PN_STATES];", 
+		"bug_line": "integer i_coeffs[1:`PN_STATES-1];",
+		"error_description": "Reduces the i_coeffs array size from 15 to 14 elements. This causes out-of-bounds access when initializing/using i_coeffs[15], breaking the I-channel PN sequence generation as the critical tap 15 coefficient becomes undefined."
+	},
+	{
+		"original_line": "V(q_out_node) <+ transition(filter_q_out,period*2,tt,tt);", 
+		"bug_line": "V(q_out_node) <+ transition(filter_i_out,period*2,tt,tt);",
+		"error_description": "The Q output is incorrectly driven by the filtered I channel signal (filter_i_out) instead of the filtered Q channel signal (filter_q_out). This swaps the I and Q outputs, violating the design requirement for independent I and Q channels in CDMA modulation."
+	},
+	{
+		"original_line": "i_state[k] = 0;", 
+		"bug_line": "i_state[k] = 1;",
+		"error_description": "Initializes I-channel shift register to all ones instead of zeros. This corrupts the PN sequence generation since the design later sets only i_state[0]=1, leaving other registers incorrectly initialized to 1 rather than 0."
+	},
+	{
+		"original_line": "                taps[4] = -0.016734;", 
+		"bug_line": "                taps[4] = 0.016734;",
+		"error_description": "Changed tap coefficient sign from negative to positive, altering the FIR filter's frequency response and causing signal distortion in the CDMA output."
+	},
+	{
+		"original_line": "                taps[38] = -0.060716;", 
+		"bug_line": "                taps[38] = 0.060716;",
+		"error_description": "Changed the sign of tap coefficient 38 from negative to positive, introducing a FIR filter coefficient error that distorts the signal processing in the CDMA generator."
+	},
+	{
+		"original_line": "                q_coeffs[k] = 0;", 
+		"bug_line": "                q_coeffs[k] = 1;",
+		"error_description": "Initializes all q_channel PN generator coefficients to 1 instead of 0. This causes all taps to remain active in the q_spreading sequence generation, fundamentally altering the CDMA code sequence and violating the IS-95 standard implementation where only specific taps should be active."
+	},
+	{
+		"original_line": "analog begin", 
+		"bug_line": "initial begin",
+		"error_description": "Changed analog block to initial block. The initial block executes only once at time zero, preventing continuous analog behavior generation. This violates the design requirement for continuous CDMA signal output and makes all voltage outputs constant after initialization."
+	},
+	{
+		"original_line": "                i_coeffs[2] = 1;", 
+		"bug_line": "                i_coeffs[2] = 0;",
+		"error_description": "Disables tap 2 in I-channel PN generator polynomial, corrupting the spreading sequence. The original polynomial x^15 + x^10 + x^8 + x^7 + x^6 + x^2 + 1 becomes x^15 + x^10 + x^8 + x^7 + x^6 + 1, altering the pseudo-random sequence and subsequent I-channel modulation."
+	},
+	{
+		"original_line": "i_coeffs[7] = 1;", 
+		"bug_line": "i_coeffs[7] = 0;",
+		"error_description": "Changed PN generator coefficient for I-channel tap 7 from 1 to 0. This alters the feedback polynomial, corrupting the pseudorandom sequence generation for the I-channel spreading code."
+	},
+	{
+		"original_line": "i_coeffs[8] = 1;", 
+		"bug_line": "i_coeffs[8] = 0;",
+		"error_description": "Disables the x^8 feedback tap in the I-channel PN generator polynomial, altering the pseudo-random sequence and corrupting CDMA signal generation."
+	},
+	{
+		"original_line": "V(q_bin_node) <+ transition(qout_val,(`TAP_LENGTH-2)*period/2+period*2,period/25,period/25);", 
+		"bug_line": "V(q_bin_node) <+ transition(qout_val,(`TAP_LENGTH-2)*period/2,period/25,period/25);",
+		"error_description": "Removed the critical 2-period delay offset for the quadrature signal (q_bin_node), causing misalignment between in-phase and quadrature components. This violates the CDMA modulation scheme where quadrature must be phase-shifted by exactly 2 symbol periods relative to in-phase."
+	},
+	{
+		"original_line": "        @(timer(period/10, period)) begin", 
+		"bug_line": "        @(timer(period/10, period*2)) begin",
+		"error_description": "Doubling the timer period reduces the sampling frequency by half, causing the FIR filter updates and PN sequence generation to occur at half the required rate. This violates the CDMA timing specifications and results in incorrect signal generation due to undersampling."
+	},
+	{
+		"original_line": "parameter real rise_fall = 1 from (0:1];", 
+		"bug_line": "parameter real rise_fall = 0 from (0:1];",
+		"error_description": "Initial value 0 violates the exclusive range (0:1]. Simulators will clamp to minimum positive value (~0), causing near-zero rise/fall times in transition functions. This creates discontinuous output signals with infinite slopes, violating analog design requirements and causing simulation convergence failures."
+	},
+	{
+		"original_line": "filter_q_out = 0;", 
+		"bug_line": "filter_q_out = filter_i_out;",
+		"error_description": "Assigns I-channel value to Q-channel output instead of resetting to zero. Causes cross-channel contamination where Q-channel FIR accumulation starts with previous I-channel value, corrupting both outputs."
+	},
+	{
+		"original_line": "filter_q_out = 0;", 
+		"bug_line": "filter_q_out = filter_q_out;",
+		"error_description": "Failure to reset the Q channel FIR accumulator to zero causes the FIR output to accumulate over time, corrupting the Q channel signal by integrating previous outputs instead of computing each output independently."
+	},
+	{
+		"original_line": "                for (k=1; k<=`TAP_LENGTH; k=k+1) begin ", 
+		"bug_line": "                for (k=1; k<=`TAP_LENGTH; k=k+2) begin ",
+		"error_description": "The loop step is changed to k=k+2, causing only every other tap coefficient to be used in the FIR filter summation. This skips half the filter coefficients, resulting in severe distortion of the CDMA output signals due to incorrect filtering."
+	},
+	{
+		"original_line": "        i_coeffs[2] = 1;", 
+		"bug_line": "        i_coeffs[2] = 0;",
+		"error_description": "Disables the tap at position 2 for the I-channel PN generator by setting the coefficient to 0 instead of 1. This alters the feedback polynomial, corrupting the I-channel spreading sequence generation and causing incorrect baseband signal modulation."
+	},
+	{
+		"original_line": "q_coeffs[5] = 1;", 
+		"bug_line": "q_coeffs[5] = 0;",
+		"error_description": "Setting q_coeffs[5] to 0 instead of 1 disables a critical feedback tap in the Q-channel pseudorandom generator. This corrupts the spreading sequence polynomial (originally 1 + x^5 + x^9 + x^10 + x^11 + x^12 + x^15), causing invalid CDMA code generation for the quadrature component."
+	},
+	{
+		"original_line": "                taps[17] = -0.012840;", 
+		"bug_line": "                taps[17] = 0.012840;",
+		"error_description": "Changed tap coefficient 17 from negative to positive value, altering the FIR filter's impulse response and causing incorrect signal processing in the CDMA output."
+	}
+]

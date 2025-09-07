@@ -1,0 +1,97 @@
+// VerilogA for sources_modules, wcdmw_scrambling, veriloga
+//
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+
+/*
+ * poly_length, the number of items in poly.
+ * poly_order, the max order of the poly.
+ * For example, y = (a*x5 + b*x + 1), poly_length = 3
+ * since there is three items in the expression.
+ * poly_order = 5 since the max order is 5.
+ * poly_order is equal to the leftmost number in the poly
+ * vector poly_length refers to.
+ */
+
+(* instrument_module *)
+module wcdma_scrambling(I_in_dpch, I_in_p_cpich, I_in_pich, I_in_p_ccpch, I_in_ocns,
+                        Q_in_dpch, Q_in_p_cpich, Q_in_pich, Q_in_p_ccpch, Q_in_ocns,
+                        I_out_dpch, I_out_p_cpich, I_out_pich, I_out_p_ccpch, I_out_ocns,
+			Q_out_dpch, Q_out_p_cpich, Q_out_pich, Q_out_p_ccpch, Q_out_ocns,
+			I_scr, Q_scr );
+input  I_in_dpch, I_in_p_cpich, I_in_pich, I_in_p_ccpch, I_in_ocns,
+        Q_in_dpch, Q_in_p_cpich, Q_in_pich, Q_in_p_ccpch, Q_in_ocns,
+         I_scr, Q_scr ;
+output I_out_dpch, I_out_p_cpich, I_out_pich, I_out_p_ccpch, I_out_ocns,
+          Q_out_dpch, Q_out_p_cpich, Q_out_pich, Q_out_p_ccpch, Q_out_ocns;
+electrical I_in_dpch, I_in_p_cpich, I_in_pich, I_in_p_ccpch, I_in_ocns,
+              Q_in_dpch, Q_in_p_cpich, Q_in_pich, Q_in_p_ccpch, Q_in_ocns,
+	       I_scr, Q_scr ;
+electrical I_out_dpch, I_out_p_cpich, I_out_pich, I_out_p_ccpch, I_out_ocns,
+              Q_out_dpch, Q_out_p_cpich, Q_out_pich, Q_out_p_ccpch, Q_out_ocns;
+
+parameter real frame_time     = 1.0/15000.0 from (0:inf);
+parameter integer numChipsOut = 256;
+
+real      tmpReal, tmpImag, tmpI, tmpQ;
+integer RealCalu, ImagCalu;
+real   i_out_dpch, i_out_pich, i_out_p_cpich, i_out_p_ccpch, i_out_ocns,
+        q_out_dpch, q_out_pich, q_out_p_cpich, q_out_p_ccpch, q_out_ocns;
+real local_sample;
+
+analog function real ComplexMutiply;
+  input Iin1, Qin1, Iin2, Qin2, isReal;
+  real   Iin1, Qin1, Iin2, Qin2;
+  integer isReal;
+  begin
+    if ( isReal ) ComplexMutiply = Iin1 * Iin2 - Qin1 * Qin2;
+    else ComplexMutiply = Iin1 * Qin2 + Qin1 * Iin2;
+  end
+endfunction
+
+analog begin
+  @(initial_step) begin
+    RealCalu = 1;
+    ImagCalu = 0;
+    i_out_dpch    = 0;
+    q_out_dpch    = 0;
+    i_out_p_cpich = 0;
+    q_out_p_cpich = 0;
+    i_out_pich    = 0;
+    q_out_pich    = 0;
+    i_out_p_ccpch = 0;
+    q_out_p_ccpch = 0;
+    i_out_ocns    = 0;
+    q_out_ocns    = 0;
+    local_sample = frame_time / numChipsOut;
+  end
+
+  @(timer(local_sample/500, local_sample)) begin
+    tmpReal  = V(I_scr);
+    tmpImag = V(Q_scr);
+    i_out_dpch        = ComplexMutiply( V(I_in_dpch),     V(Q_in_dpch),       tmpReal, tmpImag, RealCalu );
+    q_out_dpch       = ComplexMutiply( V(I_in_dpch),     V(Q_in_dpch),       tmpReal, tmpImag, ImagCalu );
+    i_out_p_cpich   = ComplexMutiply( V(I_in_p_cpich), V(Q_in_p_cpich),  tmpReal, tmpImag, RealCalu );
+    q_out_p_cpich  = ComplexMutiply( V(I_in_p_cpich), V(Q_in_p_cpich),  tmpReal, tmpImag, ImagCalu );
+    i_out_pich         = ComplexMutiply( V(I_in_pich),       V(Q_in_pich),        tmpReal, tmpImag, RealCalu );
+    q_out_pich        = ComplexMutiply( V(I_in_pich),       V(Q_in_pich),        tmpReal, tmpImag, ImagCalu );
+    i_out_p_ccpch  = ComplexMutiply( V(I_in_p_ccpch),V(Q_in_p_ccpch), tmpReal, tmpImag, RealCalu );
+    q_out_p_ccpch = ComplexMutiply( V(I_in_p_ccpch),V(Q_in_p_ccpch), tmpReal, tmpImag, ImagCalu );
+    i_out_ocns        = ComplexMutiply( V(I_in_ocns),      V(Q_in_ocns),       tmpReal, tmpImag, RealCalu );
+    q_out_ocns       = ComplexMutiply( V(I_in_ocns),      V(Q_in_ocns),       tmpReal, tmpImag, ImagCalu );
+  end 
+
+  V(I_out_dpch)        <+ i_out_dpch;
+  V(Q_out_dpch)      <+ q_out_dpch;
+  V(I_out_p_cpich)   <+ i_out_p_cpich;
+  V(Q_out_p_cpich)  <+ q_out_p_cpich;
+  V(I_out_pich)         <+ i_out_pich;
+  V(Q_out_pich)        <+ q_out_pich;
+  V(I_out_p_ccpch)  <+ i_out_p_ccpch;
+  V(Q_out_p_ccpch) <+ q_out_p_ccpch;
+  V(I_out_ocns)        <+ i_out_ocns;
+  V(Q_out_ocns)       <+ q_out_ocns;
+end
+endmodule

@@ -1,0 +1,59 @@
+// VerilogA for my_rfLib, BB_loss, veriloga
+
+//This module duplicates the loss in the filter models. The filter models
+//introduce loss on the output side of the filter. The loss depends only
+//on the filter "output" resistance and equals the specified value only
+//when the filter is driven and loaded with a resistance equal to the
+//output resistance of the filter. This module was included to let users
+//introduce the loss in the reference channel for error vector magnitude
+//estimates. The idea is to introduce the loss but not the finite bandwidth.
+//This lets the user see the effect of finite bandwidth alone on error
+//vector magntidue.
+
+`include "constants.h"
+`include "discipline.h"
+
+`define db20_real(x)  (pow(10, (x)/20))
+
+module BB_loss(ini, inq, outi, outq);
+inout ini;
+electrical ini;
+inout inq;
+electrical inq;
+inout outi;
+electrical outi;
+inout outq;
+electrical outq;
+
+parameter real loss = 0 ;
+parameter real r2 = 50 ;
+
+electrical  out2i, out3i;
+electrical  out2q, out3q;
+real  s11, s21, s12, s22, a1i, a2i, a1q, a2q;
+analog begin
+
+   @(initial_step) begin
+         s21 = `db20_real(-loss);
+         s12 = s21;
+         s11 = 0;
+         s22 = 0;      
+   end
+
+      a1i = V(ini)/sqrt(r2) + I(ini, out2i)*sqrt(r2);
+      a1q = V(inq)/sqrt(r2) + I(inq, out2q)*sqrt(r2);
+      a2i = V(outi)/sqrt(r2) + I(outi, out3i)*sqrt(r2);
+      a2q = V(outq)/sqrt(r2) + I(outq, out3q)*sqrt(r2);
+      I(out2i) <+ V(ini)/r2*(1-s11)/(1+s11);
+      I(out2q) <+ V(inq)/r2*(1-s11)/(1+s11);
+      I(out2i) <+ -a2i*s12/(sqrt(r2)*(1+s11));
+      I(out2q) <+ -a2q*s12/(sqrt(r2)*(1+s11));
+      I(out3i) <+ V(outi)/r2*(1-s22)/(1+s22);
+      I(out3q) <+ V(outq)/r2*(1-s22)/(1+s22);
+      I(out3i) <+ -a1i*s21/(sqrt(r2)*(1+s22));
+      I(out3q) <+ -a1q*s21/(sqrt(r2)*(1+s22));
+
+
+end
+
+endmodule

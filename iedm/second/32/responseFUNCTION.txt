@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "     Phi = Phi_Dch;", 
+		"bug_line": "     Phi = Phi_Dct;",
+		"error_description": "Incorrect starting point for numerical integration in the drain extension region. The integration should start at the channel side potential (Phi_Dch) but erroneously starts at the contact side potential (Phi_Dct), reversing the integration direction and corrupting the current calculation."
+	},
+	{
+		"original_line": "parameter integer  SDseries = 1                from [0 : 1];            //insufficient doping effect", 
+		"bug_line": "parameter integer  SDseries = 1                from [1 : 0];            //insufficient doping effect",
+		"error_description": "Invalid range [1:0] (high < low) reverses parameter constraints, making all values invalid since 1 > 0. This violates range definition rules and locks SDseries in an undefined state, breaking the doping effect control."
+	},
+	{
+		"original_line": "parameter real  mx_c1  = 0.5788 * m0           from (0:inf);  //electron effective mass of the lowest valley along x direction", 
+		"bug_line": "parameter real  mx_c1  = 0.0 * m0           from (0:inf);  //electron effective mass of the lowest valley along x direction",
+		"error_description": "Setting electron effective mass (mx_c1) to zero causes division by zero in m_c1 calculation (line 85), leading to invalid density of states (N_DOS) and incorrect electrostatic behavior."
+	},
+	{
+		"original_line": "kesi  = (Vgt - dVgt)/pow(namda_T, 2) + (Vgb - dVgb)/pow(namda_B, 2);", 
+		"bug_line": "kesi  = (Vgt - dVgt)/pow(namda_T, 2) - (Vgb - dVgb)/pow(namda_B, 2);",
+		"error_description": "Changed '+' to '-' in kesi calculation, reversing the electrostatic coupling effect between top and bottom gates. This violates Poisson's equation integration and corrupts channel potential calculations."
+	},
+	{
+		"original_line": "   subDch  = (kesi_sd + q/epsTMD * (Nd_pre + Nd_pos)) * pow(namda_B, 2);", 
+		"bug_line": "   subDch  = (kesi_sd + q/epsTMD * (Nd_pre + Nd_pos)) * pow(namda_T, 2);",
+		"error_description": "Replaced namda_B with namda_T, incorrectly using top-gate natural length scale instead of bottom-gate scale for drain extension region potential calculation. This violates the electrostatic model since drain extensions are only coupled to the bottom gate."
+	},
+	{
+		"original_line": "F_Sch  = Type * q * DOS / epsTMD / T_TMD * exp (q/ kT * (Type * Phi_Sch - Type * Vsch -Eg/q * np)) - q * (Nd_pre + Nd_pos) / epsTMD - kesi_sd + Phi_Sch / pow(namda_B, 2);", 
+		"bug_line": "F_Sch  = Type * q * DOS / epsTMD / T_TMD * exp (q/ kT * (Type * Phi_Sch - Type * Vsch -Eg/q * np)) - q * (Nd_pre + Nd_pos) / epsTMD - kesi_sd - Phi_Sch / pow(namda_B, 2);",
+		"error_description": "Changed sign from '+' to '-' for the Phi_Sch term. This inverts the Laplace component in Poisson's equation, disrupting the electrostatic potential calculation for the source extension region."
+	},
+	{
+		"original_line": "   Phi_Sch  = (supSch * (1 - np) + subSch * np) * Smooth_Sch + (subSch * (1 - np) + supSch * np) * (1 - Smooth_Sch); //initial guess for source extension potential at the channel side", 
+		"bug_line": "   Phi_Sch  = (supSch * (1 - np) + subSch * np) * Smooth_Sch + (supSch * (1 - np) + subSch * np) * (1 - Smooth_Sch); //initial guess for source extension potential at the channel side",
+		"error_description": "Swapped 'subSch' and 'supSch' in the second term, eliminating the complementary np/(1-np) logic. This causes incorrect potential calculation for p-type devices by using identical expressions for both terms instead of inverted doping-dependent expressions."
+	},
+	{
+		"original_line": "subchS  = (kesi + q/epsTMD * Nd_pre) * pow(namda, 2);", 
+		"bug_line": "subchS  = (kesi + q/epsTMD * Nd_pos) * pow(namda, 2);",
+		"error_description": "Replaced channel doping parameter Nd_pre (pre-gate formation) with Nd_pos (post-gate heavy doping). This incorrectly applies S/D extension doping to the channel region, corrupting electrostatic calculations and threshold voltage characteristics."
+	},
+	{
+		"original_line": "Ids = Ids + q * W / L_ch * (epsTMD * T_TMD / q * (kesi - Phi / pow(namda, 2)) + Nd_pre * T_TMD + Type * kT * epsTMD * T_TMD /q /q /namda /namda) * miu0 /(1 + pow((Fvt + Fvb)/Fcrit, beta)) * dPhi;", 
+		"bug_line": "Ids = Ids + q * W / L_ch * (epsTMD * T_TMD / q * (kesi - Phi / pow(namda, 2)) - Nd_pre * T_TMD + Type * kT * epsTMD * T_TMD /q /q /namda /namda) * miu0 /(1 + pow((Fvt + Fvb)/Fcrit, beta)) * dPhi;",
+		"error_description": "Changed '+' to '-' before Nd_pre * T_TMD, incorrectly subtracting doping charge instead of adding it. This violates charge conservation by misrepresenting the fixed charge contribution in the channel current calculation."
+	},
+	{
+		"original_line": "   subSch  = (kesi_sd + q/epsTMD * (Nd_pre + Nd_pos)) * pow(namda_B, 2);", 
+		"bug_line": "   subSch  = (kesi_sd + q/epsTMD * (Nd_pre - Nd_pos)) * pow(namda_B, 2);",
+		"error_description": "Changed the doping term from (Nd_pre + Nd_pos) to (Nd_pre - Nd_pos), incorrectly subtracting the extra doping concentration. This inverts the doping effect in the source extension region, leading to erroneous electrostatic potential calculations."
+	},
+	{
+		"original_line": "I(Sch, Sct) <+ Type * Ids;", 
+		"bug_line": "I(Sct, Sch) <+ Type * Ids;",
+		"error_description": "Reversed the direction of the current flow in the source extension region. Current should flow from Sch (channel side) to Sct (contact side), but after modification it incorrectly flows from Sct to Sch."
+	},
+	{
+		"original_line": "parameter real  miu0   = 60e-4                 from (0:inf);  //intrinsic mobility", 
+		"bug_line": "parameter real  miu0   = -60e-4                 from (0:inf);  //intrinsic mobility",
+		"error_description": "Assigned negative mobility value (-60e-4) which violates physical constraints. Mobility must be positive; negative values cause unphysical current inversion and violate the 'from (0:inf)' range declaration."
+	},
+	{
+		"original_line": "real Vsct, Vdct, Vsch, Vdch, Vgt, Vgb;", 
+		"bug_line": "real Vsct, Vdct, Vsch, Vdch, Vgt, Vgt;",
+		"error_description": "Declared Vgb as Vgt instead. This causes the bottom gate voltage (Vgb) to share the same variable as the top gate voltage (Vgt), eliminating independent control of the bottom gate and coupling all bottom gate calculations to the top gate potential."
+	},
+	{
+		"original_line": "V(Sch, Sct) <+ 0;", 
+		"bug_line": "V(Sch, Dct) <+ 0;",
+		"error_description": "Incorrectly connects the source internal node (Sch) to the drain contact node (Dct) instead of the source contact node (Sct), creating an unintended short between source and drain when SDseries is disabled."
+	},
+	{
+		"original_line": "real Phi, dPhi;", 
+		"bug_line": "real dPhi;",
+		"error_description": "Removed 'Phi' variable declaration, causing it to be undeclared in the numerical integration loops for mobility degradation. This breaks the current calculation when MobDeg=1 since 'Phi' is used as the integration variable."
+	},
+	{
+		"original_line": "real Smooth_Sct, Smooth_Sch, Smooth_chS, Smooth_chD, Smooth_Dch, Smooth_Dct;", 
+		"bug_line": "real Smooth_Sct, Smooth_Sch, Smooth_chS, Smooth_chD, Smooth_Dch, Smooth_Dct_missing;",
+		"error_description": "The variable Smooth_Dct is misspelled as Smooth_Dct_missing in the declaration. This causes Smooth_Dct to be undeclared, breaking the drain contact potential calculation and electrostatic modeling since Smooth_Dct is used in the Newton-Raphson iterations."
+	},
+	{
+		"original_line": "Phi_chS  = Phi_chS - F_chS / F_chS_prime;", 
+		"bug_line": "Phi_chS  = Phi_chS + F_chS / F_chS_prime;",
+		"error_description": "Changed Newton-Raphson iteration from subtraction to addition, causing potential calculation to diverge instead of converge. This violates the fundamental algorithm for finding roots of equations."
+	},
+	{
+		"original_line": "Ids = Ids + q * W / L_ch * (epsTMD * T_TMD / q * (kesi - Phi / pow(namda, 2)) + Nd_pre * T_TMD + Type * kT * epsTMD * T_TMD /q /q /namda /namda) * miu0 /(1 + pow((Fvt + Fvb)/Fcrit, beta)) * dPhi;", 
+		"bug_line": "Ids = Ids + q * W / L_ch * (epsTMD * T_TMD / q * (kesi - Phi / pow(namda, 2)) + Nd_pre * T_TMD - Type * kT * epsTMD * T_TMD /q /q /namda /namda) * miu0 /(1 + pow((Fvt + Fvb)/Fcrit, beta)) * dPhi;",
+		"error_description": "Changed '+' to '-' before the thermal diffusion term, reversing the carrier diffusion direction and corrupting current calculation in the channel segment integration."
+	},
+	{
+		"original_line": "parameter real  mx_c2  = 0.5788 * m0           from (0:inf);  //electron effective mass of the second lowest valley along x direction", 
+		"bug_line": "parameter real  mx_c2  = 0.5664 * m0           from (0:inf);  //electron effective mass of the second lowest valley along x direction",
+		"error_description": "Assigned incorrect y-direction mass value (my_c1) to x-direction mass parameter (mx_c2), violating physical consistency and altering density of states calculations."
+	},
+	{
+		"original_line": "Phi = Phi + dPhi;", 
+		"bug_line": "Phi = Phi - dPhi;",
+		"error_description": "The sign error in the potential increment causes reverse integration direction. Instead of progressing from source to drain potential, the calculation moves backward, inverting the channel current direction and corrupting mobility calculations."
+	}
+]

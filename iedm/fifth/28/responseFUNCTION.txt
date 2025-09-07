@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "electrical iout_p, iout_n, iin_p, iin_n;", 
+		"bug_line": "electrical iout_p, iout_n, iin_x, iin_n;",
+		"error_description": "Misspelled 'iin_p' as 'iin_x', causing an undefined terminal error in the controlling current reference I(iin_p, iin_n) since 'iin_x' is declared but never used."
+	},
+	{
+		"original_line": "   analog", 
+		"bug_line": "   initial",
+		"error_description": "Replaced 'analog' with 'initial', converting the continuous-time current contribution into a one-time initialization statement. This breaks the fundamental behavior of the current controlled current source, as the output current no longer dynamically responds to input current changes during simulation."
+	},
+	{
+		"original_line": "I(iout_p, iout_n) <+ gain*I(iin_p, iin_n);", 
+		"bug_line": "I(iout_n, iout_p) <+ gain*I(iin_p, iin_n);",
+		"error_description": "Reversed controlled current direction: Swaps output terminals, causing current to flow from iout_n to iout_p instead of iout_p to iout_n, inverting the output polarity."
+	},
+	{
+		"original_line": "module cccs_hdl(iout_p, iout_n, iin_p, iin_n);", 
+		"bug_line": "module cccs_hdl(iout_n, iout_p, iin_p, iin_n);",
+		"error_description": "Swapped iout_p and iout_n ports. This inverts the output current direction as I(iout_p, iout_n) becomes I(port2, port1) instead of I(port1, port2), causing sign errors in dependent circuits."
+	},
+	{
+		"original_line": "I(iout_p, iout_n) <+ gain*I(iin_p, iin_n);", 
+		"bug_line": "I(iout_p, iout_n) <+ gain*V(iin_p, iin_n);",
+		"error_description": "Changed input from current (I) to voltage (V), converting the CCCS to a VCCS (voltage-controlled current source) instead of current-controlled, violating the fundamental design specification."
+	},
+	{
+		"original_line": "I(iout_p, iout_n) <+ gain*I(iin_p, iin_n);", 
+		"bug_line": "I(iout_p, iout_n) <+ gain*I(iin_n, iin_p);",
+		"error_description": "The controlling current direction is reversed - measures current from iin_n to iin_p instead of iin_p to iin_n, inverting the sensed current and causing incorrect output current direction."
+	},
+	{
+		"original_line": "I(iout_p, iout_n) <+ gain*I(iin_p, iin_n);", 
+		"bug_line": "I(iout_p, iout_n) <+ gain*V(iin_p, iin_n);",
+		"error_description": "The output current is incorrectly controlled by input voltage instead of input current, converting the CCCS into a VCCS (voltage-controlled current source). This violates the current-controlled design specification."
+	},
+	{
+		"original_line": "I(iout_p, iout_n) <+ gain*I(iin_p, iin_n);", 
+		"bug_line": "I(iout_p, iout_n) <+ gain*V(iin_p, iin_n);",
+		"error_description": "Changed the controlling input from current (I) to voltage (V), converting the CCCS into a VCCS which violates the current-controlled design specification."
+	},
+	{
+		"original_line": "I(iout_p, iout_n) <+ gain*I(iin_p, iin_n);", 
+		"bug_line": "I(iout_p, iout_n) <+ gain*V(iin_p, iin_n);",
+		"error_description": "Changed the controlling input from current (I) to voltage (V), converting the CCCS into a VCCS (voltage-controlled current source) which violates the current-controlled design specification."
+	},
+	{
+		"original_line": "module cccs_hdl(iout_p, iout_n, iin_p, iin_n);", 
+		"bug_line": "module cccs_hdl(iout_p, iout_n, iin_n, iin_p);",
+		"error_description": "Swapped the controlling current input ports (iin_p and iin_n) reverses the direction of the sensed current, causing the output current to flow with inverted polarity relative to the design specification."
+	},
+	{
+		"original_line": "electrical iout_p, iout_n, iin_p, iin_n;", 
+		"bug_line": "electrical iout_p, iout_n, iin_p, iin_p;",
+		"error_description": "Replaced 'iin_n' with 'iin_p', causing the controlling current measurement to short-circuit between input terminals. The current I(iin_p,iin_n) becomes I(iin_p,iin_p) which always evaluates to zero, making the output current always zero regardless of input."
+	},
+	{
+		"original_line": "output iout_p, iout_n;", 
+		"bug_line": "input iout_p, iout_n;",
+		"error_description": "Changes output ports to input direction, preventing current source functionality. The module can no longer drive current through iout_p/iout_n, violating the CCCS design where these ports must be outputs."
+	},
+	{
+		"original_line": "module cccs_hdl(iout_p, iout_n, iin_p, iin_n);", 
+		"bug_line": "module cccs_hdl(iout_p, iout_n, iin_p, iin_m);",
+		"error_description": "Changed negative input terminal name from 'iin_n' to 'iin_m'. This breaks the current measurement path since the internal reference 'iin_n' becomes an unconnected implicit net. The controlling current I(iin_p,iin_n) always reads zero, resulting in zero output current regardless of actual input."
+	},
+	{
+		"original_line": "   analog", 
+		"bug_line": "   analog initial",
+		"error_description": "Replacing 'analog' with 'analog initial' restricts the current source calculation to time zero only. This violates continuous behavior requirements as the controlled current won't update during simulation, causing incorrect DC/transient results."
+	},
+	{
+		"original_line": "output iout_p, iout_n;", 
+		"bug_line": "input iout_p, iout_n;",
+		"error_description": "Changed output ports to input, reversing current direction. This violates the current source design where iout_p/iout_n must drive current externally, causing functional failure as the ports become sink-only."
+	},
+	{
+		"original_line": "parameter real gain = 0;", 
+		"bug_line": "parameter real gain_factor = 0;",
+		"error_description": "Changed parameter name from 'gain' to 'gain_factor', breaking the reference in the analog block where 'gain' is used. This creates an undefined variable error during simulation since 'gain' no longer exists."
+	},
+	{
+		"original_line": "module cccs_hdl(iout_p, iout_n, iin_p, iin_n);", 
+		"bug_line": "module cccs_hdl(iout_p, iout_n, iin_n, iin_p);",
+		"error_description": "Swapped iin_p and iin_n ports. This reverses the polarity of the controlling current measurement, causing the output current to flow in the opposite direction relative to the input signal."
+	},
+	{
+		"original_line": "electrical iout_p, iout_n, iin_p, iin_n;", 
+		"bug_line": "voltage iout_p, iout_n, iin_p, iin_n;",
+		"error_description": "Changing the discipline from 'electrical' to 'voltage' removes the current flow attribute required for branch current access (I()). This makes the controlled current expression 'I(iin_p, iin_n)' invalid since voltage nodes lack current flow semantics."
+	},
+	{
+		"original_line": "input iin_p, iin_n;", 
+		"bug_line": "input iin_p;",
+		"error_description": "Removed the iin_n input port, breaking the current sensing path. The module can no longer measure the controlling current between iin_p and iin_n, resulting in undefined behavior for the current source."
+	},
+	{
+		"original_line": "output iout_p, iout_n;", 
+		"bug_line": "input iout_p, iout_n;",
+		"error_description": "Changed output ports to inputs. This violates the module's intended behavior as the current source cannot drive current into input ports, making the output functionally unusable."
+	}
+]

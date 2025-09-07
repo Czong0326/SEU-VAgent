@@ -1,0 +1,53 @@
+// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient
+`include "disciplines.vams"
+
+module res_linear_voltage (p, n);
+inout p, n;
+electrical p, n;
+
+// Process parameters with manufacturing constraints
+parameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]
+parameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]
+parameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]
+parameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]
+
+// Parameter safety checks
+generate if (R0 <= 0) begin
+  initial $display("Fatal Error: R0 must be positive value!");
+end
+endgenerate
+
+// Core resistance calculation
+analog begin
+  // Get instantaneous voltage across terminals
+  real v_pn = V(p,n);
+  
+  // Voltage stress monitoring
+  if (abs(v_pn) > V_MAX) begin
+    $strobe("Warning: %.3fV exceeds V_MAX=%.1fV at %t", v_pn, V_MAX, $realtime);
+  end
+
+  // Convert ppm coefficients to absolute values
+  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6
+  real vcoeff_quad   = VC2 * 1e-6;
+
+  // Calculate voltage-dependent resistance
+  real R_actual = R0 * (1 + 
+                      vcoeff_linear * v_pn + 
+                      vcoeff_quad * v_pn*v_pn);
+
+  // Dynamic resistance validation
+  if (R_actual <= 0) begin
+    $strobe("Error: Negative resistance %.2eΩ at V=%.2fV", R_actual, v_pn);
+  end
+
+  // Implement non-linear Ohm's Law
+  I(p,n) <+ v_pn / R_actual;  // I = V/R
+  
+  // Simulation convergence helper
+  `ifdef SIMULATION
+  $bound_step(0.1*(R_actual * 1e-12));
+  `endif
+end
+
+endmodule

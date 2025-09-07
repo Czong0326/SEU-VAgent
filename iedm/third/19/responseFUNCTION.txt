@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "startRMS = sqrt(startAreaS/window);", 
+		"bug_line": "startRMS = sqrt(outAreaS/window);",
+		"error_description": "Incorrectly uses the output signal's squared integral (outAreaS) instead of the start signal's (startAreaS) for RMS calculation of the start signal, corrupting the statistics."
+	},
+	{
+		"original_line": "outArea = idt(outCur - outCurHold, 0.0);", 
+		"bug_line": "outArea = idt(outCurHold - outCur, 0.0);",
+		"error_description": "Reversed subtraction order inverts the integral calculation. This flips the sign of accumulated area, corrupting all downstream statistics (average, RMS, correlation) derived from outArea."
+	},
+	{
+		"original_line": "integer crossStartDirection;", 
+		"bug_line": "integer crossStartDirection = 1;",
+		"error_description": "Initializing crossStartDirection to 1 causes premature measurement triggering. The flag incorrectly indicates a cross event occurred before any actual signal crossing, violating the requirement to start measurement only after detecting the specified signal transition."
+	},
+	{
+		"original_line": "`define NO 0", 
+		"bug_line": "`define NO 1",
+		"error_description": "Sets initial measurement flag to active (1) instead of inactive (0), causing premature statistics collection before the start event triggers. This violates the design requirement to begin measurements only after specified start conditions."
+	},
+	{
+		"original_line": "startWindow = -1M;", 
+		"bug_line": "startWindow = 0;",
+		"error_description": "Initializes startWindow to 0 instead of -1M. This breaks the condition 'if (startWindow == -1M)' used to trigger measurement start for signal-crossing modes, preventing the measurement window from ever opening."
+	},
+	{
+		"original_line": "real loc_start_mode, loc_stop_mode;", 
+		"bug_line": "real loc_start_mode, loc_stop_modee;",
+		"error_description": "Variable name 'loc_stop_mode' is misspelled as 'loc_stop_modee' in the declaration, causing the subsequent assignment and condition checks for stop_mode to reference an undeclared variable, which will break compilation and prevent the stop condition logic from functioning."
+	},
+	{
+		"original_line": "    loc_stop_mode = `arg;", 
+		"bug_line": "    loc_stop_mode = `rise;",
+		"error_description": "Changed stop condition mode from time-based (`arg) to rising-edge trigger (`rise). This causes the measurement window to end on a rising edge of the stop signal instead of at the specified stop_arg time, violating the time-based stop functionality."
+	},
+	{
+		"original_line": "outRMS = sqrt(outAreaS/window);", 
+		"bug_line": "outRMS = sqrt(outAreaS*window);",
+		"error_description": "Changed division to multiplication. RMS calculation now incorrectly squares the window duration instead of averaging the squared signal, making the result scale with measurement duration rather than representing true root mean square."
+	},
+	{
+		"original_line": "		if (loc_start_mode == `arg) begin", 
+		"bug_line": "		if (loc_start_mode == `at) begin",
+		"error_description": "Changed condition from `arg (0) to `at (10), causing absolute time start condition to never trigger since `at mode isn't implemented for start signals. This violates the design where `arg mode should initiate measurement at specified absolute time."
+	},
+	{
+		"original_line": "real loc_start_mode, loc_stop_mode;", 
+		"bug_line": "integer loc_start_mode, loc_stop_mode;",
+		"error_description": "Changed variable type from real to integer. This truncates fractional values of stop_mode (declared as real parameter), potentially altering operational modes. For example, stop_mode=1.5 would truncate to 1 (rise) instead of being invalid, causing incorrect measurement window behavior."
+	},
+	{
+		"original_line": "`define arg   0", 
+		"bug_line": "`define arg   1",
+		"error_description": "Redefining `arg to 1 conflicts with `rise (also defined as 1). This causes mode-checking conditions to misinterpret rise-triggered events as argument-triggered events, leading to incorrect timer activation instead of edge-crossing detection for start/stop signals."
+	},
+	{
+		"original_line": "startArea = idt(startCur - startCurHold, 0.0);", 
+		"bug_line": "startArea = idt(startCurHold - startCur, 0.0);",
+		"error_description": "Reversed subtraction order causes negative integration of the start signal, corrupting all start signal statistics (average, RMS, standard deviation) and correlation calculations."
+	},
+	{
+		"original_line": "        loc_start_mode = start_mode;", 
+		"bug_line": "        loc_start_mode = stop_mode;",
+		"error_description": "Assigned stop_mode to loc_start_mode instead of start_mode. This causes the measurement start condition to incorrectly use the stop_mode parameter value, potentially triggering measurements based on the wrong signal or threshold."
+	},
+	{
+		"original_line": "parameter integer start_count = 1;", 
+		"bug_line": "parameter integer start_count = 0;",
+		"error_description": "Setting start_count to 0 prevents measurement triggering since the condition 'startCnt+1 == start_count' (line 122) can never be satisfied (0+1 != 0), causing the measurement window to never open."
+	},
+	{
+		"original_line": "    integer startCnt, stopCnt;", 
+		"bug_line": "    integer startCnt = 1, stopCnt;",
+		"error_description": "The start counter (startCnt) is incorrectly initialized to 1 instead of 0. Since the default start_count is 1, the condition startCnt+1 == start_count becomes 2 == 1 (false), preventing the measurement window from ever starting. This results in no statistics being collected."
+	},
+	{
+		"original_line": "real outAvg, startAvg, corr;", 
+		"bug_line": "real outAvg, startAvg; integer corr;",
+		"error_description": "Declaring 'corr' as integer instead of real causes truncation of the correlation coefficient calculation. The fractional part will be lost during assignment in the final_step block, leading to incorrect statistical analysis."
+	},
+	{
+		"original_line": "		end else begin", 
+		"bug_line": "		end else begin doMeasure = `YES;",
+		"error_description": "Sets measurement flag to active for invalid start_mode values (negative numbers). This violates specification where measurement should only start for valid modes (0-3)."
+	},
+	{
+		"original_line": "if (outMinValue > outCur) outMinValue = outCur;", 
+		"bug_line": "if (outMinValue < outCur) outMinValue = outCur;",
+		"error_description": "The condition for updating the minimum output value is reversed. Instead of updating when the current value is lower than the stored minimum, it updates when the current value is higher. This causes the minimum value to track increasingly higher values rather than true minima, corrupting all minimum-related statistics (min, peak-to-peak, etc.)."
+	},
+	{
+		"original_line": "real startPP, startRMS, startSigma;", 
+		"bug_line": "real startPP, startRMS;",
+		"error_description": "The variable 'startSigma' is undeclared, causing the standard deviation calculation for the start signal to fail. This breaks the correlation coefficient computation and final statistics output since 'startSigma' is used in the correlation formula and print statements."
+	},
+	{
+		"original_line": "`define YES 1", 
+		"bug_line": "`define YES 0",
+		"error_description": "Changing YES flag to 0 creates conflicting truth values where both YES and NO become 0. This breaks all conditional checks (e.g., doMeasure logic) since YES now evaluates as false instead of true, preventing measurement activation."
+	}
+]

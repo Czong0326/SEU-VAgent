@@ -1,0 +1,119 @@
+//  VerilogA baseband behavioral model of an up converting mixer.
+//  Copyright (c) 1999
+//  by Cadence Design Systems, Inc.  All rights reserved.
+ 
+// 11/5/99
+ 
+/*
+This is a simple baseband model of an up-converting mixer stage. The local
+oscillator is absorbed into this model.
+*/
+ 
+/* PARAMETER DEFINITIONS:
+======================
+gain    = available power gain in dB. 
+IP3     = input referenced IP3(dBm)
+psinf   = output phase shift as the input power goes to infinity.
+cmp     = input power pt for phase point.[dBm]
+pscp    = output phase shift at cmp.[radians]
+shp     = determines how fast the phase shift occurs with increasing
+          input power. A larger number delays the shift but makes
+          the shift rise faster as a function of input signal level.
+cw      = determines the direction of the phase shift. The phase
+          shift is only in one direction. +1 means counter-clockwise, -1
+          means clockwise, and 0 means no phase shift (no am/pm conversion).
+nf      = noise figure [dB]
+rin     = input resistance
+rout    = output resistance
+=====================
+*/
+ 
+`define PI 3.1415926535897932384626433
+
+`include "constants.h"
+`include "discipline.h"
+
+module up_cnvrt(I_in , I_out, Q_in, Q_out, phase_err);
+inout I_in ;
+electrical I_in ;
+inout I_out;
+electrical I_out;
+inout Q_in;
+electrical Q_in;
+inout Q_out;
+electrical Q_out;
+inout phase_err;
+electrical phase_err;
+
+parameter real gain = 40;
+parameter real ip3 = -30;
+parameter real rin = 50 from (0:inf);
+parameter real rout = 50 from (0:inf);
+ 
+parameter real cmp = -30;
+parameter real pscp = 0.7 from (0:inf);
+parameter real psinf = 2 from (pscp:inf);
+parameter real shp = 2 from [0:inf);
+parameter integer cw = 0 from [-1:1];
+parameter real nf = 2 from [0:inf];
+ 
+real a;
+real b;
+real ip;
+real rho;
+real rhooutmax;
+real rhoinmax;
+real rhoout;
+real theta;
+real beta;
+real tmp;
+real cp;
+real noise_current;
+real rnf;
+ 
+analog begin
+ 
+// The initial block converts the input parameters from engineering
+// units to implementation units.
+     @(initial_step) begin
+     a = sqrt(pow(10,gain/10)*rout/rin);
+     ip = sqrt(pow(10,ip3/10)*2*rin*0.001);
+     cp = sqrt(pow(10,cmp/10)*2*rout*0.001)/a;
+     rnf = pow(10,nf/10);
+     b = a/(ip*ip);
+     rhoinmax = sqrt(a/(3*b));
+     rhooutmax = (2*a/3)*rhoinmax;
+     theta = 0;
+     beta = pscp/(psinf-pscp);
+     noise_current = sqrt(8*(rnf-1)*1.380620e-23*$temperature/rin);
+
+   end
+
+// Compute the input angle and radius.
+  if (V(I_in) !=0) theta = atan2(V(Q_in),V(I_in));
+  else if (V(Q_in) > 0) theta = `PI/2;
+  else theta = -`PI/2;
+ 
+  rho = hypot(V(I_in),V(Q_in));
+ 
+// Apply the third order non-linearity. Clamp the
+// output for extreme inputs.
+  if (rho < rhoinmax ) rhoout = (a - b*rho*rho)*rho;
+  else rhoout = rhooutmax;
+ 
+// Rotate the output for am/pm conversion.
+  tmp = pow(rho/cp,shp);
+  theta = theta + cw*(1+beta)*pscp*tmp/(1+beta*tmp)+V(phase_err);
+ 
+  I(phase_err) <+ V(phase_err)/50;
+  I(I_in) <+ V(I_in)/rin;
+  I(Q_in) <+ V(Q_in)/rin;
+  I(I_out) <+ (-2*rhoout*cos(theta) + V(I_out))/rout;
+  I(Q_out) <+ (-2*rhoout*sin(theta) + V(Q_out))/rout;
+ 
+  I(I_in) <+ white_noise(noise_current*noise_current, "up_cnvrt_i");
+  I(Q_in) <+ white_noise(noise_current*noise_current, "up_cnvrt_q");
+ 
+end
+
+endmodule

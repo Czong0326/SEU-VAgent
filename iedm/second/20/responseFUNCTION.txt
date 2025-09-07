@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "q_bit = V(vin) > vthresh;", 
+		"bug_line": "q_bit = V(vin) < vthresh;",
+		"error_description": "The condition for q-phase bit detection is reversed. Instead of detecting high when input exceeds positive threshold, it incorrectly sets high when input is below threshold, causing inverted output logic."
+	},
+	{
+		"original_line": "parameter real tfall=1n;", 
+		"bug_line": "parameter real tfall=1p;",
+		"error_description": "Changed fall time from 1ns to 1ps. This unrealistically fast transition violates design requirements for stable signal processing, causing potential glitches and timing issues in downstream circuits due to abrupt voltage changes."
+	},
+	{
+		"original_line": "real tnext_i, tnext_q;", 
+		"bug_line": "real tnext_i; integer tnext_q;",
+		"error_description": "The variable tnext_q is incorrectly declared as integer instead of real. This causes truncation of fractional time values during q-phase sampling events, leading to incorrect demodulation timing since fractional period offsets (0.25*period) are essential for proper quadrature alignment."
+	},
+	{
+		"original_line": "parameter real vlogic_high = 5;", 
+		"bug_line": "parameter real vlogic_high = 0;",
+		"error_description": "Sets logic high voltage to 0V, identical to logic low voltage. This eliminates voltage distinction between high/low states, causing both outputs to always stay at 0V regardless of demodulation results."
+	},
+	{
+		"original_line": "module qpsk_demodulator (vin, vout_i, vout_q);", 
+		"bug_line": "module qpsk_demodulator (vin, vout_i, vout_i);",
+		"error_description": "Duplicate output port name 'vout_i' replaces 'vout_q', causing Q-output signal to be shorted to I-output internally. This merges both demodulated channels into a single erroneous output signal."
+	},
+	{
+		"original_line": "   integer i_bit, q_bit;", 
+		"bug_line": "   integer i_bit = 1, q_bit = 1;",
+		"error_description": "Initializing i_bit and q_bit to 1 forces both outputs to vlogic_high at startup instead of vlogic_low. This violates the expected initial low state, causing false high signals before the first sample event."
+	},
+	{
+		"original_line": "	 tnext_i = $abstime + 0.50 * period + tstart;", 
+		"bug_line": "	 tnext_i = $abstime + 0.25 * period + tstart;",
+		"error_description": "Sets i-phase sampling time to 0.25 period instead of 0.50 period. Causes both I and Q channels to sample simultaneously at 90° phase instead of 90° apart (I at 180°, Q at 90°), violating quadrature demodulation requirements."
+	},
+	{
+		"original_line": "   integer i_bit, q_bit;", 
+		"bug_line": "   integer i_bit, q_bit = 1;",
+		"error_description": "Initializing q_bit to 1 forces the q-phase output to always start high (vlogic_high) regardless of input. This violates the specification where outputs should initially be low (vlogic_low) until the first sample event at tstart + 0.25*period."
+	},
+	{
+		"original_line": "   real i_vout_val;", 
+		"bug_line": "   real i_bit;",
+		"error_description": "Declaring 'i_bit' as real shadows the integer variable used for bit decisions. The assignment 'i_bit = V(vin) < -vthresh;' now converts boolean to real (0.0/1.0) instead of integer (0/1), causing incorrect threshold detection. The transition function expects integer values but receives real numbers, leading to undefined output behavior."
+	},
+	{
+		"original_line": "   integer i_bit, q_bit;", 
+		"bug_line": "   integer i_bit = 1, q_bit = 1;",
+		"error_description": "The variables i_bit and q_bit are incorrectly initialized to 1 instead of 0. This causes the outputs to start at logic high (vlogic_high) before the first sample event, violating the design where outputs should default to low (vlogic_low) until demodulation begins."
+	},
+	{
+		"original_line": "V(vout_q) <+ transition(q_bit,tdel + 0.25 * period ,trise,tfall);", 
+		"bug_line": "V(vout_q) <+ transition(i_bit,tdel + 0.25 * period ,trise,tfall);",
+		"error_description": "The q-phase output incorrectly uses i_bit instead of q_bit, causing the quadrature output to mirror the in-phase output instead of carrying independent demodulated data."
+	},
+	{
+		"original_line": "period = 1/freq;", 
+		"bug_line": "period = freq;",
+		"error_description": "Replaced division with assignment of raw frequency value. This sets the period equal to the frequency value instead of its reciprocal, causing incorrect timing calculations (period should be 1/frequency). For example, a 1MHz carrier would incorrectly yield 1e6 second period instead of 1us."
+	},
+	{
+		"original_line": "output vout_i, vout_q;", 
+		"bug_line": "input vout_i, vout_q;",
+		"error_description": "Output ports incorrectly declared as inputs, violating directional specification. This prevents signal transmission from the demodulator to downstream components, breaking the QPSK decoding functionality."
+	},
+	{
+		"original_line": "electrical vout_i, vout_q, vin;", 
+		"bug_line": "electrical vout_i, vin;",
+		"error_description": "Missing declaration for output node vout_q. This causes vout_q to be undeclared, breaking the output connection and preventing the q-phase signal from being generated."
+	},
+	{
+		"original_line": "i_bit = V(vin) < -vthresh;", 
+		"bug_line": "i_bit = V(vin) > vthresh;",
+		"error_description": "The condition incorrectly uses greater-than (>) with positive vthresh instead of less-than (<) with negative vthresh. This inverts the i-phase detection logic and mistakenly uses the q-phase threshold condition, causing erroneous demodulation where high bits are detected when input exceeds positive threshold instead of being below negative threshold."
+	},
+	{
+		"original_line": "V(vout_q) <+ transition(q_bit,tdel + 0.25 * period ,trise,tfall);", 
+		"bug_line": "V(vout_q) <+ transition(i_bit,tdel + 0.25 * period ,trise,tfall);",
+		"error_description": "The q-phase output incorrectly uses the i-phase bit value (i_bit) instead of the q-phase bit value (q_bit). This causes the q-phase output to mirror the i-phase output, destroying the quadrature relationship required for proper QPSK demodulation."
+	},
+	{
+		"original_line": "i_vout_val = i_bit * (vlogic_high - vlogic_low) + vlogic_low;", 
+		"bug_line": "i_vout_val = q_bit * (vlogic_high - vlogic_low) + vlogic_low;",
+		"error_description": "Uses q_bit instead of i_bit for I-phase output voltage calculation, causing incorrect I-phase output based on Q-phase detection results."
+	},
+	{
+		"original_line": "electrical vout_i, vout_q, vin;", 
+		"bug_line": "electrical vout_i, vout_q;",
+		"error_description": "The input port 'vin' is missing electrical discipline declaration, causing the voltage access V(vin) in the analog block to fail since vin is undefined. This breaks the demodulation functionality as input signal processing becomes invalid."
+	},
+	{
+		"original_line": "   real i_vout_val;", 
+		"bug_line": "   real vthresh = 0.2;",
+		"error_description": "Declares a local variable 'vthresh' initialized to 0.2, shadowing the module parameter 'vthresh'. This overrides the intended threshold voltage with a fixed value of 0.2V, ignoring the user-specified parameter during detection logic."
+	},
+	{
+		"original_line": "i_vout_val = i_bit * (vlogic_high - vlogic_low) + vlogic_low;", 
+		"bug_line": "i_bit = i_bit * (vlogic_high - vlogic_low) + vlogic_low;",
+		"error_description": "Assigns a real-valued voltage calculation to integer bit variable 'i_bit', causing type overflow and corrupting the bit value (0/1) into invalid floating-point values that break the digital output."
+	}
+]

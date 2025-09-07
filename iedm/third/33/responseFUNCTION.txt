@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "output outi, outq;", 
+		"bug_line": "input outi, outq;",
+		"error_description": "Changed port direction from output to input, causing illegal driver assignments in analog block (V(outi)/V(outq)) which will fail during simulation as inputs cannot be driven."
+	},
+	{
+		"original_line": "`define Bits 3", 
+		"bug_line": "`define Bits 4",
+		"error_description": "Changing the bit width to 4 while keeping M=8 causes input values to exceed constellation mapping limits. The mapping arrays (size 8) will be accessed with indices up to 15, leading to out-of-bounds errors during simulation when integerOut > 7."
+	},
+	{
+		"original_line": "tmpInteger      = i ^ (i>>8);", 
+		"bug_line": "tmpInteger      = i ^ (i>>0);",
+		"error_description": "Changed right-shift from 8 bits to 0 bits, causing XOR operation to always yield zero (i^i=0), which breaks Gray code generation by producing all-zero mappings instead of valid Gray codes."
+	},
+	{
+		"original_line": "parameter string Constellation_ordering = "Gray";", 
+		"bug_line": "parameter string Constellation_ordering = "binary";",
+		"error_description": "Changed default constellation ordering to 'binary' (lowercase) which doesn't match conditional checks for 'Binary' (case-sensitive). This prevents mappingArray initialization, causing uninitialized values in symbol mapping."
+	},
+	{
+		"original_line": "for (i = 0; i < `M; i = i + 1)", 
+		"bug_line": "for (i = 0; i < `M - 1; i = i + 1)",
+		"error_description": "The loop condition terminates one iteration early, leaving the last element of mappingArray uninitialized in 'Binary' mode. This causes incorrect constellation mapping when the input symbol equals M-1."
+	},
+	{
+		"original_line": "V(outq) <+ PhaseImag[tmpInteger];", 
+		"bug_line": "V(outq) <+ PhaseReal[tmpInteger];",
+		"error_description": "Assigns the real component (I) to the quadrature output (Q) instead of the imaginary component, swapping I/Q roles and distorting the constellation diagram."
+	},
+	{
+		"original_line": "electrical [0:`Bits -1] inbit;", 
+		"bug_line": "electrical [0:`Bits] inbit;",
+		"error_description": "Changed the array range to [0:`Bits] (size M+1) instead of [0:`Bits-1] (size M). This creates an out-of-bound access when reading input bits, as the port only provides M bits. During simulation, V(inbit[M]) accesses an undefined value beyond the actual input range."
+	},
+	{
+		"original_line": "input [0:`Bits -1] inbit;", 
+		"bug_line": "input [0:`Bits-2] inbit;",
+		"error_description": "The input port array is declared with only `Bits-1` bits (indexed 0 to `Bits-2`) instead of the required `Bits` bits. This causes an out-of-bound access when reading bit index `Bits-1` during symbol mapping, leading to undefined behavior and incorrect constellation point selection."
+	},
+	{
+		"original_line": "for (i = 0; i < `M; i = i + 1)", 
+		"bug_line": "for (i = 0; i < `M; i = i + 2)",
+		"error_description": "Changed loop increment to +2, causing only even indices (i=0,2,4,6) to be initialized for 8-PSK. Odd-indexed symbols (1,3,5,7) remain uninitialized (0,0 phase), corrupting half the constellation points."
+	},
+	{
+		"original_line": "use_seed  = Seed;", 
+		"bug_line": "use_seed  = 0;",
+		"error_description": "The seed for random number generation is incorrectly fixed to 0 instead of using the Seed parameter. When Disable_input=1, this causes identical pseudorandom sequences in every simulation run, violating the requirement for configurable random input behavior."
+	},
+	{
+		"original_line": "PhaseImag[i] = sin(phase_offset * `M_PI + i * `M_TWO_PI / `M);", 
+		"bug_line": "PhaseImag[i] = sin(phase_offset * `M_PI - i * `M_TWO_PI / `M);",
+		"error_description": "The angular term uses subtraction instead of addition, reversing the constellation rotation direction and causing symbol misalignment. This violates the design specification requiring positive angular progression for correct PSK symbol mapping."
+	},
+	{
+		"original_line": "integerOut = 0;", 
+		"bug_line": "integerOut = integerOut;",
+		"error_description": "Fails to reset integerOut to 0 at each symbol period. This retains the previous symbol value and adds new bit contributions, causing cumulative constellation mapping errors and potential index overflow."
+	},
+	{
+		"original_line": "    if ( Constellation_ordering == "user_defined" ) ", 
+		"bug_line": "    if ( Constellation_ordering != "user_defined" ) ",
+		"error_description": "Changed equality check to inequality, causing the user-defined mapping to be applied in Binary/Gray modes while skipping it in actual user_defined mode, resulting in inverted constellation mapping behavior."
+	},
+	{
+		"original_line": "integerOut = 0;", 
+		"bug_line": "integerOut = integerOut;",
+		"error_description": "Fails to reset integerOut to 0 at each symbol period, causing accumulation of input bits from previous symbols and leading to incorrect constellation mapping and eventual out-of-bounds array access."
+	},
+	{
+		"original_line": "input [0:`Bits -1] inbit;", 
+		"bug_line": "output [0:`Bits -1] inbit;",
+		"error_description": "Changed input port to output, reversing data flow direction. This prevents reading input bits for symbol generation since outputs can't be read, causing the modulator to always use uninitialized data."
+	},
+	{
+		"original_line": "            tmp[j] = $rdist_uniform(use_seed, 0, 1);", 
+		"bug_line": "            tmp[j] = $rdist_uniform(use_seed, 1, 1);",
+		"error_description": "Changed uniform distribution range from (0,1) to (1,1), causing all bits to always be 1 when Disable_input=1. This eliminates randomness and forces the modulator to constantly output the maximum symbol value (2^Bits - 1), violating the random symbol generation requirement."
+	},
+	{
+		"original_line": "for (i = 0; i < `M; i = i + 1)", 
+		"bug_line": "for (i = 0; i < `M - 1; i = i + 1)",
+		"error_description": "The loop runs only for `M-1` iterations instead of `M`, leaving the last element of mappingArray uninitialized in Gray encoding mode. This causes incorrect constellation mapping when the input symbol is the maximum value (M-1), as the uninitialized array element will be used."
+	},
+	{
+		"original_line": "    if ( Constellation_ordering == "Binary" ) begin", 
+		"bug_line": "    if ( Constellation_ordering != "Binary" ) begin",
+		"error_description": "Changed equality check to inequality. This inverts the condition, causing the Binary mapping block to execute for all non-Binary modes (including Gray/user_defined) and skip execution for actual Binary mode. This corrupts the mappingArray initialization for Gray mode and leaves it uninitialized for Binary mode."
+	},
+	{
+		"original_line": "parameter real Symbol_Period = 1e-6 from (0:inf);", 
+		"bug_line": "parameter real Symbol_Period = 0;",
+		"error_description": "Symbol period set to 0 causes the timer event to fire continuously at every time step, preventing proper symbol generation and violating modulation timing requirements."
+	},
+	{
+		"original_line": "                tmpInteger      = tmpInteger ^ (tmpInteger>>1);", 
+		"bug_line": "                tmpInteger      = tmpInteger ^ (tmpInteger>>0);",
+		"error_description": "Changed shift amount from 1 to 0, causing XOR operation with unshifted value (x ^ x = 0). This zeros out tmpInteger, corrupting Gray code generation and mapping all symbols to 0."
+	}
+]

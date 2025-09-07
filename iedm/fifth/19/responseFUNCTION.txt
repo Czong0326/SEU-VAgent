@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "output sigout;", 
+		"bug_line": "input sigout;",
+		"error_description": "Changed output port to input direction, violating the design's requirement to drive an output signal. This causes a functional error since the module cannot assign values to an input port."
+	},
+	{
+		"original_line": "parameter real gain4 = 1;", 
+		"bug_line": "parameter real gain4 = 0;",
+		"error_description": "Default gain for sigin4 changed to 0, causing the fourth input signal to be completely ignored in the summation by default."
+	},
+	{
+		"original_line": "                       + gain4*V(sigin4);", 
+		"bug_line": "                       - gain4*V(sigin4);",
+		"error_description": "Changed '+' to '-' operator, causing the fourth input to be subtracted instead of added. This violates the design specification requiring summation of all inputs and introduces incorrect signal inversion."
+	},
+	{
+		"original_line": "                               + gain4*V(sigin4);", 
+		"bug_line": "                               + gain4*I(sigin4);",
+		"error_description": "Changed voltage potential (V) to current flow (I) for sigin4, violating the design of a pure voltage adder and introducing inconsistent signal types in the summation."
+	},
+	{
+		"original_line": "V(sigout) <+ gain1*V(sigin1)+ gain2*V(sigin2) + gain3*V(sigin3)", 
+		"bug_line": "V(sigout) <+ gain1*V(sigin1)+ gain2*V(sigin2) - gain3*V(sigin3)",
+		"error_description": "Changed addition of third input term to subtraction, incorrectly inverting the contribution of sigin3 to the output sum."
+	},
+	{
+		"original_line": "input sigin1, sigin2, sigin3, sigin4;", 
+		"bug_line": "input sigin1, sigin2, sigin3;",
+		"error_description": "The input port sigin4 is missing, causing an undeclared signal error in the analog block where V(sigin4) is referenced."
+	},
+	{
+		"original_line": "                       + gain4*V(sigin4);", 
+		"bug_line": "                       + gain1*V(sigin4);",
+		"error_description": "Uses gain1 parameter for the fourth input instead of gain4, causing incorrect scaling of the sigin4 input and violating independent gain control per input."
+	},
+	{
+		"original_line": "electrical sigin1, sigin2, sigin3, sigin4, sigout;", 
+		"bug_line": "electrical sigin1, sigin2, sigin3, sigout;",
+		"error_description": "The signal sigin4 is missing from the electrical declaration, causing it to be undefined in the analog block where V(sigin4) is referenced. This violates the 4-input adder design specification that requires all four inputs to be processed."
+	},
+	{
+		"original_line": "electrical sigin1, sigin2, sigin3, sigin4, sigout;", 
+		"bug_line": "electrical sigin1, sigin2, sigin3, sigout;",
+		"error_description": "Pin sigin4 is missing from electrical discipline declaration, causing compilation failure when accessing V(sigin4) in analog block. The fourth input becomes disconnected, breaking the 4-input summation functionality."
+	},
+	{
+		"original_line": "parameter real gain1 = 1;", 
+		"bug_line": "parameter real gain1 = 0;",
+		"error_description": "Sets the default gain for the first input to zero instead of one, causing the first input signal to be ignored in the summation."
+	},
+	{
+		"original_line": "V(sigout) <+ gain1*V(sigin1)+ gain2*V(sigin2) + gain3*V(sigin3)", 
+		"bug_line": "V(sigout) <+ gain1*V(sigin1)+ gain2*V(sigin2) + gain3*V(sigin4)",
+		"error_description": "Uses sigin4 instead of sigin3 for the third term, causing sigin4 to be added twice (once here and once on the next line) while omitting sigin3 entirely."
+	},
+	{
+		"original_line": "                       + gain4*V(sigin4);", 
+		"bug_line": "                       + gain4*V(sigin1);",
+		"error_description": "Uses sigin1 instead of sigin4 for the fourth term, causing the first input to be added twice while the fourth input is ignored."
+	},
+	{
+		"original_line": "                       + gain4*V(sigin4);", 
+		"bug_line": "                       + gain4*I(sigin4);",
+		"error_description": "Changed voltage (V) to current (I) for sigin4, violating the design specification of summing voltage inputs. This introduces dependency on current flow instead of potential at the fourth input."
+	},
+	{
+		"original_line": "parameter real gain3 = 1;", 
+		"bug_line": "parameter real gain3 = -1;",
+		"error_description": "Sets the gain for input sigin3 to -1 instead of 1, inverting its contribution to the output sum. This violates the design equation which requires positive summation of all inputs by default."
+	},
+	{
+		"original_line": "parameter real gain4 = 1;", 
+		"bug_line": "parameter real gain4 = 0;",
+		"error_description": "Sets default gain for sigin4 to 0 instead of 1, causing the fourth input signal to be ignored when the parameter is not explicitly overridden during instantiation."
+	},
+	{
+		"original_line": "	V(sigout) <+ gain1*V(sigin1)+ gain2*V(sigin2) + gain3*V(sigin3)", 
+		"bug_line": "	V(sigout) <+ gain1*V(sigin1)+ gain2*V(sigin2) + gain3*V(sigin4)",
+		"error_description": "The third input incorrectly uses sigin4 instead of sigin3, causing the fourth input to be added twice (with gains gain3 and gain4) while omitting the third input entirely."
+	},
+	{
+		"original_line": "parameter real gain3 = 1;", 
+		"bug_line": "parameter real gain3 = 0;",
+		"error_description": "The default gain for the third input is set to 0 instead of 1, causing the third input signal (sigin3) to be completely ignored in the summation when the parameter isn't overridden during instantiation."
+	},
+	{
+		"original_line": "parameter real gain2 = 1;", 
+		"bug_line": "parameter real gain2 = 0;",
+		"error_description": "The gain for the second input is set to 0, which disables the contribution of sigin2 to the output. This violates the design specification that the output should be the sum of all four inputs multiplied by their respective gains (with a default of 1)."
+	},
+	{
+		"original_line": "input sigin1, sigin2, sigin3, sigin4;", 
+		"bug_line": "input sigin1, sigin2, sigin4, sigin3;",
+		"error_description": "Swapping sigin3 and sigin4 in the port declaration reverses their mapping. This causes gain3 to be applied to the physical sigin4 port and gain4 to sigin3, functionally swapping the gain coefficients for the third and fourth inputs."
+	},
+	{
+		"original_line": "output sigout;", 
+		"bug_line": "input sigout;",
+		"error_description": "Changing sigout from output to input creates a directional error where the module illegally drives an input port, violating the design requirement that sigout must be an output."
+	}
+]

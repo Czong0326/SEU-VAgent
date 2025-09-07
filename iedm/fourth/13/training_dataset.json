@@ -1,0 +1,642 @@
+[
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nV(fq,Q_out) <+ rout*I(fi,I_out); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nV(fq,Q_out) <+ rout*I(fq,Q_out);\n\n Correction Criteria：The output voltage for the Q channel incorrectly uses the current from the I branch instead of its own, causing cross-talk between I and Q channels and violating the design specification for independent signal paths."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n`CAP(di,eq,dq,ei,ci,fcr); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n`CAP(di,ei,dq,eq,ci,fcr);\n\n Correction Criteria：Swapped the negative nodes (ei/eq) between I and Q paths, causing incorrect cross-coupling in the capacitor network by connecting the negative terminal of I-path to Q-path and vice versa."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nV(fi) <+ V(ei) - V(bi); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nV(fi) <+ V(ei) + V(bi);\n\n Correction Criteria：Changed the addition operation to subtraction, incorrectly inverting the contribution of the bi node voltage. This violates the design requirement for constructive summation of I-path signals, causing destructive interference in the output."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nV(fq,Q_out) <+ rin*I(fq,Q_out); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nV(fq,Q_out) <+ rout*I(fq,Q_out);\n\n Correction Criteria：Replaced output impedance parameter 'rout' with input impedance 'rin', causing incorrect output resistance at Q_out port."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n@( timer(0, 1/freq)) begin Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n@( initial_step) begin\n\n Correction Criteria：Changed event trigger from initial_step to periodic timer. Parameters ri/ci now recalculate continuously instead of initializing once, causing incorrect impedance/capacitance values during simulation."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(lead_I) <+ V(lead_Q)/rin; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(lead_I) <+ V(lead_I)/rin;\n\n Correction Criteria：Input current at lead_I incorrectly uses voltage from lead_Q instead of its own voltage, causing cross-coupling between I and Q channels and violating input impedance isolation."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   parameter real rin = -50 from (-inf:inf); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   parameter real rin = 50 from (0:inf);\n\n Correction Criteria：Changed input impedance to negative value (-50) and allowed negative range. This creates negative resistance at input ports, causing instability and non-physical behavior during simulation."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(lead_Q) <+ V(lead_Q)/rout; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(lead_Q) <+ V(lead_Q)/rin;\n\n Correction Criteria：The input current calculation incorrectly uses output impedance 'rout' instead of input impedance 'rin'. This violates the design specification where input terminals should have impedance 'rin', causing port impedance mismatch and signal reflection errors."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(lag_I) <+ V(lead_I)/rin; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(lag_I) <+ V(lag_I)/rin;\n\n Correction Criteria：The input current for terminal lag_I is incorrectly driven by the voltage at lead_I instead of its own voltage. This violates the independent input impedance specification by cross-coupling unrelated terminals."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(lag_I) <+ V(lag_I)/rout; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(lag_I) <+ V(lag_I)/rin;\n\n Correction Criteria：Input impedance incorrectly uses output resistance parameter 'rout' instead of input resistance 'rin', causing impedance mismatch at lag_I terminal."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(lead_Q) <+ V(lead_Q)/rout; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(lead_Q) <+ V(lead_Q)/rin;\n\n Correction Criteria：Replaced 'rin' with 'rout', causing incorrect input impedance calculation for lead_Q terminal. This violates impedance matching requirements since rout (output resistance) is used instead of rin (input resistance), leading to signal reflection and gain errors."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(lead_I) <+ V(lead_I)/rout; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(lead_I) <+ V(lead_I)/rin;\n\n Correction Criteria：Changed input impedance parameter from 'rin' to 'rout'. This violates the design specification by using the output impedance value for input terminal current calculation instead of the dedicated input impedance parameter 'rin', causing incorrect input loading."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(lag_Q) <+ V(lead_Q)/rin; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(lag_Q) <+ V(lag_Q)/rin;\n\n Correction Criteria：Incorrectly used lead_Q voltage for lag_Q input impedance, causing cross-talk between input terminals and incorrect impedance modeling at lag_Q."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(lead_Q) <+ V(lead_I)/rin; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(lead_Q) <+ V(lead_Q)/rin;\n\n Correction Criteria：Incorrect voltage reference creates cross-coupling: lead_Q current now depends on lead_I voltage, violating port isolation and causing signal mixing."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n\n Correction Criteria：Missing declaration for Q_out port causes references to Q_out in the analog block (e.g., V(fq,Q_out)) to be undefined, breaking the output functionality for the Q channel."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(eq) <+ (1/ri)*V(ei); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(eq) <+ (1/ri)*V(eq);\n\n Correction Criteria：Incorrectly sets the current at node 'eq' (Q branch) proportional to voltage at 'ei' (I branch) instead of its own voltage, causing unintended cross-coupling between I and Q branches."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n\tV(di) <+ V(lead_Q)*gain; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n\tV(di) <+ V(lead_I)*gain;\n\n Correction Criteria：The voltage at node di (I branch of lead) is incorrectly assigned from lead_Q (Q input) instead of lead_I (I input). This swaps I/Q channels for the lead path, causing signal phase corruption in the shifter output."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   parameter real fcr_wrong = 1e9 from (0:inf); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   parameter real fcr = 1e9 from (0:inf);\n\n Correction Criteria：Changed parameter name to 'fcr_wrong', making the variable 'fcr' undefined in the analog block. This causes the carrier frequency term (2*`M_PI*fcr) in the CAP/CAPG macros to evaluate to zero, eliminating the intended phase shift functionality."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(lag_I) <+ V(lag_I)/r; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(lag_I) <+ V(lag_I)/rin;\n\n Correction Criteria：Uses internal resistor parameter 'r' instead of input impedance 'rin' for input current calculation, causing incorrect input impedance modeling at lag_I port."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nendmodule BB_shifter_combiner_wrong; // BB_shifter-combiner Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nendmodule // BB_shifter-combiner\n\n Correction Criteria：Module name mismatch between declaration (BB_shifter_combiner) and endmodule statement (BB_shifter_combiner_wrong) causes compilation failure, preventing simulation."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n\tI(lead_Q) <+ V(lead_Q)/rin Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n\tI(lead_Q) <+ V(lead_Q)/rin;\n\n Correction Criteria：Missing semicolon at the end of the contribution statement"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n\tI(lag_I) <+ V(lag_I)/rin Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n\tI(lag_I) <+ V(lag_I)/rin;\n\n Correction Criteria：Missing semicolon at the end of the contribution statement"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n\tV(aq) <+ V(lag_Q)*gain Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n\tV(aq) <+ V(lag_Q)*gain;\n\n Correction Criteria：Missing semicolon at the end of the contribution statement, which is required to terminate analog block statements in Verilog-A."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   I(ai,bi) <+ (1/ri*V(ai,bi); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   I(ai,bi) <+ (1/ri)*V(ai,bi);\n\n Correction Criteria：Missing closing parenthesis for the multiplication operator. The expression should be (1/ri)*V(...) but the closing ')' after 'ri' is omitted, causing unbalanced parentheses."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n           ci = 1/(2*`M_PI*freq*r; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n           ci = 1/(2*`M_PI*freq*r);\n\n Correction Criteria：Missing closing parenthesis for the denominator expression, creating unbalanced parentheses"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I lead_Q, I_out, Q_out); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n\n Correction Criteria：Missing comma between port identifiers 'lead_I' and 'lead_Q' in the module port list, causing a syntax error due to invalid separator between ports."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   parameter real gain = 2 from (0:inf) Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   parameter real gain = 2 from (0:inf);\n\n Correction Criteria：Missing semicolon at the end of the parameter declaration statement"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   parameter real rout = 50 from (0:inf; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   parameter real rout = 50 from (0:inf);\n\n Correction Criteria：Missing closing parenthesis ')' in range expression. The correct syntax requires balanced parentheses for parameter ranges."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nmodule BB_shifter_combiner(lag_I, lag_Q lead_I, lead_Q, I_out, Q_out); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n\n Correction Criteria：Missing comma between port declarations 'lag_Q' and 'lead_I', causing a syntax error where the parser expects either a comma or closing parenthesis in the port list."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nV(fq,Q_out) <+ rout*I(fq,Q_out) Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nV(fq,Q_out) <+ rout*I(fq,Q_out);\n\n Correction Criteria：Missing semicolon at the end of the statement, causing unterminated contribution syntax error"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nV(fq,Q_out) <+ rout*I(fq,Q_out) Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nV(fq,Q_out) <+ rout*I(fq,Q_out);\n\n Correction Criteria：Missing semicolon at the end of the statement"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(ei) <+ (1/ri)*V(ei) Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(ei) <+ (1/ri)*V(ei);\n\n Correction Criteria：Missing semicolon at the end of the statement, causing a syntax error as VerilogA requires explicit statement termination."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nmoduel BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n\n Correction Criteria：Misspelled keyword 'module' as 'moduel', which is invalid in VerilogA syntax and will cause a compilation error."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n        V(fq,Q_out) <+ rout*I(fq,Q_out) Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n        V(fq,Q_out) <+ rout*I(fq,Q_out);\n\n Correction Criteria：Missing semicolon at the end of the contribution statement, causing a syntax error as all analog block statements must be properly terminated."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni) Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n\n Correction Criteria：Missing closing parenthesis in the second I(pq,nq) contribution statement causes unbalanced parentheses and invalid expression syntax."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(lag_I) <+ V(lag_I)/rin) Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(lag_I) <+ V(lag_I)/rin;\n\n Correction Criteria：Missing semicolon at statement end and mismatched parentheses: extra closing parenthesis without matching opening parenthesis"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n\tI(lag_Q) <+ V(lag_Q)/rin Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\n Correction Criteria：Missing semicolon at the end of the contribution statement, causing a syntax error as all analog block statements must be properly terminated."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n\tI(eq) <+ (1/ri)*V(eq; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n\tI(eq) <+ (1/ri)*V(eq);\n\n Correction Criteria：Missing closing parenthesis for the voltage function call V(eq). The function requires balanced parentheses."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   parameter real fcr = 1e9 from (0:inf; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   parameter real fcr = 1e9 from (0:inf);\n\n Correction Criteria：Missing closing parenthesis in the range expression, leaving unclosed parentheses and invalid syntax."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 2000\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:31:53 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = linear scale factor that multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n//    fcr\t     = carrier frequency\n\n`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))\n`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))\n\nmodule BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);\n  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n   parameter real fcr = 1e9 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   electrical ai,bi,fi,di,ei;\n   electrical aq,bq,fq,dq,eq;\n\n   analog begin\n\n      @( initial_step) begin\n           ri = r;\n\t   ci = 1/(2*`M_PI*freq*r);\n      end\n\n\tV(ai) <+ V(lag_I)*gain;\n\tV(aq) <+ V(lag_Q)*gain;\n\tV(di) <+ V(lead_I)*gain;         \n\tV(dq) <+ V(lead_Q)*gain;         \n\tI(lag_I) <+ V(lag_I)/rin;\n\tI(lag_Q) <+ V(lag_Q)/rin;\n\tI(lead_I) <+ V(lead_I)/rin;\n\tI(lead_Q) <+ V(lead_Q)/rin;\n   \tI(ai,bi) <+ (1/ri)*V(ai,bi);\n   \tI(aq,bq) <+ (1/ri)*V(aq,bq);\n        `CAPG(bi,bq,ci,fcr);\n\t`CAP(di,ei,dq,eq,ci,fcr);\n\tI(ei) <+ (1/ri)*V(ei);\n\tI(eq) <+ (1/ri)*V(eq);\n\tV(fi) <+ V(ei) + V(bi);\n\tV(fq) <+ V(eq) + V(bq);\n\tV(fi,I_out) <+ rout*I(fi,I_out);\n\tV(fq,Q_out) <+ rout*I(fq,Q_out);\n   end\nendmodule // BB_shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   parameter real rin = 50 from (0:inf) Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   parameter real rin = 50 from (0:inf);\n\n Correction Criteria：Missing semicolon at the end of the parameter declaration causes unterminated statement error."
+      }
+    ]
+  }
+]

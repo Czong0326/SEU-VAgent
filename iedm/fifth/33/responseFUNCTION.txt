@@ -1,0 +1,103 @@
+[
+	{
+		"original_line": "    electrical  p, n, n1, n2, n3, n4; ", 
+		"bug_line": "    electrical  p, n, n1, n2, n3; ",
+		"error_description": "Removed node 'n4' declaration, breaking connectivity in dGNR5 module. The fifth dGNR instance (dGNR_5) requires connection to undeclared n4 node, causing compilation failure and disrupting signal propagation through the interconnect chain."
+	},
+	{
+		"original_line": "        integer num; ", 
+		"bug_line": "        real num;",
+		"error_description": "Changed loop index variable 'num' from integer to real type. This causes a compilation/simulation error since VerilogA requires integer variables for loop indices. The subsequent 'for' loop using 'num' will fail due to type mismatch."
+	},
+	{
+		"original_line": "Prof. Kaustav Banerjee", 
+		"bug_line": "Prof. Kaustav Banerjee
+parameter real bug = 0;",
+		"error_description": "Added invalid parameter declaration inside copyright comment block. VerilogA parameters must be declared within modules, causing syntax error during compilation."
+	},
+	{
+		"original_line": "N_ch = N_ch+1/(1 + exp((En-E_F)/$vt/q))+1/(1 + exp((E_F+En)/$vt/q));", 
+		"bug_line": "N_ch = N_ch+1/(1 + exp((En-E_F)/$vt/q))-1/(1 + exp((E_F+En)/$vt/q));",
+		"error_description": "Changed '+' to '-' in the valence band term, incorrectly subtracting the hole contribution instead of adding it, which disrupts carrier density calculation."
+	},
+	{
+		"original_line": "    parameter real        q  = 1.602e-19           from (0:inf);", 
+		"bug_line": "    parameter real        q  = 1.602e-19           from (0:0);",
+		"error_description": "Changed parameter range from (0:inf) to (0:0), making q impossible to set (only 0 is allowed but 0 is excluded). This violates physical constraints since elementary charge cannot be zero."
+	},
+	{
+		"original_line": "The terms under which the software and associated documentation (the Software) is provided are as the following: ", 
+		"bug_line": "The terms under which the software and associated documentation (the Software) is provided are as the following: */",
+		"error_description": "Prematurely terminates the comment block with '*/', exposing subsequent license text as uncompilable VerilogA code causing syntax errors."
+	},
+	{
+		"original_line": "module dGNR25(p, n); ", 
+		"bug_line": "module dGNR25(p, wrong); ",
+		"error_description": "The port 'n' is incorrectly renamed to 'wrong', causing the internal node 'n' to become disconnected. This breaks the signal path between hierarchical modules since external connections to port 'n' will not propagate to internal sub-modules."
+	},
+	{
+		"original_line": "dGNR25 #(.dl(l/100), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR25_2 (n1, n2);", 
+		"bug_line": "dGNR25 #(.dl(l/100), .w(w), .N_L(N_L), .dope(1e16), .l_D(l_D)) dGNR25_2 (n1, n2);",
+		"error_description": "Changed doping parameter from top-level value (0) to fixed 1e16. This introduces inconsistent Fermi level calculations for this segment compared to others, altering resistance/capacitance/inductance properties locally while violating uniform doping assumption."
+	},
+	{
+		"original_line": "dGNR25 #(.dl(l/100), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR25_1 (n0, n1);", 
+		"bug_line": "dGNR25 #(.dl(l/100), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR25_1 (n1, n0);",
+		"error_description": "Reversed node connection order swaps segment direction, breaking signal flow continuity between quantum contact resistance and distributed GNR segments, causing incorrect current path and simulation failure."
+	},
+	{
+		"original_line": "        end else begin", 
+		"bug_line": "        end if (l_D >= w) begin",
+		"error_description": "Changed 'else' to 'if (l_D >= w)', causing both branches to execute when l_D == w. The original else branch code (intended for l_D < w) incorrectly overwrites the if branch calculation when l_D equals w, leading to wrong func value and resistance calculation errors."
+	},
+	{
+		"original_line": "dGNR25 #(.dl(l/100), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR25_2 (n1, n2);", 
+		"bug_line": "dGNR25 #(.dl(l/100), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR25_2 (n2, n1);",
+		"error_description": "Swapped node connections reverse signal flow direction, violating unidirectional chain topology. This creates a bidirectional loop between segments, distorting transmission line behavior and causing unstable feedback in the distributed model."
+	},
+	{
+		"original_line": "    electrical  p, n, n1, n2, n3, n4; ", 
+		"bug_line": "    electrical  p, n, n1, n2, n3;",
+		"error_description": "Removed node n4 declaration, causing the last internal connection (dGNR_5 (n4, n)) to reference an undeclared node, resulting in compilation failure and broken signal propagation."
+	},
+	{
+		"original_line": "func = (pi*w-2*l_D)/l_D - 4*sqrt(pow(w,2)-pow(l_D,2))/l_D * atan(sqrt((w-l_D)/(l_D+w)));", 
+		"bug_line": "func = (pi*w-2*l_D)/l_D - 4*sqrt(pow(w,2)-pow(l_D,2))/l_D * atan(sqrt((l_D-w)/(l_D+w)));",
+		"error_description": "Swapped (w-l_D) to (l_D-w) in the atan argument. This reverses the sign of the argument, causing incorrect atan output and resistance calculation when l_D < w."
+	},
+	{
+		"original_line": "dGNR25 #(.dl(l/100), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR25_2 (n1, n2);", 
+		"bug_line": "dGNR25 #(.dl(l/100), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR25_2 (n2, n1);",
+		"error_description": "Reversed node connections (n2, n1 instead of n1, n2) causes directional inversion in the segment, breaking signal flow continuity and creating incorrect impedance characteristics in the interconnect chain."
+	},
+	{
+		"original_line": "The authors or copyright holders grants, free of charge, to any users the right to modify, copy, and redistribute the Software, both within the user's organization and externally, subject to the following restrictions:", 
+		"bug_line": "The authors or copyright holders grants, free of charge, to any users the right to modify, copy, and redistribute the Software, both within the user's organization only, subject to the following restrictions:",
+		"error_description": "Changed license terms to prohibit external redistribution by replacing 'and externally' with 'only'. This violates the original design intent of allowing external redistribution under specified conditions."
+	},
+	{
+		"original_line": "dGNR25 #(.dl(l/100), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR25_1 (n0, n1);", 
+		"bug_line": "dGNR25 #(.dl(l/100), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR25_1 (n1, n0);",
+		"error_description": "Reversed port connections swap the input/output direction of the first dGNR25 segment, causing incorrect signal propagation through the interconnect chain and violating the unidirectional design intent."
+	},
+	{
+		"original_line": "3. The users agree to obey all U.S. Government restrictions governing redistribution or export of the software. ", 
+		"bug_line": "3. The users agree to ignore all U.S. Government restrictions governing redistribution or export of the software. ",
+		"error_description": "Changed 'obey' to 'ignore', creating a legal compliance violation where redistribution/export restrictions are explicitly disregarded, violating the design's requirement for U.S. law adherence."
+	},
+	{
+		"original_line": "electrical p, n, gnd, m;", 
+		"bug_line": "electrical p, n, m;",
+		"error_description": "Removed the 'gnd' node declaration. This breaks the capacitor branch (n,gnd) and ground connection, causing undefined node errors and disrupting the RLC network functionality."
+	},
+	{
+		"original_line": "    dGNR5 #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR5_3 (n2, n3); ", 
+		"bug_line": "    dGNR5 #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR5_3 (n3, n2); ",
+		"error_description": "Reversed node connection swaps input/output direction, causing signal flow inversion and breaking the sequential chain structure between segments."
+	},
+	{
+		"original_line": "    branch (p,n) r; ", 
+		"bug_line": "    branch (n,p) r; ",
+		"error_description": "Reversed branch direction causes incorrect voltage/current polarity in resistor equation V(r) <+ Rq/2 * I(r), leading to sign errors in resistance calculations."
+	}
+]

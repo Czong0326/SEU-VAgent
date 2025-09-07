@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real vlogic_low = 0;", 
+		"bug_line": "parameter real vlogic_low = vlogic_high;",
+		"error_description": "Assigns the value of vlogic_high (5V) to vlogic_low, causing both Q and Qbar outputs to always be at 5V regardless of state. This violates the design specification requiring complementary outputs (0V/5V) and eliminates logic-low functionality."
+	},
+	{
+		"original_line": "V(vout_qbar) <+ transition( vlogic_high*!q + vlogic_low*q,", 
+		"bug_line": "V(vout_qbar) <+ transition( vlogic_high*q + vlogic_low*!q,",
+		"error_description": "The qbar output incorrectly uses the same expression as the q output, making both outputs identical instead of complementary. This violates the fundamental flip-flop behavior where qbar must be the logical inverse of q."
+	},
+	{
+		"original_line": "   tdel, trise, tfall);", 
+		"bug_line": "   tdel, tfall, trise);",
+		"error_description": "Swapped rise/fall time parameters for qbar output, causing inverted transition timing (slow rises become fast falls and vice versa), violating output waveform specifications."
+	},
+	{
+		"original_line": "V(vout_q) <+ transition( vlogic_high*q + vlogic_low*!q,", 
+		"bug_line": "V(vout_q) <+ transition( vlogic_high*!q + vlogic_low*q,",
+		"error_description": "The expression incorrectly uses !q instead of q for vlogic_high, causing vout_q to output the complement of the intended value. This inverts the flip-flop's Q output while leaving Qbar unchanged, violating the truth table where Q and Qbar must be complementary."
+	},
+	{
+		"original_line": "parameter real vtrans = 2.5;", 
+		"bug_line": "parameter real vtrans = -1;",
+		"error_description": "The negative threshold voltage (-1V) causes input voltages above -1V (including 0V logic low) to be incorrectly detected as high. This leads to erroneous state changes where J/K inputs at 0V trigger flip-flop toggling/setting/resetting instead of maintaining state."
+	},
+	{
+		"original_line": "parameter real vlogic_high = 5;", 
+		"bug_line": "parameter real vlogic_high = vlogic_low;",
+		"error_description": "Sets the high logic level equal to the low logic level, causing all outputs to be 0V regardless of state. This violates the requirement for complementary outputs with distinct voltage levels."
+	},
+	{
+		"original_line": "module jk_clk_ff(vin_j, vin_k, vclk, vout_q, vout_qbar);", 
+		"bug_line": "module jk_clk_ff(vin_j, vin_k, vout_q, vclk, vout_qbar);",
+		"error_description": "Swapped clock (vclk) and output (vout_q) ports. This misroutes the clock signal to the output driver and connects the output to the clock input, causing complete functional failure and potential signal contention."
+	},
+	{
+		"original_line": "      V(vout_q) <+ transition( vlogic_high*q + vlogic_low*!q,", 
+		"bug_line": "      V(vout_q) <+ transition( vlogic_high*!q + vlogic_low*q,",
+		"error_description": "The expression incorrectly uses !q instead of q for the high logic value and q instead of !q for the low logic value. This inverts the output signal vout_q relative to the internal state q, causing vout_q to always be the complement of what it should be."
+	},
+	{
+		"original_line": "parameter real trise = 1u from (0:inf);", 
+		"bug_line": "parameter real trise = -1u;",
+		"error_description": "Negative rise time (-1u) is non-physical and violates transition function requirements, causing undefined simulation behavior or convergence failures."
+	},
+	{
+		"original_line": "input vin_j, vin_k, vclk;", 
+		"bug_line": "input vin_j, vclk, vin_k;",
+		"error_description": "Swapped the K input and clock signal positions, causing the flip-flop to sample the clock as the K input and vice versa. This disrupts the synchronous operation since the clock signal is now treated as a data input, while the actual K input triggers state changes."
+	},
+	{
+		"original_line": "   tdel, trise, tfall);", 
+		"bug_line": "   tdel, trise, 2*tfall);",
+		"error_description": "Doubling the fall time parameter for vout_qbar introduces asymmetric timing behavior where the falling edges become slower than rising edges, violating the design's requirement for matched transition times and potentially causing signal integrity issues in downstream logic."
+	},
+	{
+		"original_line": "parameter real vlogic_low = 0;", 
+		"bug_line": "parameter real vlogic_low = vlogic_high;",
+		"error_description": "Sets low logic level equal to high logic level (5V). This causes both Q and Qbar outputs to always be 5V regardless of state, eliminating the complementary output behavior and breaking flip-flop functionality."
+	},
+	{
+		"original_line": "parameter real vlogic_high = 5;", 
+		"bug_line": "parameter real vlogic_high = 0;",
+		"error_description": "Sets output high voltage to 0V, same as low voltage. This causes the flip-flop to output 0V regardless of state, eliminating logic high representation and violating voltage level specifications."
+	},
+	{
+		"original_line": "@ (cross( V(vclk) - vtrans_clk, +1 )) begin", 
+		"bug_line": "@ (cross( V(vclk) - vtrans_clk, 0 )) begin",
+		"error_description": "Changed cross direction from rising edge (+1) to any edge (0), causing the flip-flop to trigger on both rising AND falling clock edges instead of only rising edges as specified in the design description."
+	},
+	{
+		"original_line": "   integer q;", 
+		"bug_line": "   real q = 0.5;",
+		"error_description": "Changed state variable q from integer to real and initialized to 0.5. This causes non-integer state values (0.5) at simulation start, violating discrete logic levels. The output voltages become undefined (e.g., 2.5V between logic_high/low), breaking flip-flop functionality and causing invalid complementary outputs."
+	},
+	{
+		"original_line": "module jk_clk_ff(vin_j, vin_k, vclk, vout_q, vout_qbar);", 
+		"bug_line": "module jk_clk_ff(vin_j, vin_k, vclk, vout_qbar, vout_q);",
+		"error_description": "Swapped output ports vout_q and vout_qbar. This reverses the Q and Q' outputs, causing the flip-flop to drive inverted logic values to the wrong outputs, violating the intended functionality."
+	},
+	{
+		"original_line": "end else if (V(vin_j) > vtrans && V(vin_k) < vtrans) begin", 
+		"bug_line": "end else if (V(vin_j) > vtrans && V(vin_j) < vtrans) begin",
+		"error_description": "Changed condition to check vin_j against vtrans in both directions instead of vin_j and vin_k. This creates an impossible condition (voltage cannot be simultaneously above and below threshold), preventing the set operation (J=1, K=0) from ever triggering."
+	},
+	{
+		"original_line": "parameter real vlogic_low = 0;", 
+		"bug_line": "parameter real vlogic_low = vlogic_high;",
+		"error_description": "Sets the low logic level equal to the high logic level. This causes both Q and Qbar outputs to always be high (vlogic_high) regardless of the flip-flop state, violating the intended complementary output behavior."
+	},
+	{
+		"original_line": "parameter real vlogic_high = 5;", 
+		"bug_line": "parameter real vlogic_high = 0;",
+		"error_description": "Setting vlogic_high to 0V causes the output high voltage to equal the low voltage (0V). This makes Q and Qbar outputs indistinguishable (always 0V), destroying the flip-flop's ability to represent logic states."
+	},
+	{
+		"original_line": "output vout_q, vout_qbar;", 
+		"bug_line": "input vout_q, output vout_qbar;",
+		"error_description": "Swapped directionality of vout_q port from output to input. This violates the design as vout_q is driven internally but now declared as an input, causing illegal driver conflict during simulation."
+	}
+]

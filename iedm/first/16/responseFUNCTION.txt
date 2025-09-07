@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "freq_ph_detector    PhaseDet(vin,vout,inc,dec);", 
+		"bug_line": "freq_ph_detector    PhaseDet(vin,vout,dec,inc);",
+		"error_description": "Swapped 'inc' and 'dec' signals in the phase detector connection. This reverses the charge pump control logic, causing the PLL to push the VCO frequency away from lock instead of towards it during phase errors."
+	},
+	{
+		"original_line": "parameter real lpf_pole_freq = 3M from (0:inf);", 
+		"bug_line": "parameter real lpf_zero_freq = 3M from (0:inf);",
+		"error_description": "Parameter name changed from lpf_pole_freq to lpf_zero_freq, causing the low-pass filter pole frequency to incorrectly share the same value as the zero frequency. This violates the design requirement for independent pole/zero tuning and disrupts the PLL's stability by altering the filter characteristics."
+	},
+	{
+		"original_line": "parameter real lpf_pole_freq = 3M from (0:inf);", 
+		"bug_line": "parameter real lpf_pole_freq = lpf_zero_freq from (0:inf);",
+		"error_description": "Sets pole frequency equal to zero frequency, eliminating phase margin and causing instability. The pole must be higher than zero frequency (3MHz vs 0.5MHz) for stable PLL operation."
+	},
+	{
+		"original_line": "                                LPF (vco_in,gnd);", 
+		"bug_line": "                                LPF (vout,gnd);",
+		"error_description": "Connected LPF to VCO output (vout) instead of input (vco_in). This leaves the control voltage unfiltered, disrupting the PLL's loop dynamics and preventing proper locking."
+	},
+	{
+		"original_line": "freq_ph_detector    PhaseDet(vin,vout,inc,dec);", 
+		"bug_line": "freq_ph_detector    PhaseDet(vin,vout,dec,inc);",
+		"error_description": "Swapped inc and dec outputs. This reverses the charge pump control direction, causing the loop to drive away from lock instead of correcting phase errors."
+	},
+	{
+		"original_line": "parameter real lpf_r_nom = 10K from (0:inf);", 
+		"bug_line": "parameter real lpf_r_nom = 0 from (0:inf);",
+		"error_description": "Setting nominal resistance to zero creates a short circuit in the low-pass filter, grounding the VCO control voltage. This prevents the PLL from locking as the VCO receives no control signal."
+	},
+	{
+		"original_line": "                                LPF (vco_in,gnd);", 
+		"bug_line": "                                LPF (vco_in, vin);",
+		"error_description": "Incorrectly connected the LPF between vco_in and vin instead of vco_in and ground. This couples the input signal directly into the filter node, disrupting the charge pump's control voltage and causing erratic VCO behavior."
+	},
+	{
+		"original_line": "module dig_pll (vin,vout,gnd);", 
+		"bug_line": "module dig_pll (vin,gnd,vout);",
+		"error_description": "Swapped vout and gnd ports. This reverses signal/ground connections, causing the phase detector to compare input against ground (0V) instead of VCO output and shorts the VCO output to ground, breaking PLL functionality."
+	},
+	{
+		"original_line": "parameter real lpf_zero_freq = 0.5M from (0:inf);", 
+		"bug_line": "parameter real lpf_zero_freq = lpf_pole_freq from (0:inf);",
+		"error_description": "The zero frequency parameter incorrectly references the pole frequency variable (lpf_pole_freq) instead of its intended value. This causes the low-pass filter's zero and pole frequencies to become identical (3M), canceling each other's effects and eliminating the necessary phase lead compensation in the PLL control loop."
+	},
+	{
+		"original_line": "charge_pump         #(.iamp(pump_iamp)) QPump (inc,dec,vco_in,gnd)  ;", 
+		"bug_line": "charge_pump         #(.iamp(pump_iamp)) QPump (dec,inc,vco_in,gnd)  ;",
+		"error_description": "Swapped 'inc' and 'dec' signals to the charge pump, reversing the polarity of the phase correction. This causes positive feedback instead of negative feedback, preventing the PLL from locking to the input frequency."
+	},
+	{
+		"original_line": "   electrical vco_in;", 
+		"bug_line": "   electrical vco_out;",
+		"error_description": "Changed node name from 'vco_in' to 'vco_out'. This breaks all connections to the charge pump, VCO, and low-pass filter which reference 'vco_in', causing undeclared net errors and disconnecting the PLL control loop."
+	},
+	{
+		"original_line": "dig_pll_lpf         #(.pole_freq(lpf_pole_freq),.zero_freq(lpf_zero_freq),", 
+		"bug_line": "dig_pll_lpf         #(.pole_freq(lpf_zero_freq),.zero_freq(lpf_pole_freq),",
+		"error_description": "Swapped pole and zero frequency parameters, causing incorrect low-pass filter characteristics where the pole uses the zero frequency value and vice versa."
+	},
+	{
+		"original_line": ".r_nom(lpf_r_nom))", 
+		"bug_line": ".r_nom(lpf_zero_freq))",
+		"error_description": "Connected the wrong parameter (lpf_zero_freq) to r_nom instead of lpf_r_nom, causing incorrect resistance value in the low-pass filter which will miscalculate pole/zero frequencies."
+	},
+	{
+		"original_line": "charge_pump         #(.iamp(pump_iamp)) QPump (inc,dec,vco_in,gnd)  ;", 
+		"bug_line": "charge_pump         #(.iamp(pump_iamp)) QPump (inc,dec,gnd,vco_in)  ;",
+		"error_description": "Swapped vco_in and gnd connections. This shorts the VCO input to ground while routing ground to the VCO control, disrupting the charge pump's voltage output and preventing proper VCO operation."
+	},
+	{
+		"original_line": "module dig_pll (vin,vout,gnd);", 
+		"bug_line": "module dig_pll (vin,gnd,vout);",
+		"error_description": "Swapped vout and gnd ports. This misconnects the VCO output to ground and the ground reference to the output node, causing incorrect biasing and signal paths in the PLL circuit."
+	},
+	{
+		"original_line": "charge_pump         #(.iamp(pump_iamp)) QPump (inc,dec,vco_in,gnd)  ;", 
+		"bug_line": "charge_pump         #(.iamp(pump_iamp)) QPump (dec,inc,vco_in,gnd)  ;",
+		"error_description": "Swapped 'inc' and 'dec' control signals: The charge pump now increases output current during reference lag (should decrease) and decreases during reference lead, causing positive feedback that destabilizes the PLL loop."
+	},
+	{
+		"original_line": "parameter real vco_gain = 1M from (0:inf);", 
+		"bug_line": "parameter real vco_gain = -1M from (-inf:inf);",
+		"error_description": "Negative VCO gain inverts the frequency-voltage relationship, causing unstable loop behavior where the VCO frequency decreases with increasing control voltage instead of increasing, preventing proper PLL locking."
+	},
+	{
+		"original_line": "parameter real lpf_r_nom = 10K from (0:inf);", 
+		"bug_line": "parameter real lpf_r_nom = 10 from (0:inf);",
+		"error_description": "Changed nominal resistance from 10K ohms to 10 ohms. This reduces the RC time constant by 1000x, causing excessive bandwidth in the low-pass filter and destabilizing the PLL loop dynamics."
+	},
+	{
+		"original_line": "LPF (vco_in,gnd);", 
+		"bug_line": "LPF (gnd,vco_in);",
+		"error_description": "Swapped LPF port connections: Filter input now grounded and ground terminal driven by control voltage, disrupting the loop filter functionality by shorting the charge pump output to ground and improperly biasing the filter."
+	},
+	{
+		"original_line": "charge_pump         #(.iamp(pump_iamp)) QPump (inc,dec,vco_in,gnd)  ;", 
+		"bug_line": "charge_pump         #(.iamp(pump_iamp)) QPump (inc,dec,gnd,vco_in)  ;",
+		"error_description": "Swapped vco_in and gnd connections. This shorts the charge pump output to ground and connects VCO input to ground reference, preventing proper control voltage generation and disrupting PLL feedback loop functionality."
+	}
+]

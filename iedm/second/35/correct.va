@@ -1,0 +1,880 @@
+/* -------------------------------------------------------------------------- *\
+
+	    888	  888	888  888    888	   88	888888888
+	     8	   8	 8    8	     8		8   8	8
+	     8	   8	 8    8	     8	   88	    8	    888888
+	      8	   8	8     88888888	    8	    8	   8	  8
+	      8	  8 8	8     8	     8	    8	    8	   88888888
+	       8 8   8 8      8	     8	    8	    8	   8
+		8     8	     888    888	  88888	   888	    8888888
+
+
+
+     8888888								8
+    8	    8								8
+    8		888888	 888888 8888   88888888	   888888     888888   88888
+    8	       8      0	  8    8    8	8      8	 8   8	    8	8
+    8	       8      8	  8    8    8	8      8   8888888   8		8
+    8	    8  8      8	  8    8    8	8      8  8	 8   8	    8	8
+     8888888	888888	 888  888  888	8888888	   888888 8   888888	 888
+					8
+				       888
+
+	  888	    888			 88		888
+	   8 8	   8 8			  8		  8
+	   8  8	  8  8	  888888    8888888    888888	  8	8888888
+	   8   8 8   8	 8	8  8	  8   8	     8	  8    8
+	   8	8    8	 8	8  8	  8   88888888	  8	888888
+	   8	     8	 8	8  8	  8   8		  8	      8
+	  888	    888	  888888    888888 8   8888888	88888  8888888
+
+|* -------------------------------------------------------------------------- *|
+
+    This file contains functions common to all modules.
+
+|* -------------------------------------------------------------------------- *|
+
+    Copyright @ 2023 Neal Graham Wood
+    The terms under which the software and associated documentation (the
+    Software) is provided are as the following:
+
+    DISCLAIMER:  The Software is provided "as is", without warranty of any
+    kind, express or implied, including but not limited to the warranties of
+    merchantability, fitness for a particular purpose and noninfringement.
+    In no event shall the authors or copyright holders be liable for any
+    claim, damages or other liability, whether in an action of contract,
+    tort or otherwise, arising from, out of or in connection with the
+    Software or the use or other dealings in the Software.
+
+    Neal Graham Wood grants, free of charge, to any users the right to
+    modify, copy, and redistribute the Software, both within the user's
+    organization and externally, subject to the following restrictions:
+
+    LIST OF CONDITIONS:
+    1. The users agree not to charge for the code itself but may charge for
+    additions, extensions, or support.
+
+    2. In any product based on the Software, the users agree to acknowledge
+    the Research Group that developed the software. This acknowledgment
+    shall appear in the product documentation.
+
+    3. The users agree to obey all U.S. Government restrictions governing
+    redistribution or export of the software.
+
+    4. Redistributions to others of source code must retain the copyright
+    notice, disclaimer, and list of conditions.
+
+    5. Redistributions to others in binary form must reproduce the
+    copyright notice, disclaimer, and list of conditions in the
+    documentation and/or other materials provided with the distribution.
+
+    Agreed to by
+    Neal Graham Wood
+    19/03/2023
+
+\* -------------------------------------------------------------------------- */
+
+`ifndef FUNCTIONS_VA
+`define FUNCTIONS_VA 1
+
+/*
+    DESCRIPTION:	Compute the square of a real number algebraically.
+    RETURN:
+	sq		Square of x
+    INPUT:
+	x		Real number
+*/
+analog function real sq;
+    input x;
+    real x;
+    begin
+	sq = x * x;
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute the cube of a real number algebraically.
+    RETURN:
+	cb		Cube of x
+    INPUT:
+	x		Real number
+*/
+analog function real cb;
+    input x;
+    real x;
+    begin
+	cb = x * x * x;
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute the cube root of a real number using the pow
+			built-in function.
+    RETURN:
+	cbrt		Cube root of x
+    INPUT:
+	x		Real number
+    LOCAL:
+	sgn		Sign of x
+*/
+analog function real cbrt;
+    input x;
+    real x, sgn;
+    begin
+	sgn = (x >= 0.0 ? 1.0 : -1.0);
+	cbrt = sgn * pow(sgn * x, 1.0 / 3.0);
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute the cube root of a complex number using De
+			Moivre's Theorem.
+    RETURN:
+	cmplx_cbrt	Zero
+    INPUT:
+	a		Real part of complex number
+	b		Real part of imaginary part of complex number
+    OUTPUT:
+	c		Real part of complex number
+	d		Real part of imaginary part of complex number
+    LOCAL:
+	tmp1..2		Temporary variables
+*/
+analog function real cmplx_cbrt;
+    input a, b;
+    output c, d;
+    real a, b, c, d, tmp1, tmp2;
+    begin
+	tmp1 = pow(hypot(a, b), 1.0 / 3.0);
+	tmp2 = atan2(b, a) / 3.0;
+	c = tmp1 * cos(tmp2);
+	d = tmp1 * sin(tmp2);
+	cmplx_cbrt = 0.0;
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute the forth root of a positive real number using
+			the sqrt built-in function.
+    RETURN:
+	tsrt		Forth root of x
+    INPUT:
+	x		Positive real number
+*/
+analog function real tsrt;
+    input x;
+    real x;
+    begin
+	tsrt = sqrt(sqrt(x));
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute the three-half power of a positive real number
+			algebraically using the sqrt built-in function.
+    RETURN:
+	cb_sqrt		Three-half power of x
+    INPUT:
+	x		Positive real number
+*/
+analog function real cb_sqrt;
+    input x;
+    real x;
+    begin
+	cb_sqrt = x * sqrt(x);
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute an adjusted value using linear adaptation.
+    RETURN:
+	lin_adapt	Adjusted value
+    INPUT:
+	yref		Dependent variable reference
+	xdiff		Independent variable difference
+	xcoef		Independent variable coefficient
+*/
+analog function real lin_adapt;
+    input yref, xdiff, xcoef;
+    real yref, xdiff, xcoef;
+    begin
+	lin_adapt = yref * (1.0 + xcoef * xdiff);
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute an adjusted value using power-law adaptation.
+    RETURN:
+	pow_adapt	Adjusted value
+    INPUT:
+	yref		Dependent variable reference
+	xquot		Independent variable quotient
+	xexpn		Independent variable exponent
+*/
+analog function real pow_adapt;
+    input yref, xquot, xexpn;
+    real yref, xquot, xexpn;
+    begin
+	pow_adapt = yref * pow(xquot, xexpn);
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute an adjusted value using dual power-law
+			adaptation.
+    RETURN:
+	dual_pow_adapt	Adjusted value
+    INPUT:
+	yref		Dependent variable reference
+	yquot		Dependent variable quotient
+	xquot		Independent variable quotient
+	xexpn1		Independent variable primary exponent
+	xexpn2		Independent variable secondary exponent
+*/
+analog function real dual_pow_adapt;
+    input yref, yquot, xquot, xexpn1, xexpn2;
+    real yref, yquot, xquot, xexpn1, xexpn2;
+    begin
+	dual_pow_adapt = yref * (1.0 + yquot) * pow(xquot, xexpn1)
+			 / (1.0 + yquot * pow(xquot, xexpn1 - xexpn2));
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Gradually transition towards the larger of two real
+			numbers using square-root limiting.
+    RETURN:
+	soft_max	Soft-limited maximum
+    INPUT:
+	x		Real number
+	y		Real number
+	a		Smoothing factor
+*/
+analog function real soft_max;
+    input x, y, a;
+    real x, y, a;
+    begin
+	soft_max = 0.5 * (x + y + hypot(x - y, a));
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Gradually transition towards the smaller of two real
+			numbers using square-root limiting.
+    RETURN:
+	soft_min	Soft-limited minimum
+    INPUT:
+	x		Real number
+	y		Real number
+	a		Smoothing factor
+*/
+analog function real soft_min;
+    input x, y, a;
+    real x, y, a;
+    begin
+	soft_min = 0.5 * (x + y - hypot(x - y, a));
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Apply odd-symmetric square-root soft limiting.
+    RETURN:
+	soft_lim	Soft-limited value
+    INPUT:
+	x		Real number
+	y		Real number
+	a		Smoothing factor
+    LOCAL:
+	tmp		Temporary variable
+*/
+analog function real soft_lim;
+    input x, y, a;
+    real x, y, a, tmp;
+    begin
+	tmp = x / y;
+	soft_lim = 2.0 * x / (hypot(1.0 - tmp, a) + hypot(1.0 + tmp, a));
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute the p-n junction junction capacitance for a
+			long step junction in the framework of the depletion
+			approximation.
+    RETURN:
+	pnj_cap		Junction capacitance / F
+    INPUT:
+	nad		Net acceptor concentration / m^-3
+	nda		Net donor concentration / m^-3
+	epss		Semiconductor electric permittivity / F m^-1
+	phij		Junction potential / V
+	aj		Junction area / m^2
+*/
+analog function real pnj_cap;
+    input nad, nda, epss, phij, aj;
+    real nad, nda, epss, phij, aj;
+    begin
+	pnj_cap =
+	    aj * sqrt(`P_Q * epss * nad * nda / (2.0 * (nad + nda) * phij));
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute the p-n junction ideal current for a long
+			step junction in the framework of the depletion
+			approximation.
+    RETURN:
+	pnj_curr	Junction current / A
+    INPUT:
+	is		Reverse-bias saturation current / A
+	vj		Junction voltage / V
+	vt		Thermal voltage / V
+	vjt		Threshold junction voltage / V
+*/
+analog function real pnj_curr;
+    input is, vj, vt, vjt;
+    real is, vj, vt, vjt;
+    begin
+	if (vj < -10.0 * vt)
+	    pnj_curr = -is;
+	else if (vj < vjt)
+	    pnj_curr = is * (exp(vj / vt) - 1.0);
+	else
+	    pnj_curr = is * (exp(vjt / vt) * (1.0 + (vj - vjt) / vt) - 1.0);
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute the n-channel junction field-effect transistor
+			pinch-off potential for a unilateral step junction in
+			the framework of the depletion approximation.
+    RETURN:
+	njf_sg_po_pot	Pinch-off potential / V
+    INPUT:
+	nad		Gate net acceptor concentration / m^-3
+	nda		Channel net donor concentration / m^-3
+	epss		Semiconductor permittivity / F m^-1
+	hc		Channel height / m
+*/
+analog function real njf_sg_po_pot;
+    input nad, nda, epss, hc;
+    real nad, nda, epss, hc;
+    begin
+	njf_sg_po_pot = `P_Q * nda * (nad + nda) * sq(hc) / (2.0 * epss * nad);
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute the n-channel junction field-effect transistor
+			gate-drain depletion charge for a uniform rectangular
+			channel with unilateral step junction in the framework
+			of the gradual channel approximation and depletion
+			approximation.
+    RETURN:
+	njf_sg_gd_chrg	Gate-drain charge / C
+    INPUT:
+	cgd0		Zero-bias gate-drain capacitance / F
+	vgd		Gate-drain voltage / V
+	vgs		Gate-source voltage / V
+	delta1		Smoothing factor / V
+*/
+analog function real njf_sg_gd_chrg;
+    input cgd0, vgd, vgs, delta1;
+    real cgd0, vgd, vgs, delta1;
+    begin
+	njf_sg_gd_chrg = cgd0 * soft_min(vgs, vgd, delta1);
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute the n-channel junction field-effect transistor
+			gate-source depletion charge for a uniform rectangular
+			channel with unilateral step junction in the framework
+			of the gradual channel approximation and depletion
+			approximation.
+    RETURN:
+	njf_sg_gs_chrg	Gate-source charge / C
+    INPUT:
+	cgs0		Zero-bias gate-source capacitance / F
+	phij0		Zero-bias junction potential / V
+	vgd		Gate-drain voltage / V
+	vgs		Gate-source voltage / V
+	vto		Turn-off voltage / V
+	vjt		Threshold junction voltage / V
+	delta1		Junction capacitance smoothing factor / V
+	delta2		Junction capacitance smoothing factor / V
+    LOCAL:
+	vjl		Limited junction voltage / V
+	tmp		Temporary variable
+*/
+analog function real njf_sg_gs_chrg;
+    input cgs0, phij0, vgd, vgs, vto, vjt, delta1, delta2;
+    real cgs0, phij0, vgd, vgs, vto, vjt, delta1, delta2, vjl, tmp;
+    begin
+	vjl = soft_max(soft_max(vgd, vgs, delta1), vto, delta2);
+	if (vjl <= vjt)
+	    njf_sg_gs_chrg =
+		cgs0 * 2.0 * phij0 * (1.0 - sqrt(1.0 - vjl / phij0));
+	else begin
+	    tmp = sqrt(1.0 - vjt / phij0);
+	    njf_sg_gs_chrg =
+		cgs0 * (2.0 * phij0 * (1.0 - tmp) + (vjl - vjt) / tmp);
+	end
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute the n-channel junction field-effect transistor
+			turn-off voltage for a unilateral step junction in the
+			framework of the depletion approximation.
+    RETURN:
+	njf_sg_to_volt	Turn-off voltage / V
+    INPUT:
+	phij0		Zero-bias junction potential / V
+	phipo		Pinch-off potential / V
+*/
+analog function real njf_sg_to_volt;
+    input phij0, phipo;
+    real phij0, phipo;
+    begin
+	njf_sg_to_volt = phij0 - phipo;
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute the n-channel junction field-effect transistor
+			channel saturation voltage for a uniform rectangular
+			channel with unilateral step junction in the framework
+			of the gradual channel approximation and depletion
+			approximation.
+    RETURN:
+	njf_sg_sat_volt	Saturation drain-source voltage / V
+    INPUT:
+	phigs		Gate-source potential / V
+	phipo		Pinch-off potential / V
+	xi		Transport parameter / V^-1
+    LOCAL:
+	tmp1..6		Temporary variables
+	dummy		Placeholder variable
+*/
+analog function real njf_sg_sat_volt;
+    input phigs, phipo, xi;
+    real phigs, phipo, xi, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, dummy;
+    begin
+	if (xi == 0.0)
+	    njf_sg_sat_volt = phipo - phigs;
+	else begin
+	    tmp1 = 1.0 / xi;
+	    tmp2 = tmp1 - phigs;
+	    tmp3 = 1.5 * sqrt(phipo) * tmp1 - cb_sqrt(phigs);
+	    tmp4 = cb(tmp2) + sq(tmp3);
+	    if (tmp4 >= 0.0) begin
+		tmp5 = cbrt(tmp3 + sqrt(tmp4));
+		njf_sg_sat_volt = sq(tmp2 / tmp5 - tmp5) - phigs;
+	    end
+	    else begin
+		dummy = cmplx_cbrt(tmp3, sqrt(-tmp4), tmp5, tmp6);
+		njf_sg_sat_volt =
+		    sq(tmp2 * tmp5 / (sq(tmp5) + sq(tmp6)) - tmp5) - phigs;
+	    end
+	end
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute the n-channel junction field-effect transistor
+			channel current for a uniform rectangular channel with
+			unilateral step junction in the framework of the gradual
+			channel approximation and depletion approximation.
+    RETURN:
+	njf_sg_curr	Drain-source current / A
+    INPUT:
+	goc		Open-channel conductance / S
+	vds		Drain-source voltage / V
+	phigs		Gate-source junction potential / V
+	phipo		Pinch-off potential / V
+	xi		Transport parameter / V^-1
+    LOCAL:
+	tmp		Temporary variable
+*/
+analog function real njf_sg_curr;
+    input goc, vds, phigs, phipo, xi;
+    real goc, vds, phigs, phipo, xi, tmp;
+    begin
+	tmp = (cb_sqrt(phigs + vds) - cb_sqrt(phigs)) / (1.5 * sqrt(phipo));
+	njf_sg_curr = goc * (vds - tmp) / (1.0 + xi * vds);
+    end
+endfunction
+
+`ifdef INCLUDE_NJF_DG
+
+/*
+    DESCRIPTION:	Compute the n-channel junction field-effect transistor
+			turn-off voltage for a bilateral step junction in the
+			framework of the depletion approximation.
+    RETURN:
+	njf_dg_to_volt	Turn-off voltage / V
+    INPUT:
+	phij01		Primary-gate zero-bias junction potential / V
+	phipo1		Primary-gate pinch-off potential / V
+	phij2		Secondary-gate junction potential / V
+	phipo2		Secondary-gate pinch-off potential / V
+*/
+analog function real njf_dg_to_volt;
+    input phij01, phipo1, phij2, phipo2;
+    real phij01, phipo1, phij2, phipo2;
+    begin
+	njf_dg_to_volt = phij01 - phipo1 * sq(1.0 - sqrt(phij2 / phipo2));
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute the n-channel junction field-effect transistor
+			channel saturation voltage for a uniform rectangular
+			channel with bilateral step junction in the framework
+			of the gradual channel approximation and depletion
+			approximation.
+    RETURN:
+	njf_dg_sat_volt	Saturation drain-source voltage / V
+    INPUT:
+	phigs1		Primary-gate gate-source potential / V
+	phipo1		Primary-gate pinch-off potential / V
+	phigs2		Secondary-gate gate-source potential / V
+	phipo2		Secondary-gate pinch-off potential / V
+	xi		Transport parameter / V^-1
+    LOCAL:
+	tmp1..10	Temporary variables
+	x		Independent variable / V
+	y		Dependent variable / V
+	yprime		First derivative of y with respect to x
+	abserr		Absolute change in x
+*/
+analog function real njf_dg_sat_volt;
+    input phigs1, phipo1, phigs2, phipo2, xi;
+    real phigs1, phipo1, phigs2, phipo2, xi, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6,
+	tmp7, tmp8, tmp9, tmp10, x, y, yprime, abserr;
+    begin
+	if (xi == 0.0) begin
+	    tmp1 = phipo2 * phipo1;
+	    tmp2 = phipo2 - phipo1;
+	    tmp3 = tmp1 - phipo2 * phigs1 + phipo1 * phigs2;
+	    tmp4 = phipo1 - sqrt(tmp1 - tmp2 * (phigs1 - phigs2));
+	    njf_dg_sat_volt = tmp3 / tmp2 + 2.0 * tmp1 * tmp4 / sq(tmp2);
+	end
+	else begin
+	    njf_dg_sat_volt = 0.0;
+	    abserr = 1.0;
+	    tmp1 = 1.0 / sqrt(phipo1);
+	    tmp2 = 1.0 / sqrt(phipo2);
+	    tmp3 = cb_sqrt(phigs1);
+	    tmp4 = cb_sqrt(phigs2);
+	    while (abserr > `VOLTAGE_ABSTOL) begin
+		x = njf_dg_sat_volt;
+		tmp5 = sqrt(phigs1 + x);
+		tmp6 = sqrt(phigs2 + x);
+		tmp7 = cb(tmp5);
+		tmp8 = cb(tmp6);
+		tmp9 = xi / (1.0 + xi * x);
+		tmp10 = x - (tmp1 * (tmp7 - tmp3) + tmp2 * (tmp8 - tmp4)) / 1.5;
+		y = 1.0 - (tmp1 * tmp5 + tmp2 * tmp6) - tmp9 * tmp10;
+		yprime = -0.5 * (tmp1 / tmp5 + tmp2 / tmp6) - 2.0 * tmp9 * y;
+		njf_dg_sat_volt = x - y / yprime;
+		abserr = njf_dg_sat_volt - x;
+	    end
+	end
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute the n-channel junction field-effect transistor
+			channel current for a uniform rectangular channel with
+			bilateral step junction in the framework of the gradual
+			channel approximation and depletion approximation.
+    RETURN:
+	njf_dg_curr	Drain-source current / A
+    INPUT:
+	goc		Open-channel conductance / S
+	vds		Drain-source voltage / V
+	phigs1		Primary-gate gate-source junction potential / V
+	phipo1		Primary-gate pinch-off potential / V
+	phigs2		Secondary-gate gate-source junction potential / V
+	phipo2		Secondary-gate pinch-off potential / V
+	xi		Transport parameter / V^-1
+    LOCAL:
+	tmp1..2		Temporary variables
+*/
+analog function real njf_dg_curr;
+    input goc, vds, phigs1, phipo1, phigs2, phipo2, xi;
+    real goc, vds, phigs1, phipo1, phigs2, phipo2, xi, tmp1, tmp2;
+    begin
+	tmp1 = (cb_sqrt(phigs1 + vds) - cb_sqrt(phigs1)) / (1.5 * sqrt(phipo1));
+	tmp2 = (cb_sqrt(phigs2 + vds) - cb_sqrt(phigs2)) / (1.5 * sqrt(phipo2));
+	njf_dg_curr = goc * (vds - tmp1 - tmp2) / (1.0 + xi * vds);
+    end
+endfunction
+
+`endif // INCLUDE_NJF_DG
+
+/*
+    DESCRIPTION:	Compute a gradual channel approximation empirical
+			drain-source current correction factor.
+    RETURN:
+	gca_curr_coef	Drain-source current correction factor
+    INPUT:
+	vds		Drain-source voltage / V
+	vdssat		Saturation drain-source voltage / V
+	lambda		Channel length modulation coefficient / V^-1
+	nu		Channel length modulation stabilisation / V^-1
+    LOCAL:
+	vdsx		Extra drain-source voltage / V
+*/
+analog function real gca_curr_coef;
+    input vds, vdssat, lambda, nu;
+    real vds, vdssat, lambda, nu, vdsx;
+    begin
+	if (vds < vdssat)
+	    gca_curr_coef = 1.0 + lambda * vds;
+	else begin
+	    vdsx = vds - vdssat;
+	    gca_curr_coef = 1.0 + lambda * (vdssat + vdsx / (1.0 + nu * vdsx));
+	end
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute the effective density of states of an energy
+			band with parabolic dispersion.
+    RETURN:
+	edos		Effective density of states / m^-3
+    INPUT:
+	md		Density of state effective mass / kg
+	vt		Thermal voltage / V
+*/
+analog function real edos;
+    input md, vt;
+    real md, vt;
+    begin
+	edos = 2.0 * cb(sqrt(`M_TWO_PI * `P_Q * vt * md) / `P_H);
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute an equivalent Maxwell-Boltzmann conduction band
+			effective density of states in the framework of the
+			Joyce-Dixon approximation.
+    RETURN:
+	cb_edos		Effective density of states / m^-3
+    INPUT:
+	vt		Thermal voltage / V
+    LOCAL:
+	nc1		First conduction band effective density of states / m^-3
+	nc2		Second conduction band effective density of states
+			/ m^-3
+*/
+analog function real cb_edos;
+    input vt;
+    real vt, nc1, nc2;
+    begin
+	nc1 = edos(`W_MED1, vt) * (1.0 + `W_GE1_1_0 * vt);
+	nc2 = edos(`W_MED2, vt) * (1.0 + `W_GE2_1_0 * vt) * exp(-`W_EC2C1 / vt);
+	cb_edos = nc1 + nc2;
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute an equivalent Maxwell-Boltzmann valence band
+			effective density of states using an empirical model.
+    RETURN:
+	vb_edos		Effective density of states / m^-3
+    INPUT:
+	vt		Thermal voltage / V
+    LOCAL:
+	nv1		First valence band effective density of states / m^-3
+	nv2		Second valence band effective density of states / m^-3
+	nv3		Third valence band effective density of states / m^-3
+*/
+analog function real vb_edos;
+    input vt;
+    real vt, nv1, nv2, nv3;
+    begin
+	nv1 = edos(`W_MHD1, vt) * (1.0 + `W_GH1A_1_0 * exp(-`W_GH1B_1_0 / vt));
+	nv2 = edos(`W_MHD2, vt) * (1.0 - `W_GH2A_1_0 * atan(`W_GH2B_1_0 * vt))
+	      * exp(-`W_EV1V2 / vt);
+	nv3 = edos(`W_MHD3, vt) * exp(-`W_EV1V3 / vt);
+	vb_edos = nv1 + nv2 + nv3;
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute the extrinsic conduction band energy shift as a
+			function of ionised-impurity concentrations using an
+			empirical model.
+    RETURN:
+	cb_shift	Energy shift / eV
+    INPUT:
+	ndi		Ionised-donor concentration / m^-3
+	nai		Ionised-acceptor concentration / m^-3
+    LOCAL:
+	tmp1..2		Temporary variables
+*/
+analog function real cb_shift;
+    input ndi, nai;
+    real ndi, nai, tmp1, tmp2;
+    begin
+	tmp1 = `W_ACN * cbrt(ndi) + `W_BCN * sqrt(ndi);
+	tmp2 = `W_ACP * tsrt(nai) + `W_BCP * sqrt(nai);
+	cb_shift = tmp1 + tmp2;
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute the extrinsic valence-band energy shift as a
+			function of ionised-impurity concentrations using an
+			empirical model.
+    RETURN:
+	vb_shift	Energy shift / eV
+    INPUT:
+	ndi		Ionised-donor concentration / m^-3
+	nai		Ionised-acceptor concentration / m^-3
+    LOCAL:
+	tmp1..2		Temporary variables
+*/
+analog function real vb_shift;
+    input ndi, nai;
+    real ndi, nai, tmp1, tmp2;
+    begin
+	tmp1 = `W_AVN * tsrt(ndi) + `W_BVN * sqrt(ndi);
+	tmp2 = `W_AVP * cbrt(nai) + `W_BVP * sqrt(nai) + `W_CVP * tsrt(nai);
+	vb_shift = tmp1 + tmp2;
+    end
+endfunction
+
+/*
+    DESCRIPTION:	Compute the thermal-equilibrium delocalised carrier
+			concentrations and the electrochemical potential,
+			relative to intrinsic valence band extremum, of a
+			nondegenerate semiconductor.
+    RETURN:
+	ionisation	Zero
+    INPUT:
+	nd		Donor concentration / m^-3
+	na		Acceptor concentration / m^-3
+	temp		Temperature / K
+    OUTPUT:
+	n0		Conduction band electron concentration / m^-3
+	p0		Valence band hole concentration / m^-3
+	ef		Electrochemical potential / eV
+    LOCAL:
+	vt		Thermal voltage / V
+	evi		Intrinsic valence band extremum / eV
+	eci		Intrinsic conduction band extremum / eV
+	nc		Conduction band effective density of states / m^-3
+	nv		Valence band effective density of states / m^-3
+	gih		h-site impurity degeneracy
+	gik		k-site impurity degeneracy
+	nih		h-site impurity concentration / m^-3
+	nik		k-site impurity concentration / m^-3
+	nihi		Ionised h-site impurity concentration / m^-3
+	niki		Ionised k-site impurity concentration / m^-3
+	ndi		Ionised donor concentration / m^-3
+	nai		Ionised acceptor concentration / m^-3
+	n0prime		First derivative of n0 with respect to x / m^-3
+	p0prime		First derivative of p0 with respect to x / m^-3
+	ndiprime	First derivative of ndi with respect to x / m^-3
+	naiprime	First derivative of nai with respect to x / m^-3
+	epsih		Normalised h-site impurity level
+	epsik		Normalised k-site impurity level
+	epsv		Normalised extrinsic valence band extremum
+	epsc		Normalised extrinsic conduction band extremum
+	epsf		Normalised electrochemical potential
+	tmp1..4		Temporary variables
+	x		Independent variable
+	y		Dependent variable / m^-3
+	yprime		First derivative of y with respect to x / m^-3
+	abserr		Absolute change in x
+*/
+analog function real ionisation;
+    input nd, na, temp;
+    output n0, p0, ef;
+    real nd, na, temp, n0, p0, ef, vt, evi, eci, nc, nv, gih, gik, nih, nik,
+	nihi, niki, ndi, nai, n0prime, p0prime, ndiprime, naiprime, epsih,
+	epsik, epsv, epsc, epsf, tmp1, tmp2, tmp3, tmp4, x, y, yprime, abserr;
+    begin
+	vt = $vt(temp);
+	evi = 0.0;
+	eci = `W_EG0 - `W_EGTA * sq(temp) / (temp + `W_EGTB);
+	n0 = 0.0;
+	n0prime = 0.0;
+	p0 = 0.0;
+	p0prime = 0.0;
+	ndi = 0.0;
+	ndiprime = 0.0;
+	nai = 0.0;
+	naiprime = 0.0;
+	if (nd > na) begin
+	    nai = na;
+	    nih = 0.5 * nd;
+	    nik = 0.5 * nd;
+	    gih = `W_GD_1S_A1 + `W_GD_1S_E * exp(-`W_EDHDHA1 / vt);
+	    gik = `W_GD_1S_A1 + `W_GD_1S_E * exp(-`W_EDKDKA1 / vt);
+	    epsih = (eci - `W_EC1DH) / vt;
+	    epsik = (eci - `W_EC1DK) / vt;
+	    epsf = (na <= nih ? epsih : epsik);
+	end
+	else begin
+	    ndi = nd;
+	    nih = 0.5 * na;
+	    nik = 0.5 * na;
+	    gih = `W_GA_1S;
+	    gik = `W_GA_1S;
+	    epsih = (evi + `W_EAHV1) / vt;
+	    epsik = (evi + `W_EAKV1) / vt;
+	    epsf = (nd <= nih ? epsih : epsik);
+	end
+	abserr = 1.0;
+	while (abserr > `ENERGY_ABSTOL) begin
+	    x = epsf;
+	    if (nd > na) begin
+		nc = cb_edos(vt);
+		epsc = (eci + cb_shift(ndi, nai)) / vt;
+		n0 = nc * exp(x - epsc);
+		n0prime = n0;
+		tmp1 = gih * exp(x - epsih);
+		tmp2 = 1.0 + tmp1;
+		tmp3 = gik * exp(x - epsik);
+		tmp4 = 1.0 + tmp3;
+		nihi = nih / tmp2;
+		niki = nik / tmp4;
+		ndi = nihi + niki;
+		ndiprime = -(nihi * tmp1 / tmp2 + niki * tmp3 / tmp4);
+	    end
+	    else begin
+		nv = vb_edos(vt);
+		epsv = (evi + vb_shift(ndi, nai)) / vt;
+		p0 = nv * exp(epsv - x);
+		p0prime = -p0;
+		tmp1 = gih * exp(epsih - x);
+		tmp2 = 1.0 + tmp1;
+		tmp3 = gik * exp(epsik - x);
+		tmp4 = 1.0 + tmp3;
+		nihi = nih / tmp2;
+		niki = nik / tmp4;
+		nai = nihi + niki;
+		naiprime = nihi * tmp1 / tmp2 + niki * tmp3 / tmp4;
+	    end
+	    y = n0 - p0 - ndi + nai;
+	    yprime = n0prime - p0prime - ndiprime + naiprime;
+	    epsf = x - y / yprime;
+	    abserr = abs(epsf - x) * vt;
+	end
+	nc = cb_edos(vt);
+	nv = vb_edos(vt);
+	epsc = (eci + cb_shift(ndi, nai)) / vt;
+	epsv = (evi + vb_shift(ndi, nai)) / vt;
+	n0 = nc * exp(epsf - epsc);
+	p0 = nv * exp(epsv - epsf);
+	ef = epsf * vt;
+	ionisation = 0.0;
+    end
+endfunction
+
+`endif // FUNCTIONS_VA

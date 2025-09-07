@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "Hfin = 4*2.725e-3;//tsin;", 
+		"bug_line": "Hfin = 4/2.725e-3;//tsin;",
+		"error_description": "Replaced multiplication with division, causing Hfin to be ~1467.89 (4 / 0.002725) instead of 0.0109. This scales all currents/capacitances by 134,669x, severely distorting device behavior."
+	},
+	{
+		"original_line": "module N_FINFET (d,g,s,b);", 
+		"bug_line": "module N_FINFET (d,g,s);",
+		"error_description": "Removed bulk terminal 'b' from port list. This causes connection errors when instantiated with bulk connections and violates FINFET design requirements for bulk terminal handling."
+	},
+	{
+		"original_line": "if(V(s,d)<0) begin", 
+		"bug_line": "if(V(g,d)<0) begin",
+		"error_description": "Condition checks gate-drain voltage instead of source-drain voltage, causing incorrect branch selection in P_FINFET model."
+	},
+	{
+		"original_line": "Cj = 0.15e-15; //0.15fF/um (estimate)", 
+		"bug_line": "Cj = 0.15e-12; //0.15fF/um (estimate)",
+		"error_description": "Changed junction capacitance from 0.15fF to 150fF (1000x larger) by modifying exponent from -15 to -12, causing grossly overestimated parasitic capacitance that distorts transient behavior and timing characteristics."
+	},
+	{
+		"original_line": "parameter real dVth = 0 from (-inf:inf);", 
+		"bug_line": "parameter real dVth = 0 from (inf:0);",
+		"error_description": "Inverted range (inf:0) makes valid parameter values impossible since no number can be simultaneously greater than infinity and less than zero, effectively disabling threshold voltage adjustment."
+	},
+	{
+		"original_line": "electrical d,g,s,b;", 
+		"bug_line": "electrical d,g,b,s;",
+		"error_description": "Swapped source (s) and bulk (b) connections in the discipline declaration. This causes all source-related equations to incorrectly reference the bulk terminal and vice versa, fundamentally altering device behavior by misinterpreting terminal voltages and breaking the transistor model."
+	},
+	{
+		"original_line": "electrical d,g,s,b;", 
+		"bug_line": "electrical d,g,s;",
+		"error_description": "The bulk terminal 'b' is missing its electrical discipline declaration, causing undefined behavior when connecting substrate/body voltages. This violates the 4-terminal FINFET design requirement."
+	},
+	{
+		"original_line": "Cgs_tmp=1e-15*$table_model(Vds,Vgs,"Cgsp_LUT.tbl",ecsC);", 
+		"bug_line": "Cgs_tmp=1e-15*$table_model(Vgs,Vds,"Cgsp_LUT.tbl",ecsC);",
+		"error_description": "Swapped Vds and Vgs arguments in capacitance table lookup, reversing drain-source and gate-source voltage dependencies and corrupting capacitance calculations."
+	},
+	{
+		"original_line": "Cgd_tmp=1e-15*$table_model(Vds,Vgs,"Cgdp_LUT.tbl",ecsC);", 
+		"bug_line": "Cgd_tmp=1e-15*$table_model(Vgs,Vds,"Cgdp_LUT.tbl",ecsC);",
+		"error_description": "Swapped Vds and Vgs arguments in the Cgd table lookup, causing incorrect capacitance values due to reversed voltage indexing in the lookup table."
+	},
+	{
+		"original_line": "Vds=V(s,d);", 
+		"bug_line": "Vds=V(g,d);",
+		"error_description": "Vds is incorrectly assigned to gate-drain voltage (V(g,d)) instead of source-drain voltage (V(s,d)). This causes table lookups to use gate voltage instead of drain-source voltage, corrupting all current and capacitance calculations."
+	},
+	{
+		"original_line": "    Vds=V(s,d);", 
+		"bug_line": "    Vds=V(g,s);",
+		"error_description": "Changed drain-source voltage measurement to gate-source voltage. Now Vds incorrectly uses gate voltage instead of drain voltage, corrupting all subsequent table lookups and current calculations that depend on correct drain-source voltage."
+	},
+	{
+		"original_line": "analog begin : finfet_module", 
+		"bug_line": "initial begin : finfet_module",
+		"error_description": "Replaced 'analog' with 'initial', changing the continuous analog behavior block to a one-time initialization block. This prevents continuous model evaluation during simulation, causing incorrect static currents/capacitances after t=0 and violating dynamic transistor modeling requirements."
+	},
+	{
+		"original_line": "I(d)<+Nfin*Hfin*(Id-(Ifg+Ibg)*0.5+Cgd*ddt(V(d,g))+Cds*ddt(V(d,s)));", 
+		"bug_line": "I(d)<+Nfin*Hfin*(Id+(Ifg+Ibg)*0.5+Cgd*ddt(V(d,g))+Cds*ddt(V(d,s)));",
+		"error_description": "The gate leakage current component (Ifg+Ibg)*0.5 is incorrectly added to the drain current instead of being subtracted. This violates charge conservation by overestimating drain current by the gate leakage value and creates incorrect DC operating points."
+	},
+	{
+		"original_line": "Cgd_tmp=1e-15*$table_model(Vds,Vgs,"Cgdp_LUT.tbl",ecsC);", 
+		"bug_line": "Cgd_tmp=1e-15*$table_model(Vgs,Vds,"Cgdp_LUT.tbl",ecsC);",
+		"error_description": "Swapped Vds and Vgs arguments in the table lookup function, reversing the voltage dependency and causing incorrect capacitance calculation under varying drain-source voltages."
+	},
+	{
+		"original_line": "Cgs_tmp=1e-15*$table_model(Vds,Vgs,"Cgsp_LUT.tbl",ecsC);", 
+		"bug_line": "Cgs_tmp=1e-15*$table_model(Vgs,Vds,"Cgsp_LUT.tbl",ecsC);",
+		"error_description": "Swapped Vds and Vgs arguments in the table lookup function, causing incorrect capacitance values due to reversed voltage indexing in the LUT."
+	},
+	{
+		"original_line": "Cj = 0.15e-15; //0.15fF/um (estimate)", 
+		"bug_line": "Cj = 0.15e-12; //0.15fF/um (estimate)",
+		"error_description": "Changed junction capacitance value from 0.15fF to 150fF (0.15e-12 instead of 0.15e-15). This 1000x overestimation of parasitic capacitance will cause significant errors in timing analysis, power consumption, and AC characteristics of the FINFET."
+	},
+	{
+		"original_line": "Id_tmp=$table_model(Vds,Vgs,"Idn_LUT.tbl",ecsId);", 
+		"bug_line": "Id_tmp=$table_model(Vgs,Vds,"Idn_LUT.tbl",ecsId);",
+		"error_description": "Swapped Vds and Vgs arguments in the table lookup. The drain current model now incorrectly uses gate voltage for the drain voltage dimension and vice versa, corrupting current calculation."
+	},
+	{
+		"original_line": "electrical d,g,s,b;", 
+		"bug_line": "electrical d,g,b;",
+		"error_description": "The source terminal 's' is omitted from the electrical discipline declaration. This causes undefined reference errors when accessing source-related voltages (e.g., V(s,d)) in the analog block, breaking all terminal voltage calculations dependent on the source node."
+	},
+	{
+		"original_line": "        else begin", 
+		"bug_line": "        if (V(s,d) < 0) begin",
+		"error_description": "Changed 'else' to 'if (V(s,d) < 0)', duplicating the first condition. This causes both blocks to execute when V(s,d) < 0 (overwriting variables), and leaves V(s,d) >= 0 cases unhandled (variables remain default 0.0)."
+	},
+	{
+		"original_line": "parameter string ecsId = "1L,1L";", 
+		"bug_line": "parameter string ecsC = "1L,1L";",
+		"error_description": "The ecsId parameter for current interpolation is incorrectly replaced by ecsC (capacitance interpolation variable). This causes all table_model calls for current (Idn, Isn, etc.) to use the capacitance interpolation method, corrupting current calculations while leaving capacitance tables without a defined interpolation method."
+	}
+]

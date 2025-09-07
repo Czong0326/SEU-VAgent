@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "	   ran_in_pich_i, ran_in_ccpch_i,", 
+		"bug_line": "	   ran_in_ccpch_i, ran_in_pich_i,",
+		"error_description": "Swapped the two input port names, causing cross-wiring between PICH and CCPCH I-channels. The module will now incorrectly use CCPCH input data for PICH processing and vice versa."
+	},
+	{
+		"original_line": "    q_out_p_ccpch = 0;", 
+		"bug_line": "    q_out_p_ccpch = i_out_p_cpich;",
+		"error_description": "Initializes q_out_p_ccpch with i_out_p_cpich value instead of 0. This incorrectly sets the Q-component of primary CCPCH to match the I-component of primary CPICH (±√0.5) during startup rather than 0, causing signal corruption until the first timer event."
+	},
+	{
+		"original_line": "tmp3 = $rdist_uniform(ccpch_seed_local,  0, 1);", 
+		"bug_line": "tmp3 = $rdist_uniform(ccpch_seed_local,  0, 2);",
+		"error_description": "Changed upper bound from 1 to 2 in uniform distribution. This causes values above 1.0 which break the 0.5 threshold logic, leading to incorrect symbol mapping for CCPCH Q channel."
+	},
+	{
+		"original_line": "@(timer(start_time/100000, sampled)) begin", 
+		"bug_line": "@(timer(start_time/100000, sample)) begin",
+		"error_description": "Changed timer period from 'sampled' (sample/2) to 'sample', doubling the update interval. This causes the random signal generation to run at half the required rate (15kHz instead of 30kHz), leading to incorrect symbol timing and signal distortion in the outputs."
+	},
+	{
+		"original_line": "tmp2 = $rdist_uniform(ccpch_seed_local,  0, 1);", 
+		"bug_line": "tmp2 = $rdist_uniform(pich_seed_local,  0, 1);",
+		"error_description": "Uses PICH seed instead of CCPCH seed for I-channel, causing correlated scrambling sequences between PICH and CCPCH I-channels, violating independence requirement."
+	},
+	{
+		"original_line": "real start_time;", 
+		"bug_line": "real start_time = 0.0;",
+		"error_description": "Initializing 'start_time' to 0.0 causes the timer event to trigger immediately at t=0 instead of after a small delay. This prematurely overwrites the initial output values before they can be observed, violating the intended startup sequence where outputs should hold initial values until the first scheduled event."
+	},
+	{
+		"original_line": "else i_out_p_ccpch = `M_SQRT1_2;", 
+		"bug_line": "else i_out_p_ccpch = `M_SQRT2;",
+		"error_description": "Changed the constant from `M_SQRT1_2` (0.707) to `M_SQRT2` (1.414), causing incorrect amplitude scaling for the P-CCPCH I-component in the else condition. This violates the design specification requiring QPSK symbols to have unit magnitude, leading to distorted constellation points and signal power errors."
+	},
+	{
+		"original_line": "real start_time;", 
+		"bug_line": "integer start_time;",
+		"error_description": "Changing the type from real to integer causes truncation of the calculated start_time value (sampled/128 ≈ 2.6e-7) to 0. This makes the timer event trigger immediately at t=0 instead of after the intended small delay, disrupting the scheduled initialization sequence and potentially causing signal update conflicts."
+	},
+	{
+		"original_line": "tmp2 = $rdist_uniform(ccpch_seed_local,  0, 1);", 
+		"bug_line": "tmp2 = $rdist_uniform(pich_seed_local,  0, 1);",
+		"error_description": "Uses PICH seed instead of CCPCH seed for CCPCH I-channel randomization, causing correlated outputs between PICH and CCPCH channels when internal RNG is enabled (enable_input=0)."
+	},
+	{
+		"original_line": "parameter integer pich_seed = 12345;", 
+		"bug_line": "parameter integer pich_seed = 98765;",
+		"error_description": "Sets identical seeds (98765) for both PICH and CCPCH channels, causing correlated random sequences where independent sequences are required, violating channel isolation."
+	},
+	{
+		"original_line": "                                q_out_pich,    q_out_p_ccpch,", 
+		"bug_line": "                                q_out_pich_missing,    q_out_p_ccpch,",
+		"error_description": "Changed variable name 'q_out_pich' to 'q_out_pich_missing'. This makes the analog block's assignments to 'q_out_pich' reference an undeclared variable while the output 'Q_out_pich' uses the unassigned 'q_out_pich_missing', causing incorrect outputs (always 0) and potential simulation errors."
+	},
+	{
+		"original_line": "V(Q_out_p_cpich)  <+ i_out_p_cpich;", 
+		"bug_line": "V(Q_out_p_cpich)  <+ i_out_p_ccpch;",
+		"error_description": "The Q output of CPICH is incorrectly assigned the I component of CCPCH instead of the fixed CPICH symbol. This corrupts the pilot signal with dedicated channel data, violating the specification where CPICH must remain constant for channel estimation."
+	},
+	{
+		"original_line": "   ran_in_pich_i, ran_in_ccpch_i,", 
+		"bug_line": "   ran_in_pich_i, ran_in_ccpch_q,",
+		"error_description": "Incorrectly connected CCPCH I-channel input to Q-channel port, causing signal cross-wiring between I and Q paths for CCPCH."
+	},
+	{
+		"original_line": "output I_out_p_cpich, I_out_pich, I_out_p_ccpch,", 
+		"bug_line": "output I_out_p_cpich, I_out_pich, I_out_p_ccpch_mispelled,",
+		"error_description": "Misspelled 'I_out_p_ccpch' as 'I_out_p_ccpch_mispelled', causing the actual CCPCH I-output port to be undeclared and undriven while creating an unused internal node, breaking the downlink channel transmission."
+	},
+	{
+		"original_line": "    else i_out_pich = `M_SQRT1_2;", 
+		"bug_line": "    else i_out_pich = -`M_SQRT1_2;",
+		"error_description": "The else branch incorrectly assigns a negative constant to the in-phase PICH component. This causes the in-phase PICH signal to always be negative regardless of the random input condition, breaking the intended modulation scheme where positive and negative values should alternate based on input."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* cross_module *)",
+		"error_description": "Changed attribute from 'instrument_module' to 'cross_module' causes incorrect boundary optimization during simulation, leading to signal integrity violations between modules due to improper isolation."
+	},
+	{
+		"original_line": "V(I_out_p_cpich)   <+ i_out_p_cpich;", 
+		"bug_line": "V(I_out_p_cpich)   <+ i_out_p_ccpch;",
+		"error_description": "The I output for the CPICH channel is incorrectly assigned the value of the CCPCH I channel (i_out_p_ccpch) instead of its dedicated constant value (i_out_p_cpich). This causes the CPICH pilot signal to carry CCPCH data, violating the requirement for a constant pilot reference in WCDMA downlink."
+	},
+	{
+		"original_line": "     end else begin", 
+		"bug_line": "     end begin",
+		"error_description": "Removes the 'else' keyword, causing the random number generation block to execute unconditionally. This overwrites the input-derived values (tmp/tmp1/tmp2/tmp3) even when enable_input=1, corrupting channel outputs with random data instead of processed inputs."
+	},
+	{
+		"original_line": "input    ran_in_pich_i, ran_in_ccpch_i, ran_in_pich_q, ran_in_ccpch_q;", 
+		"bug_line": "input    ran_in_pich_i, ran_in_pich_q, ran_in_ccpch_i, ran_in_ccpch_q;",
+		"error_description": "Swapped input order: 'ran_in_pich_q' and 'ran_in_ccpch_i' are reversed. This cross-wires PICH Q-channel input to CCPCH I-channel processing and vice versa, corrupting modulation assignments in the analog block."
+	},
+	{
+		"original_line": "                                        q_out_pich,    q_out_p_ccpch,", 
+		"bug_line": "                                        q_out_p_ccpch,    q_out_pich,",
+		"error_description": "Swapped variable names cause Q branch outputs to be misassigned - PICH Q output uses CCPCH values and vice versa due to reversed declaration order."
+	}
+]

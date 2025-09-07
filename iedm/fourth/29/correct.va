@@ -1,0 +1,124 @@
+/* Applied Solutions
+PCR:411400, "rewrite BB models using rect representation for cx numbers"
+PCR:421740, "Update rfLib to use @(initial_step)"
+PCR:560190, "Implementation error in rfLib baseband module LNA_BB"
+PCR:575553, "Improper Noise implementation in all modules in rfLib"
+*/
+
+/* Related PCR
+PCR:369137, "rfLib MIXER_PB doesnot mix when LO=moderate"
+PCR:311276, "RFAHDL mixer models need bound_step line"
+PCR:407056, "change realtime to abstime in rfLib elements"
+PCR:464899, "Improper loss implementation in rfLib/filters"
+PCR:565951, "LNA_PB, MIXER_PB models etc requires Impedance functions"
+*/
+
+/* PARAMETER DEFINITIONS:
+======================
+gain    = voltage gain in dB.
+IP3     = input referenced IP3(dBm)
+psinf   = output phase shift as the input power goes to infinity.
+cmp     = input power pt for phase point.[dBm]
+pscp    = output phase shift at cmp.[radians]
+shp     = determines how fast the phase shift occurs with increasing
+          input power. A larger number delays the shift but makes
+          the shift rise faster as a function of input signal level.
+cw      = determines the direction of the phase shift. The phase
+          shift is only in one direction. +1 means counter-clockwise, -1
+          means clockwise, and 0 means no phase shift (no am/pm conversion).
+nf      = noise figure [dB]
+rin     = input resistance
+rout    = output resistance
+=====================
+*/
+
+`include "constants.h"
+`include "discipline.h"
+module LNA_BB(I_in, I_out, Q_in, Q_out);
+inout I_in, I_out, Q_in, Q_out;
+electrical I_in, I_out, Q_in, Q_out;
+
+parameter real gain = 40 from [0:inf);
+parameter real ip3 = -30;
+parameter real rin = 50 from (0:inf);
+parameter real rout = 50 from (0:inf);
+
+parameter real cmp = -30;
+parameter real pscp = 0.7 from (0:inf);
+parameter real psinf = 2 from (pscp:inf);
+parameter real shp = 2 from [1:inf);
+parameter integer cw = 0 from [-1:1];
+parameter real nf = 2 from [0:inf];
+
+real a, b, ip;
+real rho, rhooutmax, rhoinmax, rhoout;
+real theta, beta, tmp, cp;
+real cos_theta, sin_theta;
+
+// new variables: phi1, r1:
+real phi1, r1;
+
+// nfmin = NF Minimum [dB]
+// rsopt = Optimum Source Resistance [ohm]
+real rnf, rnfmin, rsopt, in2, vn2;
+
+electrical I_in_int, Q_in_int;
+
+analog begin
+   @(initial_step) begin
+      a = sqrt(pow(10,gain/10)*rout/rin);
+      ip = sqrt(pow(10,ip3/10)*2*rin*0.001);
+      cp = pow(10,cmp/20 -1.5)*sqrt(2*rout)/a;
+      //b = a/(ip*ip);
+      b = a/(ip*ip)*4/3;  // based on PCR:560190
+      rhoinmax = sqrt(a/(3*b));
+      rhooutmax = (2*a/3)*rhoinmax;
+      beta = pscp/(psinf-pscp);
+
+      rnf = pow(10,nf/10);
+      rnfmin = rnf;
+      rsopt = rin;
+
+      // noise current PSD
+      in2 = 2.0*`P_K*$temperature*(rnfmin-1) / rsopt;
+      // noise voltage PSD
+      vn2 = (rsopt*rsopt) * in2;
+   end // initial_step
+
+   I(I_in_int) <+ V(I_in_int)/rin;
+   I(Q_in_int) <+ V(Q_in_int)/rin;
+
+   rho = hypot(V(I_in_int),V(Q_in_int));
+
+   if(rho < rhoinmax ) rhoout = 2*(a - 0.75 * b*rho*rho);
+   // else rhoout =2*rhooutmax/rho;
+   else begin // PCR560190 Calculation of output amplitude in saturation region
+   phi1 = asin(rhoinmax/rho); r1 = 0.5*sin(2.0*phi1);
+   rhoout = `M_2_PI*(2.0*rhooutmax*cos(phi1) + rho*(a*(phi1 - r1)
+     - b*rho*rho*(0.75*phi1 - r1 + 0.0625*sin(4.0*phi1))))*2/rho;
+   end 
+   if(cw == 0) begin
+      I(I_out) <+ (-rhoout*V(I_in_int) + V(I_out))/rout;
+      I(Q_out) <+ (-rhoout*V(Q_in_int) + V(Q_out))/rout;
+   end
+   else begin
+      tmp = pow(rho/cp, shp);
+      theta = cw*(1+beta)*pscp*tmp/(1+beta*tmp);
+      cos_theta= cos(theta); sin_theta=sin(theta);
+
+      I(I_out) <+ (-rhoout*(V(I_in_int)*cos_theta - V(Q_in_int)*sin_theta) + V(I_out))/rout;
+      I(Q_out) <+ (-rhoout*(V(Q_in_int)*cos_theta + V(I_in_int)*sin_theta) + V(Q_out))/rout;
+   end
+
+   // Two-Port Noise Source Type-1a(ntport1a)
+   // equivalent noise voltage source
+   V(I_in, I_in_int) <+ white_noise(vn2, "I_vnoise"); // based on PCR:575553
+   V(Q_in, Q_in_int) <+ white_noise(vn2, "Q_vnoise"); // based on PCR:575553
+
+   // equivalent noise current source
+   I(I_in_int) <+ white_noise(in2, "I_inoise"); // based on PCR:575553
+   I(Q_in_int) <+ white_noise(in2, "Q_inoise"); // based on PCR:575553
+end // analog
+
+endmodule
+

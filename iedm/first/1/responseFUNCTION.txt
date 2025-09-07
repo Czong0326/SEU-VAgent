@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "if ( (V(sigctrl) > sigctrl_trans) )", 
+		"bug_line": "if ( (V(sigin) > sigctrl_trans) )",
+		"error_description": "Changed condition check from control signal (sigctrl) to input signal (sigin), causing integration to be incorrectly triggered by the input signal instead of the control signal."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* not_instrumented *)",
+		"error_description": "Changed attribute to 'not_instrumented', causing simulation tools to skip necessary instrumentation for this module. This violates the design requirement for special signal processing during simulation, leading to incorrect behavioral analysis."
+	},
+	{
+		"original_line": "V(sigout) <+ sigout_val;", 
+		"bug_line": "V(sigout) <+ V(sigctrl);",
+		"error_description": "The output voltage is incorrectly set to the control voltage (V(sigctrl)) instead of the integrated value (sigout_val). This breaks the integrator functionality as the output no longer represents the integrated input signal but mirrors the control signal."
+	},
+	{
+		"original_line": "parameter real gain = 1;", 
+		"bug_line": "parameter real gain = 0;",
+		"error_description": "Setting gain to 0 disables the integration function entirely. The output will remain constant at sigout0 regardless of input signals, violating the core functionality of the controlled integrator module."
+	},
+	{
+		"original_line": "        if (V(sigctrl) > sigctrl_trans) begin", 
+		"bug_line": "        if (V(sigout) > sigctrl_trans) begin",
+		"error_description": "Changed condition from monitoring sigctrl to sigout. Now incorrectly uses output voltage instead of control voltage to enable integration, violating the design requirement that integration should be controlled by sigctrl."
+	},
+	{
+		"original_line": "   real idtral;", 
+		"bug_line": "   integer idtral;",
+		"error_description": "Changed the variable type from real to integer, causing truncation of fractional values in the integration result and precision loss during analog calculations."
+	},
+	{
+		"original_line": "sigout_val = gain*(idtral) + sigout0;", 
+		"bug_line": "sigout_val = gain*(input_expr) + sigout0;",
+		"error_description": "Replaced integrated signal 'idtral' with instantaneous input 'input_expr'. This breaks integration functionality by outputting scaled instantaneous input plus offset instead of time-integrated signal."
+	},
+	{
+		"original_line": "sigout_val = sigout0;", 
+		"bug_line": "sigout_val = gain;",
+		"error_description": "Uses gain parameter instead of sigout0 for initial output value, ignoring the specified initial condition parameter. This sets initial output to an arbitrary gain value rather than the user-defined sigout0."
+	},
+	{
+		"original_line": "        if (V(sigctrl) > sigctrl_trans) begin", 
+		"bug_line": "        if (V(sigin) > sigctrl_trans) begin",
+		"error_description": "Changed condition from monitoring sigctrl to sigin, causing integration to trigger based on input signal instead of control signal. Violates design requirement that integration must be controlled by sigctrl."
+	},
+	{
+		"original_line": "electrical sigin, sigout, sigctrl;", 
+		"bug_line": "electrical sigin, sigout;",
+		"error_description": "Missing electrical discipline declaration for sigctrl port prevents voltage monitoring. The condition 'V(sigctrl) > sigctrl_trans' becomes invalid, breaking the integration control logic."
+	},
+	{
+		"original_line": "   real input_expr;", 
+		"bug_line": "   real input_expr = 1.0;",
+		"error_description": "Initialized input_expr to 1.0 instead of leaving it uninitialized. This forces a constant offset of 1.0 during integration when the control signal is active, corrupting the output by adding an unintended ramp component to the integrated signal."
+	},
+	{
+		"original_line": "parameter real sigout0 = 0;", 
+		"bug_line": "parameter real sigout0 = 1;",
+		"error_description": "Changed initial output value from 0 to 1. This creates incorrect initial conditions since the integrator output should start at 0 by default, violating the design specification and causing offset errors in integration results."
+	},
+	{
+		"original_line": "   real idtral;", 
+		"bug_line": "   real idtral = 0;",
+		"error_description": "Initializing 'idtral' to 0 breaks the integration state persistence. The 'idt' function requires state retention between time steps, but reinitialization to 0 at every analog block iteration resets the integral value, causing incorrect accumulated output."
+	},
+	{
+		"original_line": "	@ ( initial_step or initial_step( "dc" ) )", 
+		"bug_line": "	@ ( initial_step( "ac" ) or initial_step( "dc" ) )",
+		"error_description": "The modified event triggers during AC analysis initial_step instead of general initial_step. This causes incorrect initialization during transient analysis since AC initial_step doesn't occur in transient simulations, violating the requirement to initialize sigout_val at simulation start."
+	},
+	{
+		"original_line": "if ( (V(sigctrl) > sigctrl_trans) )", 
+		"bug_line": "if ( (V(sigin) > sigctrl_trans) )",
+		"error_description": "Changed condition to monitor input signal (sigin) instead of control signal (sigctrl). Now integration is incorrectly triggered by the input signal rather than the designated control signal, violating the design specification."
+	},
+	{
+		"original_line": "   real idtral;", 
+		"bug_line": "   real idtral = 0;",
+		"error_description": "Initializing 'idtral' to 0 breaks the integration state preservation. The 'idt()' function relies on persistent internal state across time steps, but reinitializing the variable to 0 at every analog iteration resets the integral accumulation, causing incorrect discontinuous output."
+	},
+	{
+		"original_line": "        if (V(sigctrl) > sigctrl_trans) begin", 
+		"bug_line": "        if (V(sigctrl) < sigctrl_trans) begin",
+		"error_description": "The condition is inverted, causing integration to occur only when the control signal is BELOW the threshold instead of above it. This reverses the intended behavior where integration should happen when sigctrl exceeds the specified transition level."
+	},
+	{
+		"original_line": "        if (V(sigctrl) > sigctrl_trans) begin", 
+		"bug_line": "        if (V(sigin) > sigctrl_trans) begin",
+		"error_description": "Changed condition from control signal (sigctrl) to input signal (sigin), causing integration enable logic to incorrectly depend on the input value instead of the control signal voltage."
+	},
+	{
+		"original_line": "@ ( initial_step or initial_step( "dc" ) )", 
+		"bug_line": "@ ( initial_step and initial_step( "dc" ) )",
+		"error_description": "Changed logical OR to AND in event trigger. Since initial_step and initial_step("dc") never occur simultaneously, the initial condition block (sigout_val = sigout0) will never execute, leaving sigout_val uninitialized at 0.0 instead of the specified sigout0 parameter."
+	},
+	{
+		"original_line": "parameter real sigctrl_trans=0;", 
+		"bug_line": "parameter real sigctrl_trans=-1000;",
+		"error_description": "The control signal threshold is incorrectly set to -1000 instead of 0. This causes the integration condition (V(sigctrl) > sigctrl_trans) to be true for most positive control signals, making integration occur even when the control signal is below the intended 0V threshold."
+	}
+]

@@ -1,0 +1,80 @@
+`include "discipline.h"
+`include "constants.h"
+
+//  Copyright (c) 2000
+//  by  Cadence Design Systems, Inc.  All rights reserved.
+//
+// $Date: 2003/10/06 06:31:53 $
+// $Revision: 1.1 $
+//
+// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996
+//
+//
+ 
+//--------------------
+// shifter
+//
+// -  phase shifter model
+//
+// single: single end
+// lag: lagging end
+// lead: leading end
+//
+// INSTANCE parameters
+//    freq           = frequency at which the magnitudes are balanced
+//    r		     = impedance of the internal resistor
+//    gain	     = linear scale factor that multiplies the input voltages
+//    rin	     = input terminal impedances
+//    rout	     = output impedance
+//    fcr	     = carrier frequency
+
+`define CAP(pi,ni,pq,nq,val,fcr) I(pi,ni)<+val*(ddt(V(pi,ni))-2*`M_PI*fcr*V(pq,nq));I(pq,nq)<+val*(ddt(V(pq,nq))+2*`M_PI*fcr*V(pi,ni))
+`define CAPG(pi,pq,val,fcr) I(pi)<+val*(ddt(V(pi))-2*`M_PI*fcr*V(pq));I(pq)<+val*(ddt(V(pq))+2*`M_PI*fcr*V(pi))
+
+module BB_shifter_combiner(lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out);
+  inout lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;
+  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;
+   parameter real freq = 1e9 from (0:inf);
+   parameter real r    = 50 from (0:inf);
+   parameter real gain = 2 from (0:inf);
+   parameter real rin = 50 from (0:inf);
+   parameter real rout = 50 from (0:inf);
+   parameter real fcr = 1e9 from (0:inf);
+
+   real ci, ri;    // internal C and R
+   electrical ai,bi,fi,di,ei;
+   electrical aq,bq,fq,dq,eq;
+
+   analog begin
+
+      @( initial_step) begin
+           ri = r;
+	   ci = 1/(2*`M_PI*freq*r);
+      end
+
+	V(ai) <+ V(lag_I)*gain;
+	V(aq) <+ V(lag_Q)*gain;
+	V(di) <+ V(lead_I)*gain;         
+	V(dq) <+ V(lead_Q)*gain;         
+	I(lag_I) <+ V(lag_I)/rin;
+	I(lag_Q) <+ V(lag_Q)/rin;
+	I(lead_I) <+ V(lead_I)/rin;
+	I(lead_Q) <+ V(lead_Q)/rin;
+   	I(ai,bi) <+ (1/ri)*V(ai,bi);
+   	I(aq,bq) <+ (1/ri)*V(aq,bq);
+        `CAPG(bi,bq,ci,fcr);
+	`CAP(di,ei,dq,eq,ci,fcr);
+	I(ei) <+ (1/ri)*V(ei);
+	I(eq) <+ (1/ri)*V(eq);
+	V(fi) <+ V(ei) + V(bi);
+	V(fq) <+ V(eq) + V(bq);
+	V(fi,I_out) <+ rout*I(fi,I_out);
+	V(fq,Q_out) <+ rout*I(fq,Q_out);
+   end
+endmodule // BB_shifter-combiner
+
+
+
+
+
+

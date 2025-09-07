@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real pscp = 0.7 from (0:inf);", 
+		"bug_line": "parameter real pscp = 0.7 from (-inf:0];",
+		"error_description": "The range constraint is inverted to (-inf:0], making the default value 0.7 invalid. This causes a setup error since 0.7 isn't negative, violating the design requirement that pscp (phase shift at compression) must be positive."
+	},
+	{
+		"original_line": "  else theta = -`PI/2;", 
+		"bug_line": "  else theta = `PI/2;",
+		"error_description": "Sets phase angle to positive PI/2 instead of negative when I_in=0 and Q_in<0. This directional error flips the quadrature output polarity for negative Q inputs under zero I conditions, causing incorrect phase rotation in the power amplifier output."
+	},
+	{
+		"original_line": "parameter real rout = 50 from (0:inf);", 
+		"bug_line": "parameter real rout = 0 from [0:inf);",
+		"error_description": "Setting rout to 0 causes division-by-zero errors in current calculations (I(I_out)/rout) and breaks signal amplification computations in the initial block (sqrt(pow(10,gain/10)*rout/rin). The constraint modification [0:inf) permits this invalid value."
+	},
+	{
+		"original_line": "          input power. A larger number delays the shift but makes", 
+		"bug_line": "          input power. A smaller number delays the shift but makes",
+		"error_description": "The comment incorrectly states that a smaller 'shp' value delays the phase shift. In reality, a larger 'shp' delays the onset of phase shift while making it rise faster. This reversal misleads users about the parameter's effect, potentially causing incorrect circuit tuning where small 'shp' values unexpectedly accelerate phase shift occurrence."
+	},
+	{
+		"original_line": "parameter real shp = 2 from [0:inf);", 
+		"bug_line": "parameter real shp = 0 from [0:inf);",
+		"error_description": "Setting shp to 0 causes the phase shift term (tmp) to always equal 1 for any non-zero input, making the phase shift constant instead of input-dependent. This violates the design requirement that phase shift should vary with input power level."
+	},
+	{
+		"original_line": "real beta;", 
+		"bug_line": "real gamma;",
+		"error_description": "Renaming 'beta' to 'gamma' creates an undeclared variable error for 'beta' used in phase shift calculations, breaking the AM/PM conversion logic since beta is critical for computing theta rotation."
+	},
+	{
+		"original_line": "  I(Q_in) <+ white_noise(noise_current*noise_current, "PA_BB_q");", 
+		"bug_line": "  I(Q_out) <+ white_noise(noise_current*noise_current, "PA_BB_q");",
+		"error_description": "Noise incorrectly injected into output branch Q_out instead of input branch Q_in. This violates the amplifier's noise model where noise should be input-referred, causing output noise to be double-counted and input noise missing."
+	},
+	{
+		"original_line": "   @( initial_step) begin", 
+		"bug_line": "   @( final_step) begin",
+		"error_description": "Initialization block runs at simulation end instead of start. Parameters (a, b, cmp, etc.) remain uninitialized during simulation, causing incorrect gain calculation, undefined compression behavior, and invalid noise computations throughout operation."
+	},
+	{
+		"original_line": "parameter real gain = 40;", 
+		"bug_line": "parameter real gain = -40;",
+		"error_description": "Setting negative gain (-40 dB) violates amplifier functionality by converting it to an attenuator. This breaks the compression point calculation (cmp) since it requires positive gain to compute valid voltage levels, causing undefined behavior in the AM/AM conversion and saturation logic."
+	},
+	{
+		"original_line": "output_phase_shift = alpha*(Vin/Vcp)^n/(1+beta*(Vin/Vcp)^n).", 
+		"bug_line": "output_phase_shift = alpha*(Vin/Vcp)^n/(1-beta*(Vin/Vcp)^n).",
+		"error_description": "Changed '+' to '-' in the denominator. This causes division by zero at certain input levels and reverses the saturation behavior, violating the specified phase shift characteristics and creating instability."
+	},
+	{
+		"original_line": "  I(Q_in) <+ white_noise(noise_current*noise_current, "PA_BB_q");", 
+		"bug_line": "  I(Q_out) <+ white_noise(noise_current*noise_current, "PA_BB_q");",
+		"error_description": "Noise current incorrectly injected into Q_out node instead of Q_in. This violates the noise model by placing input-referred noise at the output, distorting noise figure calculations and violating amplifier input specifications."
+	},
+	{
+		"original_line": "b = a*(0.108749)/(cmp*cmp);", 
+		"bug_line": "b = a*(0.108749)/(cmp);",
+		"error_description": "Changed denominator from cmp*cmp to cmp, causing incorrect calculation of nonlinearity coefficient b. This results in wrong third-order distortion characteristics and invalid compression point behavior due to dimensional mismatch in the formula."
+	},
+	{
+		"original_line": "real rho;", 
+		"bug_line": "real rho = 0;",
+		"error_description": "Initializing 'rho' to 0 creates a constant value that never updates. This prevents the amplifier from processing dynamic input signals since the magnitude calculation (hypot()) becomes unused, freezing the output at zero amplitude regardless of actual input."
+	},
+	{
+		"original_line": "real rhoout;", 
+		"bug_line": "real rhoout = 0;",
+		"error_description": "Initializing rhoout to zero creates incorrect state retention between iterations. The variable should be recalculated each time but now retains its previous value due to analog block behavior, causing cumulative amplitude errors."
+	},
+	{
+		"original_line": "I(I_out) <+ (-2*rhoout*cos(theta) + V(I_out))/rout;", 
+		"bug_line": "I(I_out) <+ (-3*rhoout*cos(theta) + V(I_out))/rout;",
+		"error_description": "The multiplier for rhoout is changed from 2 to 3, causing incorrect gain in the I channel output and violating the gain specification by increasing output amplitude by 50%."
+	},
+	{
+		"original_line": "I(I_out) <+ (-2*rhoout*cos(theta) + V(I_out))/rout;", 
+		"bug_line": "I(I_out) <+ (-2*rhoout*cos(theta) + V(I_out))/rin;",
+		"error_description": "The output current calculation incorrectly uses input resistance (rin) instead of output resistance (rout). This causes the I-channel output impedance to mismatch the specified rout value, leading to signal reflection and gain errors, while the Q-channel remains unaffected."
+	},
+	{
+		"original_line": "parameter real shp = 2 from [0:inf);", 
+		"bug_line": "parameter real shp = -1 from [0:inf);",
+		"error_description": "Changed default value from 2 to -1. This violates the constraint [0:inf) since negative values are not permitted. During simulation, a negative 'shp' value would cause undefined behavior in the pow() function for the phase shift calculation, breaking the AM/PM conversion and potentially crashing the simulator due to mathematical domain errors."
+	},
+	{
+		"original_line": "order non-linear effects. The transfer curve saturates", 
+		"bug_line": "order non-linear effects. The transfer curve does not saturate",
+		"error_description": "The modified comment incorrectly states that the transfer curve does not saturate, contradicting the actual clamping behavior in the code (rhooutmax assignment) and misleading designers about the amplifier's fundamental limitation."
+	},
+	{
+		"original_line": "else if (V(Q_in) > 0) theta = `PI/2;", 
+		"bug_line": "else if (V(Q_in) > 0) theta = `PI;",
+		"error_description": "Sets theta to π radians (180°) instead of π/2 (90°) when I_in=0 and Q_in>0. This causes a 90° phase rotation error for positive imaginary-axis signals, distorting the output constellation quadrant mapping."
+	},
+	{
+		"original_line": "I(I_in) <+ V(I_in)/rin;", 
+		"bug_line": "I(I_in) <+ V(I_in)/rout;",
+		"error_description": "Incorrectly uses output resistance (rout) instead of input resistance (rin) for the input termination. This causes impedance mismatch at the input port, signal reflection, and gain errors since rout may differ from rin (typically both 50Ω)."
+	}
+]

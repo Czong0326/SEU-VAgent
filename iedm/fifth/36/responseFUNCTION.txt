@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real       Temp        =    298        from(0:inf);                 // temperature in C", 
+		"bug_line": "parameter real       Temp        =    25        from(0:inf);                 // temperature in K",
+		"error_description": "Sets default temperature to 25K (unrealistically low) while changing units to Kelvin without conversion logic. This violates thermal design requirements by undercalculating thermal voltage (phit = k*T/q), corrupting subthreshold current, noise, and temperature-dependent behaviors."
+	},
+	{
+		"original_line": "I(gi, gNs)  <+       ddt(Cgsi*V(gi,gNs));", 
+		"bug_line": "I(gi, gNs)  <+       ddt(Cgsi*V(gi,di));",
+		"error_description": "Incorrectly used drain internal node 'di' instead of source internal node 'gNs' in the capacitive coupling voltage, creating erroneous gate-to-drain coupling instead of proper gate-to-source behavior."
+	},
+	{
+		"original_line": "        Cgse        =        Cgs * (1.0-garmaGS);", 
+		"bug_line": "        Cgse        =        Cgs * (1.0+garmaGS);",
+		"error_description": "Replaced subtraction with addition in capacitance calculation, causing Cgse to be overestimated. This violates capacitance splitting principles by incorrectly increasing the effective gate-source capacitance when garmaGS > 0."
+	},
+	{
+		"original_line": "parameter real       LG          =    4e-6       from(0:inf);                 // gate norminal length in cm", 
+		"bug_line": "parameter real       LG          =    -4e-6      from(0:inf);                 // gate norminal length in cm",
+		"error_description": "Assigned negative value to LG (gate length) which violates physical constraints. This causes negative Leff calculation (LG - Lov), breaking Vdsats computation and producing invalid drain current."
+	},
+	{
+		"original_line": "real phit, nphit, alphaphit;", 
+		"bug_line": "real phit, nphit;",
+		"error_description": "Variable alphaphit is not declared, causing errors in the calculation of Ff (subthreshold transition factor) and Qinv (inversion charge) where alphaphit is used."
+	},
+	{
+		"original_line": "I(dd, ss)   <+       ddt(Cdsi*V(dd,ss));", 
+		"bug_line": "I(dd, ss)   <+       ddt(Cdsi*V(ss,dd));",
+		"error_description": "Reversed voltage polarity in capacitor equation. Using V(ss,dd) instead of V(dd,ss) inverts the capacitive current direction, causing incorrect charge/discharge behavior between drain and source nodes."
+	},
+	{
+		"original_line": "I(ss, gnd)  <+       ddt(Csgnd*V(ss, gnd));", 
+		"bug_line": "I(ss, dd)  <+       ddt(Csgnd*V(ss, dd));",
+		"error_description": "Changed capacitor connection from ground (gnd) to drain-internal node (dd). This incorrectly couples the source-internal node (ss) to the drain-internal node (dd) via Csgnd, creating an unintended parallel capacitance path between drain and source nodes and eliminating the proper ground connection."
+	},
+	{
+		"original_line": "Cpg         =        13.653f;", 
+		"bug_line": "Cpd         =        13.653f;",
+		"error_description": "Incorrect assignment to drain parasitic capacitance (Cpd) instead of gate parasitic capacitance (Cpg). This leaves Cpg uninitialized (effectively 0) while overwriting the intended Cpd value of 12.113fF. This distorts RF behavior by eliminating gate capacitance effects and corrupting drain capacitance modeling."
+	},
+	{
+		"original_line": "        Cgse        =        Cgs * (1.0-garmaGS);", 
+		"bug_line": "        Cgse        =        Cgs * (1.0+garmaGS);",
+		"error_description": "Changed subtraction to addition in Cgse calculation. This causes incorrect capacitance computation by adding garmaGS fraction instead of subtracting it, overestimating Cgse when garmaGS > 0 and violating the design's intended capacitive division."
+	},
+	{
+		"original_line": "        Vgsi        =        V(gi) - V(si);", 
+		"bug_line": "        Vgsi        =        V(gi) - V(di);",
+		"error_description": "Calculates gate-source voltage Vgsi using drain voltage V(di) instead of source voltage V(si), incorrectly defining the control voltage and disrupting transistor operation."
+	},
+	{
+		"original_line": "real Rs, Rd, Leff;", 
+		"bug_line": "real Rs, Leff, Rd;",
+		"error_description": "Swapped Rd and Leff variable order. This causes Rd to be incorrectly assigned LG - Lov (length) instead of contact resistance, while Leff gets assigned contact resistance instead of effective gate length. This disrupts resistance calculations and channel length-dependent parameters like Vdsats."
+	},
+	{
+		"original_line": "ground gnd;", 
+		"bug_line": "electrical gnd;",
+		"error_description": "Changed ground node declaration to electrical node, breaking all ground connections. This causes floating nodes in the circuit by removing the global reference point, violating fundamental circuit design requirements."
+	},
+	{
+		"original_line": "real Cgd, Cds, Cdgnd, Cdse, Cdsi, Cgs, Cgse, Cgsi, Cggnd, Csgnd;", 
+		"bug_line": "real Cgd, Cds, Cdgnd, Cdse, Cdsi, Cgs, Cgse, Cgsi, Cggnd, Csgnd, Temp;",
+		"error_description": "Added duplicate declaration of 'Temp' variable, shadowing the parameter. This causes the local Temp (uninitialized real) to override the parameter value in $vt(Temp), resulting in incorrect thermal voltage calculation and broken subthreshold current modeling."
+	},
+	{
+		"original_line": "parameter real       Vt0         =    0.4472     from(0:inf);", 
+		"bug_line": "parameter real       Vt0         =    10.0     from(0:inf);",
+		"error_description": "Threshold voltage Vt0 changed from 0.4472V to 10.0V. This unrealistically high value prevents the transistor from turning on under normal operating conditions, causing complete circuit failure."
+	},
+	{
+		"original_line": "Ff          =        1.0 / (1.0 + exp((Vgsi - (Vtp - 0.5 * alphaphit)) / alphaphit));", 
+		"bug_line": "Ff          =        1.0 / (1.0 + exp((Vgsi - (Vtp + 0.5 * alphaphit)) / alphaphit));",
+		"error_description": "Changed subtraction to addition in the threshold adjustment term. This incorrectly shifts the smoothing function's center point upward by 0.5*alphaphit, altering the transistor's turn-on characteristics and causing inaccurate modeling of the subthreshold region."
+	},
+	{
+		"original_line": "parameter real       W           =    126e-4     from(0:inf);                 // width in cm", 
+		"bug_line": "parameter real       W           =    126        from(0:inf);                 // width in cm",
+		"error_description": "Changed default width from 126e-4 cm (1.26 μm) to 126 cm, making the transistor 10,000× wider. This violates design specifications by drastically altering current, capacitances, and resistances while keeping the 'cm' unit comment misleadingly correct."
+	},
+	{
+		"original_line": "I(dd, ss)   <+       ddt(Cdsi*V(dd,ss));", 
+		"bug_line": "I(dd, ss)   <+       ddt(Cdsi*V(ss,dd));",
+		"error_description": "Reversed voltage polarity for drain-source capacitance. The voltage argument V(ss,dd) incorrectly measures source-to-drain voltage instead of drain-to-source, inverting the capacitive current direction and violating charge conservation principles."
+	},
+	{
+		"original_line": "        Lg          =        85.37p;", 
+		"bug_line": "        Lg          =        85.37n;",
+		"error_description": "Changed gate inductance unit from picohenry (p) to nanohenry (n), making Lg 1000× larger. This drastically increases the inductive reactance, corrupting RF behavior and causing significant timing errors in transient simulations."
+	},
+	{
+		"original_line": "phit        =        $vt(Temp);", 
+		"bug_line": "phit        =        Vt0;",
+		"error_description": "Replaced thermal voltage calculation with threshold voltage constant. This disrupts temperature-dependent operations by making phit a fixed value (~0.4472V) instead of dynamically calculated (~0.0258V at 298K), breaking subthreshold behavior and DIBL effects."
+	},
+	{
+		"original_line": "        V(g, gi)    <+       white_noise(4*`P_K*$temperature*Rgext,"thermal");", 
+		"bug_line": "        V(g, gi)    <+       white_noise(4*`P_K*$temperature*Rd,"thermal");",
+		"error_description": "The thermal noise contribution incorrectly uses drain resistance (Rd) instead of gate resistance (Rgext). This misplaces the noise source, corrupting gate noise modeling while leaving drain noise unaccounted for."
+	}
+]

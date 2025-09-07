@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real vin_gain = 1;", 
+		"bug_line": "parameter real vin_gain = 0;",
+		"error_description": "Setting vin_gain to 0 disables input modulation. The output becomes a pure carrier wave without frequency modulation, violating the design requirement where vin should modulate the carrier frequency."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   analog begin V(vout) <+ amp;",
+		"error_description": "Added a constant DC offset of 'amp' to the output. This violates the design specification where the output should only contain the modulated signal (amp*sin(phase)), now incorrectly becoming amp + amp*sin(phase)."
+	},
+	{
+		"original_line": "parameter real amp = 1;", 
+		"bug_line": "parameter real amp = 0;",
+		"error_description": "Amplitude parameter set to zero, causing the output signal to always be 0V regardless of input modulation. This violates the design requirement that the output must be a modulated sine wave with amplitude 'amp'."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( initial_step or cross(V(vin), +1) ) begin",
+		"error_description": "Added a cross event trigger causing the carrier frequency (wc) to reset on every positive zero-crossing of vin. This disrupts the constant carrier frequency required for FM modulation, introducing erratic phase behavior and violating the design specification of a stable carrier frequency."
+	},
+	{
+		"original_line": "phase_lin = wc * $abstime;", 
+		"bug_line": "phase_lin = wc * $realtime;",
+		"error_description": "Using $realtime instead of $abstime causes the phase calculation to use simulation time scaled by time units rather than absolute seconds. This distorts the carrier frequency scaling since wc (rad/s) expects absolute time, leading to incorrect modulation frequency when time units change."
+	},
+	{
+		"original_line": "V(vout) <+ amp * sin (phase_lin + phase_nonlin);", 
+		"bug_line": "V(vout) <+ amp * sin (phase_lin);",
+		"error_description": "The non-linear phase component (phase_nonlin) is omitted from the sine function input. This removes the frequency modulation effect since the carrier signal won't be modulated by the input voltage, resulting in a pure tone at f_carrier instead of FM output."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( final_step ) begin",
+		"error_description": "Changed event trigger from initial_step to final_step. This causes the carrier frequency calculation (wc) to execute only at simulation end instead of initialization. During simulation, wc remains at its default 0.0 value, breaking the FM modulation by eliminating the carrier frequency component from the output signal."
+	},
+	{
+		"original_line": "`define PI      3.14159265358979323846264338327950288419716939937511", 
+		"bug_line": "`define PI      0.0",
+		"error_description": "Setting PI to 0 causes division-by-zero in the instantaneous frequency calculation (inst_freq) and invalid trigonometric operations, crashing simulation during the bound_step call."
+	},
+	{
+		"original_line": "V(vout) <+ amp * sin (phase_lin + phase_nonlin);", 
+		"bug_line": "V(vout) <+ amp * sin (phase_lin - phase_nonlin);",
+		"error_description": "The subtraction operator replaces addition, inverting the modulation direction. This causes frequency decreases for positive input signals instead of increases, violating the FM modulation principle where input voltage should directly control frequency deviation."
+	},
+	{
+		"original_line": "`define PI      3.14159265358979323846264338327950288419716939937511", 
+		"bug_line": "`define PI      3.0",
+		"error_description": "Incorrect PI value (3.0 vs ~3.1416) distorts carrier frequency calculations. Causes wc (rad/s carrier) to be 6.0*f_carrier instead of ~6.283*f_carrier, introduces phase discontinuities during modulus operations, and corrupts instantaneous frequency in bound_step."
+	},
+	{
+		"original_line": "num_cycles = phase_lin / (2*`PI);", 
+		"bug_line": "num_cycles = phase_lin / `PI;",
+		"error_description": "Changed divisor from 2*PI to PI, causing the number of cycles to be doubled. This results in over-subtraction of 2*PI cycles in phase_lin calculation, corrupting the linear phase value and introducing incorrect carrier frequency modulation in the output signal."
+	},
+	{
+		"original_line": "parameter real f_carrier = 1M;", 
+		"bug_line": "parameter real f_carrier = 0;",
+		"error_description": "Setting carrier frequency to 0 Hz causes division by zero in $bound_step when input signal is zero, as instantaneous frequency calculation becomes 0 + (vin_gain*V(vin))/(2*PI), leading to simulation failure."
+	},
+	{
+		"original_line": "real inst_freq;		// instanteous frequency", 
+		"bug_line": "integer inst_freq;		// instanteous frequency",
+		"error_description": "Changing 'inst_freq' from real to integer truncates fractional values in frequency calculations. This leads to incorrect step-bound computations ($bound_step) due to loss of precision, causing simulation inaccuracies in FM modulation timing."
+	},
+	{
+		"original_line": "$bound_step (0.04 / inst_freq);", 
+		"bug_line": "$bound_step (0.04 * inst_freq);",
+		"error_description": "Changed division to multiplication, causing the step size calculation to become proportional to frequency instead of inversely proportional. This results in excessively large step sizes at high frequencies and extremely small steps at low frequencies, violating the Nyquist criterion and causing simulation instability or inaccuracy."
+	},
+	{
+		"original_line": "input vin;", 
+		"bug_line": "output vin;",
+		"error_description": "Changed port direction from input to output. This creates a functional error because the module attempts to read from an output port (vin) which should be driven externally, leading to undefined behavior and potential simulation failures when reading the input signal."
+	},
+	{
+		"original_line": "parameter real vin_gain = 1;", 
+		"bug_line": "parameter real vin_gain = 0;",
+		"error_description": "Setting vin_gain to 0 disables the input modulation, violating the functional requirement that the output signal must be frequency-modulated by the input signal."
+	},
+	{
+		"original_line": "$bound_step (0.04 / inst_freq);", 
+		"bug_line": "$bound_step (0.04 * inst_freq);",
+		"error_description": "Changed division to multiplication, causing the step bound calculation to use 0.04 times the instantaneous frequency instead of 0.04 divided by it. This results in excessively large time steps (e.g., 40,000 seconds for a 1MHz signal), violating the requirement for accurate FM waveform simulation by skipping carrier cycles."
+	},
+	{
+		"original_line": "wc = 2 * `PI * f_carrier;", 
+		"bug_line": "wc = 2 * `PI * vin_gain;",
+		"error_description": "Carrier frequency wc is incorrectly calculated using vin_gain instead of f_carrier, causing the carrier frequency to be determined by the input signal gain rather than the designated carrier frequency parameter."
+	},
+	{
+		"original_line": "parameter real f_carrier = 1M;", 
+		"bug_line": "parameter real f_carrier = -1M;",
+		"error_description": "Negative carrier frequency (-1 MHz) is non-physical and causes the linear phase calculation to become negative. This breaks the modulo-based phase wrapping logic and produces invalid instantaneous frequency values, leading to simulation errors in $bound_step and incorrect output modulation."
+	},
+	{
+		"original_line": "wc = 2 * `PI * f_carrier;", 
+		"bug_line": "wc = `PI * f_carrier;",
+		"error_description": "The angular frequency calculation omits the factor of 2, reducing the carrier frequency by half. This violates the design specification wc = 2πf_carrier and causes incorrect modulation frequency in the output signal."
+	}
+]

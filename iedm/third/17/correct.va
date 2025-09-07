@@ -1,0 +1,67 @@
+`include "discipline.h"
+`include "constants.h"
+
+//  Copyright (c) 1999
+//  by  Cadence Design Systems, Inc.  All rights reserved.
+//
+// $Date: 2003/10/06 06:45:19 $
+// $Revision: 1.1 $
+//
+// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996
+//
+//
+ 
+//--------------------
+// shifter
+//
+// -  phase shifter model
+//
+// single: single end
+// lag: lagging end
+// lead: leading end
+//
+// INSTANCE parameters
+//    freq           = frequency at which the magnitudes are balanced
+//    r		     = impedance of the internal resistor
+//    gain	     = multiplies the input voltages
+//    rin	     = input terminal impedances
+//    rout	     = output impedance
+
+module shifter_combiner(single, lag, lead);
+  inout single, lag, lead;
+  electrical single, lag, lead;
+   parameter real freq = 1e9 from (0:inf);
+   parameter real r    = 50 from (0:inf);
+   parameter real gain = 2 from (0:inf);
+   parameter real rin = 50 from (0:inf);
+   parameter real rout = 50 from (0:inf);
+
+   real ci, ri;    // internal C and R
+   real noise_current;
+   electrical a,b,c,d,e;
+
+   analog begin
+
+      @(initial_step) begin
+	   ri = r;
+	   ci = 1/(2*`M_PI*freq*ri);
+      end
+
+	V(a) <+ gain*V(lag);
+	V(d) <+ gain*V(lead);         
+	I(lag) <+ V(lag)/rin;
+	I(lead) <+ V(lead)/rin;
+   	I(a,b) <+ (1/ri)*V(a,b);
+	I(b) <+ ci*ddt(V(b));
+	I(d,e) <+ ci*ddt(V(d,e));
+	I(e) <+ (1/ri)*V(e);
+	V(c) <+ V(e) + V(b);
+	V(c,single) <+ rout*I(c,single);
+   end
+endmodule // shifter-combiner
+
+
+
+
+
+

@@ -1,0 +1,67 @@
+// VerilogA for sources_modules, wcdmw_power_adjust, veriloga
+// 
+ 
+`include "constants.vams"
+`include "disciplines.vams"
+
+(* instrument_module *)
+module wcdma_power_adjust(I_in_dpch, I_in_p_cpich, I_in_pich, I_in_p_ccpch, I_in_ocns,
+                          Q_in_dpch, Q_in_p_cpich, Q_in_pich, Q_in_p_ccpch, Q_in_ocns,
+                          I_out, Q_out );
+input  I_in_dpch, I_in_p_cpich, I_in_pich, I_in_p_ccpch, I_in_ocns,
+       Q_in_dpch, Q_in_p_cpich, Q_in_pich, Q_in_p_ccpch, Q_in_ocns;
+output I_out, Q_out;
+electrical I_in_dpch, I_in_p_cpich, I_in_pich, I_in_p_ccpch, I_in_ocns,
+           Q_in_dpch, Q_in_p_cpich, Q_in_pich, Q_in_p_ccpch, Q_in_ocns;
+electrical I_out, Q_out;
+
+parameter real power_dpch  = -5.5;
+parameter real power_cpich = -10;
+parameter real power_pich  = -15;
+parameter real power_ccpch = -12;
+parameter real frame_time = 1.0/15000.0 from (0:inf);
+parameter integer numChipsOut = 256;
+
+real tmp_power_dpch, tmp_power_cpich, tmp_power_pich, tmp_power_ccpch;
+real tmp_out_I, tmp_out_Q;
+real total;
+real local_sample;
+
+analog begin
+  @(initial_step) begin
+    tmp_power_dpch   = pow(10.0, power_dpch /10.0);
+    tmp_power_cpich  = pow(10.0, power_cpich/10.0);
+    tmp_power_pich    = pow(10.0, power_pich /10.0);
+    tmp_power_ccpch = pow(10.0, power_ccpch/10.0);
+    total           = tmp_power_dpch + tmp_power_cpich;
+    total           = total + tmp_power_pich;
+    total           = total + tmp_power_ccpch;
+    tmp_power_dpch   = sqrt( tmp_power_dpch );
+    tmp_power_cpich  = sqrt( tmp_power_cpich);
+    tmp_power_pich    = sqrt( tmp_power_pich );
+    tmp_power_ccpch = sqrt( tmp_power_ccpch);
+    if ( total > 1 ) begin
+      $strobe( " Error: argument for sqrt is negative in wcdma_power_adjust. \n");
+      $finish(0);
+    end else total = sqrt ( 1 - total );
+    local_sample = frame_time / numChipsOut;
+  end
+
+  @(timer(local_sample/500, local_sample)) begin
+    tmp_out_I  = tmp_power_dpch * V(I_in_dpch);
+    tmp_out_Q = tmp_power_dpch * V(Q_in_dpch);
+    tmp_out_I  = tmp_out_I   + tmp_power_cpich * V(I_in_p_cpich);
+    tmp_out_Q = tmp_out_Q + tmp_power_cpich * V(Q_in_p_cpich);
+    tmp_out_I  = tmp_out_I   + tmp_power_pich * V(I_in_pich);
+    tmp_out_Q = tmp_out_Q + tmp_power_pich * V(Q_in_pich);
+    tmp_out_I  = tmp_out_I   + tmp_power_ccpch * V(I_in_p_ccpch);
+    tmp_out_Q = tmp_out_Q + tmp_power_ccpch * V(Q_in_p_ccpch);
+    tmp_out_I  = tmp_out_I   + total * V(I_in_ocns);
+    tmp_out_Q = tmp_out_Q + total * V(Q_in_ocns);
+  end
+
+  V(I_out)  <+ tmp_out_I;
+  V(Q_out) <+ tmp_out_Q;
+
+end
+endmodule

@@ -1,0 +1,148 @@
+// VerilogA for sources, ofdm, veriloga
+// Cadence Design System, Inc. 2006
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+`define FFTLENGTH 64
+`define CYCLICSamples 16
+`define ZEROPAD_EXCHANGE 26
+
+(* instrument_module *)
+(* ignore_hidden_state *)
+module ofdm(I_in, Q_in, I_out, Q_out );
+output I_out, Q_out;
+input I_in, Q_in;
+voltage I_out, Q_out, I_in, Q_in;
+
+parameter real frame_time = 4.0e-6;
+parameter integer samples = 80;
+parameter integer poly_length = 8;
+parameter integer shift_length = 1;
+parameter integer poly_order = 7;
+parameter integer init_state_size = 7;
+parameter integer poly[0:poly_length-1]= {1, 0, 0, 1, 0, 0, 0, 1};
+parameter integer state[0:init_state_size-1] = {1, 1, 1, 1, 1,1, 1};
+parameter integer shift[0:shift_length-1] = {0};
+parameter integer dump_frame = 0;
+
+real tmpReal, tmpImag, theta, output_period, input_period;
+real Re_freq[0:`FFTLENGTH],    Im_freq[0:`FFTLENGTH],
+       Re_time[0:`FFTLENGTH],    Im_time[0:`FFTLENGTH],
+       sin_theta[0:`FFTLENGTH],  cos_theta[0:`FFTLENGTH];
+integer poly_orderMinus1, offset, offset1, fftlengthMinus1;
+integer tmp,  cnt, i, j, n;
+integer polyArray[0: poly_order+1], restArray[0: poly_order+1];
+integer regiArray[0: poly_order+1], maskArray[0: poly_order+1];
+real initial_time, outReal, outImag;
+integer PNS[0:126], pnc;
+
+analog begin
+  @(initial_step) begin
+    poly_orderMinus1 = poly_order - 1;
+    output_period = frame_time / samples;
+    input_period    = frame_time / (`FFTLENGTH - `CYCLICSamples);
+    cnt = 0;
+    n    = 0;
+    initial_time = dump_frame * frame_time;
+    offset   = `FFTLENGTH - `CYCLICSamples;
+    offset1 = `FFTLENGTH - `ZEROPAD_EXCHANGE;
+    fftlengthMinus1 = `FFTLENGTH - 1;
+    for ( i = poly_order ; i >= 0; i = i - 1 ) begin
+      if ( i == poly_order ) tmp = 0;
+      else if ( init_state_size == poly_order ) tmp = state[i];
+      else tmp = state[0];
+      regiArray[i] = tmp;
+    end
+    if ( shift_length != 1 ) begin
+      if ( shift_length == poly_order ) begin
+	for ( j = 0; j < poly_order; j = j + 1 )
+	  maskArray[j] = shift[0];
+      end
+    end else begin
+      for ( j = 0; j < shift[0]; j = j + 1 ) begin
+        tmp   = poly[poly_order] * regiArray[poly_order-1];
+        for ( i = poly_orderMinus1; i > 0; i = i - 1 ) begin
+          tmp = tmp + poly[i] * regiArray[i-1];
+	  regiArray[i] = regiArray[i-1];
+	end /* i loop */
+	regiArray[0] = tmp % 2;
+      end /* j loop */
+      for ( j = 0; j < poly_orderMinus1; j = j + 1 ) maskArray[j] = 0;
+      maskArray[poly_orderMinus1] = 1;
+    end
+    tmpReal = `M_TWO_PI / `FFTLENGTH;
+    theta = 0;
+    for ( i = 0; i < `FFTLENGTH; i = i + 1 ) begin
+      Re_freq[i] = 0;
+      Im_freq[i] = 0;
+      sin_theta[i]  = sin  ( theta );
+      cos_theta[i] = cos ( theta );
+      theta = theta + tmpReal;
+    end
+    outReal  = 0;
+    outImag = 0;
+//Generate PN sequence
+    for(j = 0 ; j < 127; j = j+1) begin
+    //  tmp   = poly[poly_order] * regiArray[poly_orderMinus1];
+      tmp = 0 ;
+      for ( i = 0; i < poly_order ; i = i + 1 ) begin
+        tmp = tmp   + poly[i] * regiArray[i];
+	    regiArray[i] = regiArray[i+1];
+      end /* i loop */
+      regiArray[poly_orderMinus1] = tmp % 2;
+      PNS[j] = regiArray[poly_orderMinus1] ;
+      pnc = 126 ;
+    end
+  end
+
+  @(timer( initial_time + frame_time + output_period / 50,  output_period  ) ) begin
+    if ( cnt == 80 ) cnt = 0;
+    if ( cnt  < `CYCLICSamples ) i = cnt + offset;
+    else i = cnt - `CYCLICSamples;
+    outReal  = Re_time[i];
+    outImag = Im_time[i];
+    cnt = cnt + 1;
+  end
+
+  @(timer(initial_time +input_period / 100, input_period  ) ) begin
+    if ( n == 53 ) begin // IFFT
+      for ( i = 0; i < `FFTLENGTH; i = i + 1 ) begin
+        tmpReal   = Re_freq[fftlengthMinus1] ;
+        tmpImag  = Im_freq[fftlengthMinus1] ;
+	tmp = fftlengthMinus1;
+	for ( j = 1; j < `FFTLENGTH; j = j + 1 ) begin
+          tmp         = tmp - 1;
+          theta       = Re_freq[tmp] + cos_theta[i]  * tmpReal -  sin_theta[i] * tmpImag;
+          tmpImag = Im_freq[tmp]  + cos_theta[i]  * tmpImag + sin_theta[i] * tmpReal;
+	  tmpReal  = theta;
+	end
+        Re_time[i] = tmpReal  / `FFTLENGTH;
+        Im_time[i] = tmpImag / `FFTLENGTH;
+      end
+      n = 0;
+    end
+    if ( n < `ZEROPAD_EXCHANGE) tmp = n+offset1;
+    else tmp = n-`ZEROPAD_EXCHANGE;
+    Re_freq[tmp] = V(I_in);
+    Im_freq[tmp] = V(Q_in);
+    if ( n == 0 ) begin // PN generator
+         tmp = PNS[pnc] % 2;
+         if ( tmp > 0.5 ) tmp = -1;
+         else tmp = 1;
+         Re_freq[43] =  tmp;
+         Re_freq[57] =  tmp;
+         Re_freq[7]   =  tmp;
+         Re_freq[21] = -tmp;
+         pnc = pnc - 1;
+         if ( pnc < 0 )  pnc = 126;
+    end
+    n = n + 1;
+    if ( (n == 5) || (n == 19) ||  (n == 26) || (n == 33) || (n == 47)  )
+      n = n + 1;
+  end
+
+  V(I_out)    <+ outReal;
+  V(Q_out)   <+ outImag;
+end
+endmodule

@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "Theta(pos_shaft) <+ idt(Omega(wshaft),0);", 
+		"bug_line": "Theta(pos_shaft) <+ idt(Omega(wshaft),1);",
+		"error_description": "Changed initial position condition from 0 to 1 radian. This introduces a constant position offset error where the shaft position is always 1 radian greater than the actual integrated angular velocity, violating the physical requirement for zero initial position."
+	},
+	{
+		"original_line": "electrical vp, vn;", 
+		"bug_line": "electrical vp; rotational_omega vn;",
+		"error_description": "Changed vn from electrical to rotational_omega discipline. This creates a type mismatch since vn is used in electrical operators (V, I) but is now incorrectly declared as a rotational node, breaking the voltage/current equations."
+	},
+	{
+		"original_line": "Tau(wshaft) <+ kf*I(vp, vn) - d*Omega(wshaft) - ddt(j*Omega(wshaft));", 
+		"bug_line": "Tau(wshaft) <+ kf*I(vp, vn) - d*Omega(wshaft) + ddt(j*Omega(wshaft));",
+		"error_description": "Changed sign of inertia term from negative to positive, causing acceleration torque to add to motor torque instead of opposing it. This violates Newton's second law for rotational systems where inertia should resist acceleration."
+	},
+	{
+		"original_line": "parameter real lm = 0.02;", 
+		"bug_line": "parameter real lm = -0.02;",
+		"error_description": "Negative inductance value violates physical laws, causing unstable simulation. Real inductors must have positive values to store energy correctly."
+	},
+	{
+		"original_line": "parameter real km = 4.5;", 
+		"bug_line": "parameter real kn = 4.5;",
+		"error_description": "Renamed parameter 'km' to 'kn', causing the voltage equation to reference an undefined variable 'km'. This breaks the back EMF calculation as the motor constant becomes unavailable in the V(vp,vn) expression."
+	},
+	{
+		"original_line": "V(vp, vn) <+ km*Omega(wshaft) + rm*I(vp, vn) + ddt(lm*I(vp, vn));", 
+		"bug_line": "V(vp, vn) <+ -km*Omega(wshaft) + rm*I(vp, vn) + ddt(lm*I(vp, vn));",
+		"error_description": "The back EMF term sign is inverted. In a DC motor, back EMF opposes the applied voltage and should be positive. This error reverses motor behavior causing incorrect voltage-speed relationships."
+	},
+	{
+		"original_line": "inout vp, vn;", 
+		"bug_line": "input vp, vn;",
+		"error_description": "Changing electrical ports to input-only violates bidirectional current/voltage requirements, preventing the motor from driving back-EMF voltage to terminals and causing incorrect terminal behavior."
+	},
+	{
+		"original_line": "parameter real lm = 0.02;", 
+		"bug_line": "parameter real lm = 0.0;",
+		"error_description": "Sets motor inductance to zero, removing the inductive voltage drop term (L di/dt) from the voltage equation, violating the physical model where inductance must be positive."
+	},
+	{
+		"original_line": "electrical vp, vn;", 
+		"bug_line": "electrical vp; rotational_omega vn;",
+		"error_description": "Port vn incorrectly changed to rotational_omega discipline while retaining electrical port usage in V(vp, vn) and I(vp, vn) equations, causing type mismatch and undefined behavior during simulation."
+	},
+	{
+		"original_line": "      Tau(pos_shaft) <+ Tau(<wshaft>);", 
+		"bug_line": "      Tau(pos_shaft) <+ Omega(wshaft);",
+		"error_description": "Replaces torque (Tau) with angular velocity (Omega), causing incorrect torque assignment where shaft rotation speed is incorrectly applied as mechanical force."
+	},
+	{
+		"original_line": "parameter real km = 4.5;", 
+		"bug_line": "parameter real kf = 4.5;",
+		"error_description": "Renamed parameter km to kf creates duplicate parameter name collision with existing kf, causing undefined behavior in voltage equation that references km (now undefined) while also overwriting the intended flux constant kf value."
+	},
+	{
+		"original_line": "Tau(wshaft) <+ kf*I(vp, vn) - d*Omega(wshaft) - ddt(j*Omega(wshaft));", 
+		"bug_line": "Tau(wshaft) <+ kf*I(vp, vn) - d*Omega(wshaft) + ddt(j*Omega(wshaft));",
+		"error_description": "The sign of the inertia term is reversed. Instead of opposing acceleration, it now assists it, violating Newton's second law for rotational systems and causing unstable physical behavior."
+	},
+	{
+		"original_line": "parameter real d = 0.1;", 
+		"bug_line": "parameter real d = -0.1;",
+		"error_description": "Negative friction constant incorrectly models drag as torque assist instead of resistance, violating motor physics by adding energy to the system."
+	},
+	{
+		"original_line": "parameter real km = 4.5;", 
+		"bug_line": "parameter real km = -4.5;",
+		"error_description": "The motor constant km is set to a negative value, which physically reverses the back EMF polarity. This violates the design as back EMF should oppose the input voltage, causing instability and incorrect motor behavior."
+	},
+	{
+		"original_line": "electrical vp, vn;", 
+		"bug_line": "electrical vp; rotational vn;",
+		"error_description": "The negative terminal (vn) is incorrectly assigned the rotational discipline instead of electrical, causing the V(vp,vn) and I(vp,vn) functions in the analog block to fail as they require both nodes to be electrical."
+	},
+	{
+		"original_line": "V(vp, vn) <+ km*Omega(wshaft) + rm*I(vp, vn) + ddt(lm*I(vp, vn));", 
+		"bug_line": "V(vp, vn) <+ km*Theta(pos_shaft) + rm*I(vp, vn) + ddt(lm*I(vp, vn));",
+		"error_description": "Replaced angular velocity (Omega) with angular position (Theta) in the back EMF term. The back EMF should be proportional to rotational speed (velocity), not shaft position, violating the motor's physical behavior."
+	},
+	{
+		"original_line": "Tau(wshaft) <+ kf*I(vp, vn) - d*Omega(wshaft) - ddt(j*Omega(wshaft));", 
+		"bug_line": "Tau(wshaft) <+ kf*I(vp, vn) + d*Omega(wshaft) - ddt(j*Omega(wshaft));",
+		"error_description": "Sign error in drag term: Changed '-' to '+' before drag coefficient (d*Omega). Drag should oppose motion, but now incorrectly adds torque, causing unrealistic acceleration and violating physical laws."
+	},
+	{
+		"original_line": "`else", 
+		"bug_line": "`ifdef FAKE_MACRO",
+		"error_description": "Replaced 'else' with conditional for undefined macro FAKE_MACRO, preventing torque connection between wshaft and pos_shaft when __VAMS_ENABLE__ is not defined. This violates shaft coupling requirements by leaving output torque unassigned."
+	},
+	{
+		"original_line": "parameter real lm = 0.02;", 
+		"bug_line": "parameter real lm = 0;",
+		"error_description": "Zero inductance value ignores inductive effects in the motor model, violating the design requirement for inductance (lm) and causing incorrect transient behavior in voltage calculations."
+	},
+	{
+		"original_line": "      Tau(pos_shaft) <+ Tau(<wshaft>);", 
+		"bug_line": "      Tau(pos_shaft) <+ Tau(<pos_shaft>);",
+		"error_description": "The torque assignment incorrectly references the same node (pos_shaft) instead of the motor shaft (wshaft), creating an undefined algebraic loop where the torque output depends on its own value, breaking the physical connection between motor and shaft."
+	}
+]

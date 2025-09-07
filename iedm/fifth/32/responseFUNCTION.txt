@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "`define   RHO      (2330.0)                                         // density of Si", 
+		"bug_line": "`define   RHO      (2330.0e-3)                                         // density of Si",
+		"error_description": "Changed density value from 2330 kg/m³ to 2.33 kg/m³ by adding erroneous scaling (e-3), violating physical properties of silicon and breaking mass-dependent dynamics calculations."
+	},
+	{
+		"original_line": "Cb     =    Cc*(C0+C1*Pos(y)+C2*pow(Pos(y),2.0)+C3*pow(Pos(y),3.0));", 
+		"bug_line": "Cb     =    Cc*(C0+C1*Pos(y)+C2*pow(Pos(y),2.0)+C3*pow(Pos(velocity),3.0));",
+		"error_description": "Replaced displacement variable 'y' with velocity variable 'velocity' in the cubic term. This incorrectly makes capacitance dependent on beam velocity rather than displacement, violating the physical model where capacitance should be position-dependent."
+	},
+	{
+		"original_line": "`define   PD12P1        2.3892/L", 
+		"bug_line": "`define   PD12P1        2.3892*L",
+		"error_description": "Changed division to multiplication, causing incorrect dimensional scaling in beam force and capacitance calculations (should be inverse length, not length)."
+	},
+	{
+		"original_line": "`define   PD3PD1        -198.463/pow(L,3.0)", 
+		"bug_line": "`define   PD3PD1        198.463/pow(L,3.0)",
+		"error_description": "The sign of PD3PD1 was flipped from negative to positive. This term is used in the C2 capacitance coefficient calculation (line 68). The incorrect sign will cause erroneous capacitance values during beam displacement, violating the physical gate interaction model."
+	},
+	{
+		"original_line": "parameter real gap = 144.0e-9                   from [0:inf);         // the initial gap between the beam and gate[m]", 
+		"bug_line": "parameter real gap = -144.0e-9                   from [0:inf);         // the initial gap between the beam and gate[m]",
+		"error_description": "Negative gap value violates the physical constraint that gap distance must be non-negative. This causes non-physical electrostatic force calculations (Fc) involving division by negative gap^5, leading to incorrect sign in the force term and instability in the model."
+	},
+	{
+		"original_line": "            Pos(velocity):ddt(Pos(y)) == Pos(velocity);", 
+		"bug_line": "            Pos(velocity):ddt(Pos(y)) == 0;",
+		"error_description": "The derivative of position (y) is incorrectly set to 0 instead of velocity. This breaks the fundamental kinematic relation between position and velocity, freezing the position state and disabling all dynamic motion in the system."
+	},
+	{
+		"original_line": "        B3 = `E*W*H*`PD12*`PD21/(2.0*L);", 
+		"bug_line": "        B3 = `E*W*H*`PD12*`PD21 * (2.0*L);",
+		"error_description": "Changed division to multiplication, drastically altering the magnitude and sign of the nonlinear spring constant. This error makes the cubic stiffness term physically incorrect by introducing extreme scaling (L^2 instead of 1/L^2) and reverses its effect on beam dynamics."
+	},
+	{
+		"original_line": "        `define   PD23          -4.43496/L", 
+		"bug_line": "        `define   PD23          4.43496/L",
+		"error_description": "Sign inversion in PD23 coefficient changes the force equation (F3 term). This miscalculates beam deflection dynamics by reversing the stress contribution direction, violating mechanical modeling accuracy."
+	},
+	{
+		"original_line": "        inout g,n;", 
+		"bug_line": "        input g, output n;",
+		"error_description": "Changing port directions prevents bidirectional current flow required for capacitive interaction. Port 'g' is now input-only (cannot drive current), and 'n' is output-only (cannot sense voltage), breaking the I(g,n) <+ ddt(Qb) statement that relies on bidirectional electrical access."
+	},
+	{
+		"original_line": "        parameter real L = 4.0e-6                       from (0:inf);         // length of the beam [m]", 
+		"bug_line": "        parameter real L = 0.0                       from [0:inf);         // length of the beam [m]",
+		"error_description": "Default beam length changed to 0.0 meters and range modified to include zero, causing division-by-zero errors in subsequent calculations (e.g., pow(L,3.0) in macro definitions) and violating physical constraints requiring positive beam length."
+	},
+	{
+		"original_line": "Fc = pow(V(g,n),2.0)*W*`P_EPS0/90.0/pow(gap,5.0);", 
+		"bug_line": "Fc = pow(V(g,n),2.0)*W*`P_EPS0/90.0/pow(gap,4.0);",
+		"error_description": "Changed gap exponent from 5 to 4, altering electrostatic force scaling. The force now decays as 1/gap^4 instead of 1/gap^5, violating the correct Taylor expansion model for capacitive actuation."
+	},
+	{
+		"original_line": "Pos(z) <+ Pos(y);", 
+		"bug_line": "Pos(z) <+ Pos(velocity);",
+		"error_description": "Outputs beam velocity instead of position, violating design requirement to report deflection. The velocity signal represents the derivative of position, making this a functional/logical error where the output carries incorrect physical meaning."
+	},
+	{
+		"original_line": "        inout g,n;", 
+		"bug_line": "        inout g;",
+		"error_description": "Missing port 'n' declaration. The design requires two electrical ports (g and n) for voltage sensing and capacitive current flow. Without port 'n', the circuit cannot measure V(g,n) or contribute I(g,n), breaking the gate interaction functionality completely."
+	},
+	{
+		"original_line": "F0 = 45.0*pow(gap,3.0)*`PHI1;", 
+		"bug_line": "F0 = 45.0*pow(gap,2.0)*`PHI1;",
+		"error_description": "Changed exponent of gap from 3.0 to 2.0, causing the constant term in the electrostatic force expansion to be proportional to gap squared instead of gap cubed. This violates the physical scaling law where electrostatic force scales with 1/gap^2, leading to incorrect force calculations."
+	},
+	{
+		"original_line": "real Cc,C0,C1,C2,C3;", 
+		"bug_line": "real Cc,C0,C1,C2;",
+		"error_description": "Variable C3 is not declared, causing a compilation error when used in the capacitance calculation expression Cb = Cc*(C0+C1*Pos(y)+C2*pow(Pos(y),2.0)+C3*pow(Pos(y),3.0)."
+	},
+	{
+		"original_line": "        F3 = 180.0*`PHI4-30.0*pow(gap,2.0)*`PD12P2-30.0*pow(gap,2.0)*`PD23+48.0*pow(gap,4.0)*`PD2PD12P1;", 
+		"bug_line": "        F3 = 180.0*`PHI4-30.0*pow(gap,2.0)*`PD12P2-30.0*pow(gap,2.0)*`PD23-48.0*pow(gap,4.0)*`PD2PD12P1;",
+		"error_description": "Changed the '+' operator to '-' for the last term, reversing the sign of the electrostatic force component and causing incorrect force calculations in the beam displacement model."
+	},
+	{
+		"original_line": "        parameter real W = 180.0e-9                     from (0:inf);         // width of the beam [m]", 
+		"bug_line": "        parameter real W = 0.0                     from (0:inf);         // width of the beam [m]",
+		"error_description": "Setting beam width to zero causes division by zero in B0 mass term calculation and eliminates electrostatic force (Fc), violating physical beam requirements."
+	},
+	{
+		"original_line": "`define   PHI3          0.331877*L", 
+		"bug_line": "`define   PHI3          0.331877",
+		"error_description": "Removed the multiplication by L, making PHI3 a constant instead of scaling with beam length. This violates the physical dependence of the scaling integral on device dimensions, causing incorrect force and capacitance calculations."
+	},
+	{
+		"original_line": "real Fc,F0,F1,F2,F3,F;", 
+		"bug_line": "real Fc,F0,F1,F3,F2,F;",
+		"error_description": "Swapped F2 and F3 declaration order. This causes the quadratic term coefficient (F2) to be assigned to the cubic term variable and vice versa in later equations, fundamentally altering the force calculation dynamics while maintaining simulation runnability."
+	},
+	{
+		"original_line": "        B2 = `E*Ib*`PD41-N1*`PD21;", 
+		"bug_line": "        B2 = `E*Ib*`PD41+N1*`PD21;",
+		"error_description": "Sign inversion in residual stress term. Tensile stress (positive N1) now reduces stiffness instead of increasing it due to incorrect addition instead of subtraction, violating beam physics principles."
+	}
+]

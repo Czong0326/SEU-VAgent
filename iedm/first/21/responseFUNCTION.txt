@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real max_sigin = 180;", 
+		"bug_line": "parameter real max_sigin = -180;",
+		"error_description": "The clamping threshold is incorrectly set to a negative value (-180) instead of positive. This causes the module to clamp for inputs above -180 (most operational range) rather than large positive inputs, resulting in constant exp(-180) output instead of the correct exponential response."
+	},
+	{
+		"original_line": "input sigin;", 
+		"bug_line": "output sigin;",
+		"error_description": "Changed input port to output direction. This violates module interface requirements since 'sigin' is an input signal used for reading in the analog block. The module now incorrectly expects to drive this port, causing connection conflicts and undefined behavior when reading V(sigin)."
+	},
+	{
+		"original_line": "V(sigout) <+ exp(V(sigin));", 
+		"bug_line": "V(sigout) <+ exp(0);",
+		"error_description": "The modified line replaces the input voltage argument with a constant 0, making the output always e⁰ (1) in the normal case instead of following the exponential function of the input signal."
+	},
+	{
+		"original_line": "electrical sigin, sigout;", 
+		"bug_line": "electrical sigout; thermal sigin;",
+		"error_description": "The input port 'sigin' is incorrectly declared as thermal discipline while the analog block uses V(sigin) which is invalid for thermal nodes (requires T() access). This causes functional mismatch as the input is treated as temperature instead of voltage."
+	},
+	{
+		"original_line": "electrical sigin, sigout;", 
+		"bug_line": "voltage sigin, sigout;",
+		"error_description": "Changing discipline from 'electrical' to 'voltage' makes the module incompatible with current-flow connections. The 'exp' function requires potential+flow semantics, but 'voltage' only supports potential, breaking analog behavior evaluation."
+	},
+	{
+		"original_line": "          V(sigout) <+ exp(max_sigin);", 
+		"bug_line": "          V(sigin) <+ exp(max_sigin);",
+		"error_description": "Directional error: Output is incorrectly driven back to the input node. When sigin exceeds max_sigin, the exponential result is contributed to the input port instead of the output port, causing signal contention and violating module interface boundaries."
+	},
+	{
+		"original_line": "V(sigout) <+ exp(V(sigin));", 
+		"bug_line": "V(sigout) <+ exp(0);",
+		"error_description": "Replaces the input-dependent exponential function with a constant output of exp(0)=1.0, eliminating the exponential relationship between input and output as specified."
+	},
+	{
+		"original_line": "module exponential (sigin, sigout);", 
+		"bug_line": "module exponential (sigin, sigout, dummy);",
+		"error_description": "Added an extra port 'dummy' to the module declaration. This violates the design specification of exactly two ports (input sigin, output sigout) and causes instantiation errors when connecting the module."
+	},
+	{
+		"original_line": "parameter real max_sigin = 180;", 
+		"bug_line": "parameter real max_sigin = -180;",
+		"error_description": "Setting max_sigin to a negative value (-180) causes the input clamping condition to trigger for most practical inputs (anything above -180V). This incorrectly forces the output to exp(-180) ≈ 1.7e-78 for positive inputs where exponential growth is expected, instead of only clamping excessively large positive inputs as intended."
+	},
+	{
+		"original_line": "input sigin;", 
+		"bug_line": "output sigin;",
+		"error_description": "Changed port direction from input to output. This violates the design specification where sigin must be an input signal, causing incorrect behavior when external signals drive this port and potential simulation conflicts."
+	},
+	{
+		"original_line": "       if ( V(sigin) > max_sigin )", 
+		"bug_line": "       if ( V(sigin) < max_sigin )",
+		"error_description": "Reversed the comparison operator from '>' to '<'. This causes the module to clamp the output when the input voltage is below max_sigin instead of above it, failing to prevent exponential overflow for large positive inputs while incorrectly limiting small/negative inputs."
+	},
+	{
+		"original_line": "    analog begin", 
+		"bug_line": "    initial begin",
+		"error_description": "Changed 'analog' to 'initial', converting the continuous analog block into a one-time digital initial block. This prevents continuous output updates, causing the output to be set only once at time zero and never respond to input changes."
+	},
+	{
+		"original_line": "output sigout;", 
+		"bug_line": "input sigout;",
+		"error_description": "Changed port direction from output to input. This violates module functionality as the exponential result cannot be driven out, breaking the fundamental input-output relationship."
+	},
+	{
+		"original_line": "if ( V(sigin) > max_sigin )", 
+		"bug_line": "if ( V(sigin) < max_sigin )",
+		"error_description": "The condition operator is reversed, causing exp(max_sigin) to be applied when input is below max_sigin instead of above it. This inverts the safety mechanism by clamping low inputs while allowing large inputs to explode."
+	},
+	{
+		"original_line": "V(sigout) <+ exp(max_sigin);", 
+		"bug_line": "V(sigout) <+ log(max_sigin);",
+		"error_description": "Replaced exponential function with logarithm, causing incorrect mathematical behavior. When input exceeds max_sigin, output incorrectly becomes logarithmic (small value) instead of exponential (large value), violating the design's core functionality."
+	},
+	{
+		"original_line": "parameter real max_sigin = 180;", 
+		"bug_line": "parameter real max_sigin = -180;",
+		"error_description": "Setting max_sigin to negative causes the clamping condition to trigger for typical positive inputs. This forces the output to exp(-180) ≈ 1.5e-78 instead of the correct exponential value, effectively suppressing all outputs."
+	},
+	{
+		"original_line": "if ( V(sigin) > max_sigin )", 
+		"bug_line": "if ( V(sigin) < max_sigin )",
+		"error_description": "Reversed the comparison operator, causing the module to incorrectly clamp the output for low input values (below max_sigin) while allowing exponential explosion for high input values (above max_sigin), violating the design's protective intent."
+	},
+	{
+		"original_line": "output sigout;", 
+		"bug_line": "input sigout;",
+		"error_description": "Changed port direction from output to input. This violates the design by making the exponential module's output port an input, preventing signal flow from the internal exp() calculation to external connections and causing driver conflicts when assigning values to V(sigout)."
+	},
+	{
+		"original_line": "input sigin;", 
+		"bug_line": "output sigin;",
+		"error_description": "Changing input direction to output creates a directional conflict. The module expects sigin as an input signal to compute exponential, but now treats it as an output. This causes driver contention when connected externally and breaks the fundamental input processing functionality."
+	},
+	{
+		"original_line": "output sigout;", 
+		"bug_line": "input sigout;",
+		"error_description": "Changed port direction from output to input. This causes a functional error because the analog block drives V(sigout), which is now an input port. Driving input ports violates Verilog-A semantics."
+	}
+]

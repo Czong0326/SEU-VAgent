@@ -1,0 +1,171 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright @ 2014 Purdue University
+//
+// The terms under which the software and associated documentation (the Software) is provided are as the following:
+//
+// The Software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages or other liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the Software or the use or other dealings in the Software.
+//
+// Purdue University grants, free of charge, to any users the right to modify, copy, and redistribute the Software, both within the user's organization and externally, subject to the following restrictions:
+//
+// 1. The users agree not to charge for the code itself but may charge for additions, extensions, or support.
+//
+// 2. In any product based on the Software, the users agree to acknowledge the Purdue University Nanoelectronics Research Laboratory Research Group that developed the software. This acknowledgment shall appear in the product documentation.
+//
+// 3. The users agree to obey all U.S. Government restrictions governing redistribution or export of the software.
+//
+// 4. The users agree to reproduce any copyright notice which appears on the software on any copy or modification of such made available to others.
+//
+// Agreed to by 
+// Kaushik Roy, Purdue University
+// June 10, 2014
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// VerilogA magnetic tunnel junction combining I-V calculated using non-equilibrium Green's function model
+// and Landau-Lifshitz-Gilbert equation model for magnetization dynamics
+// NEGF model: D. Datta et al, p. 261-272, T-NANO vol. 11, iss. 2, Mar. 2012.
+// LLG model: G. Panagopoulos et al, p. 1443-1446, DATE 2012.
+// MATLAB model: X. Fong et al, p. 51-54, SISPAD 2011.
+// Implemented on May 30, 2014 by X. Fong and S. H. Choday
+// Email: xfong@purdue.edu
+
+`include "disciplines.vams"
+`include "constants.vams"
+
+
+// Behavioral Model for magnetic tunnel junction with PMA 
+module PMAMTJ(fl,pl,hx,hy,hz,th,ph);
+inout fl, pl, hx, hy, hz;
+output th,ph;
+electrical fl,pl,hx,hy,hz,MX,MY,MZ,vgnd,th,ph,heff_x,heff_y,heff_z;
+
+branch (fl ,pl )	mtjres;
+branch (hx ,vgnd )	hax;
+branch (hy ,vgnd )	hay;
+branch (hz ,vgnd )	haz;
+branch (th ,vgnd )	theta, llg_rhs_th;
+branch (ph ,vgnd )	phi, llg_rhs_ph;
+branch (MX ,vgnd )	magx, magxx;
+branch (MY ,vgnd )	magy, magyy;
+branch (MZ ,vgnd )	magz, magzz;
+branch (heff_x ,vgnd )	heffx, happx, hs_x;
+branch (heff_y ,vgnd )	heffy, happy, hs_y;
+branch (heff_z ,vgnd )	heffz, happz, hs_z, huaz;
+
+// Coefficients for fitting Rap
+parameter real c1_ap = -6.7524 from (-inf:inf);
+parameter real c2_ap = 23.2848 from (-inf:inf);
+parameter real c3_ap = -7.56891 from (-inf:inf);
+parameter real c4_ap = 24.144 from (-inf:inf);
+parameter real c5_p = 1 from (-inf:inf);
+
+// Coefficients for fitting Rp
+parameter real c1_p = -5.90497 from (-inf:inf);
+parameter real c2_p = 21.5434 from (-inf:inf);
+parameter real c3_p = -7.46919 from (-inf:inf);
+parameter real c4_p = 25.0243 from (-inf:inf);
+parameter real c5_ap = 1 from (-inf:inf);
+
+parameter real Tox = 1.15 from (0:inf);
+
+// For the LLG
+parameter real P_L = 0.4 from [0:inf);
+parameter real P_R = 0.4 from [0:inf);
+parameter real Lambda_L = 2.0 from [1:inf);
+parameter real Lambda_R = 2.0 from [1:inf);
+parameter real eps_prime = 0.0 from (-inf:inf);
+parameter real Ms = 800 from (0:inf);
+parameter real alpha = 0.007 from (0:inf);
+parameter real gamma = 1.76e7 from (-inf:inf);
+parameter real Tm = 1.1e-9 from (0:inf);
+parameter real W = 200e-9 from (0:inf);
+parameter real L = 100e-9 from (0:inf);
+parameter real th_hard = 0.0 from (-inf:inf);
+parameter real ph_hard = 0.0 from (-inf:inf);
+parameter real Ku2 = 5e3 from (-inf:inf);
+
+(* desc="MTJ Resistances", units="Ohm" *)
+real Gp_pre, Gap_pre, Gp, Gap, Gmtj, Rmtj;
+real mdp, MHX, MHY, MHZ, sttScaleFac, mxpx;
+real mxpy, mxpz, Ap2, Am2, Lamb_PL2, Lamb_FL2;
+real slonc_g_fac;
+
+analog begin : PMAMTJ_behav
+
+	V(vgnd) <+ 0.0; // Put a virtual ground
+
+	// For the MTJ resistance model
+	MHX = sin(th_hard)*cos(ph_hard);
+	MHY = sin(th_hard)*sin(ph_hard);
+	MHZ = cos(th_hard);
+	mdp = V(magx)*MHX + V(magy)*MHY + V(magz)*MHZ;
+
+	Gp_pre = exp(c1_p*Tox + c2_p)*V(mtjres)*V(mtjres) + exp(c3_p*Tox + c4_p); // Polynomial gives G/A
+	Gap_pre = exp(c1_ap*Tox + c2_ap)*V(mtjres)*V(mtjres) + exp(c3_ap*Tox + c4_ap);
+
+	Gp = Gp_pre*(W*L*1e4); // Apply term_pow and multiply area to obtain conductance
+	Gap = Gap_pre*(W*L*1e4);
+
+	Gmtj = Gap + (mdp+1)*0.5*(Gp-Gap);
+	Rmtj = 1/Gmtj;
+
+	I(mtjres) <+ V(mtjres)/Rmtj;
+	
+	// For buffering external applied field input. Using current sources to
+	// feed the internal node since it is easy to add currents.
+	I(hax) <+ V(hax);
+	I(hay) <+ V(hay);
+	I(haz) <+ V(haz);
+	I(happx) <+ -I(hax);
+	I(happy) <+ -I(hay);
+	I(happz) <+ -I(haz);
+
+	// For the uniaxial anisotropy
+	I(huaz) <+ -2*Ku2*V(magz)/Ms;
+
+	// For computing spin-transfer torque
+	sttScaleFac = (1.05457e-34)*10/(1.60218e-19)/Ms/Tm/W/L;
+	Ap2 = (Lambda_L*Lambda_L+1)*(Lambda_R*Lambda_R+1);
+	Am2 = (Lambda_L*Lambda_L-1)*(Lambda_R*Lambda_R-1);
+	Lamb_PL2 = Lambda_L*Lambda_L;
+	Lamb_FL2 = Lambda_R*Lambda_R;
+	if ((Lambda_L == 1.0) || (Lambda_R == 1.0)) begin
+       		slonc_g_fac = 0.5*P_L;
+        end else begin
+       		slonc_g_fac = (P_L*Lamb_PL2*(Lamb_FL2+1)-P_R*Lamb_FL2*(Lamb_PL2-1)*mdp)/(Ap2 - Am2*mdp*mdp);
+        end
+
+      	mxpx = V(magy)*MHZ - V(magz)*MHY;
+	mxpy = V(magz)*MHX - V(magx)*MHZ;
+	mxpz = V(magx)*MHY - V(magy)*MHX;
+
+	// Output torque values
+	I(hs_x) <+ -I(mtjres)*sttScaleFac*(slonc_g_fac*mxpx + eps_prime*MHX);
+	I(hs_y) <+ -I(mtjres)*sttScaleFac*(slonc_g_fac*mxpy + eps_prime*MHY);
+	I(hs_z) <+ -I(mtjres)*sttScaleFac*(slonc_g_fac*mxpz + eps_prime*MHZ);
+
+	// For summing all fields to get effective field.
+	// Done this way for debugging purposes.
+	V(heffx) <+ I(heffx);
+	V(heffy) <+ I(heffy);
+	V(heffz) <+ I(heffz);
+
+	// R.H.S of LLG equation in spherical coordinates. Every term has been
+	// converted to an effective magnetic field
+	I(llg_rhs_th) <+ -1*(V(heffx)*(alpha*cos(V(theta))*cos(V(phi))-sin(V(phi)))+V(heffy)*(cos(V(phi))+alpha*cos(V(theta))*sin(V(phi)))-V(heffz)*alpha*sin(V(theta)));
+	I(llg_rhs_ph) <+ -1*(((-V(heffx)*(alpha*sin(V(phi))+cos(V(theta))*cos(V(phi)))+V(heffy)*(alpha*cos(V(phi))-cos(V(theta))*sin(V(phi))))/sin(V(theta)))+V(heffz));
+
+	// For solving the differential equation (LLG)
+	I(theta) <+ (1+alpha*alpha)*ddt(V(theta))/gamma;
+	I(phi) <+ (1+alpha*alpha)*ddt(V(phi))/gamma;
+
+	// Converting spherical coordinates to Cartesian
+	V(magx) <+ sin(V(theta))*cos(V(phi));
+	V(magy) <+ sin(V(theta))*sin(V(phi));
+	V(magz) <+ cos(V(theta));
+	I(magxx) <+ V(magx);
+	I(magyy) <+ V(magy);
+	I(magzz) <+ V(magz);
+
+end
+
+endmodule

@@ -1,0 +1,292 @@
+// VerilogA for digital communication instrumentation
+//  Copyright (c) 2000
+//  by Cadence Design Systems, Inc.  All rights reserved.
+ 
+// 01/21/00
+
+
+/*
+This module generates traces that can be displayed as eye diagrams, histograms
+of eye opening and computes the average and rms eye opening and the rms
+error vector magnitude. The module is designed to operate on GMSK data. 
+
+EVM is computed as the rms magnitude of the complex difference between the 
+input and reference signals, divided by the rms magnitude of the complex
+reference signal and is given as a percent.
+
+Inputs:
+=======
+I_in			= I-signal
+Q_in			= Q-signal
+I_ref			= I-reference signal
+Q_ref			= Q-reference signal
+
+Outputs:
+=======
+sawtooth		= horizontal axis for all eye-diagrams.
+I_eye			= I-output for eye-diagram.
+Q_eye			= Q-output for eye-diagram.
+eye_hist		= horizontal axis for eye-opening histogram
+eye_count_hist		= vertical axis for eye-opening histogram
+ave_eye			= absolute value of the I-output at the sampling time.
+root_var_eye		= variance of the I-output at the sampling time.
+I_scatter		= I-output for the scatter plot.
+Q_scatter		= Q-output for the scatter plot.
+Iref_scatter		= I-output of the reference for the scatter plot.
+Qref_scatter		= Q-output of the reference for the scatter plot.
+rms_EVM			= rms error vector magnitude, expressed as a percentage
+			  of the rms magnitude of the reference vector. Error
+			  is the complex difference between the (I,Q) signal
+			  and reference signal.
+
+To generate the eye-diagram, plot "sawtooth" and "I_eye or Q_eye" and change
+the horizontal axis to "sawtooth".
+
+To generate the histogram, plot "eye_hist" and "eye_count_hist", change the
+horizontal axis to "eye_hist", then plot bars instead of connected data points.
+
+To generate the I/Q scatter plot, plot "I_scatter" and "Q_scatter", change the
+horizontal axis to "I_scatter", then plot data points only.
+
+
+
+Parameter definitions
+========================
+symbol_rate 		= Rate at which symbols arrive.
+number_of_symbols 	= Number of symbols to display in the eye diagram.
+max_voltage  		= Maximum voltage to histogram the eye opening.
+min_voltage 		= Minimum voltage to histogram the eye opening.
+num_of_bins 		= Number of bins to use in the histogram.
+I_del 			= Delay from eye-diagram for scatter plot sampling.
+I_noise 		= Volts squared of total noise across the I-load.
+Q_noise 		= Volts squared of total noise across the Q-load.
+measurement_delay       = Time to start keeping statistics.
+rin                     = Input resistance. This will load down the signals
+                          driving this module.
+
+*/
+
+`include "constants.h"
+`include "discipline.h"
+`define PI      3.14159265358979323846264338327950288419716939937511
+`define REG_LENGTH 20
+
+(* instrument_module *)
+module comms_instr(I_in, Q_in, I_eye, Q_eye, sawtooth, root_var_eye, ave_eye, eye_hist, eye_count_hist, I_scatter, Q_scatter, I_ref, Q_ref, rms_EVM, Iref_scatter, Qref_scatter);
+input I_in;
+electrical I_in;
+input Q_in;
+electrical Q_in;
+output I_eye;
+electrical I_eye;
+output Q_eye;
+electrical Q_eye;
+output sawtooth;
+electrical sawtooth;
+output root_var_eye;
+electrical root_var_eye;
+output ave_eye;
+electrical ave_eye;
+output eye_hist;
+electrical eye_hist;
+output eye_count_hist;
+electrical eye_count_hist;
+output I_scatter;
+electrical I_scatter;
+output Q_scatter;
+electrical Q_scatter;
+input I_ref;
+electrical I_ref;
+input Q_ref;
+electrical Q_ref;
+input rms_EVM;
+electrical rms_EVM;
+output Iref_scatter;
+electrical Iref_scatter;
+output Qref_scatter;
+electrical Qref_scatter;
+
+parameter real symbol_rate = 270833.3 from (0:inf);
+parameter integer number_of_symbols = 2 from (0:inf);
+parameter real max_voltage = 1;
+parameter real min_voltage = -1;
+parameter integer num_of_bins = 100;
+parameter real I_del = 1/(2*symbol_rate) from [0:inf);
+parameter real I_noise =0 from [0:inf);
+parameter real Q_noise =0 from [0:inf);
+parameter real measurement_delay = 0 from [0:inf);
+parameter real rin = 10e6 from (0:inf);
+
+
+integer shift_reg[1:20], coeff_reg[1:20];
+integer sum, i, j;
+integer use_seed;
+integer shift_out;
+
+integer I_seed;
+integer Q_seed;
+
+real Q_del;
+real t_rise_fall;
+real ttol;
+real phase, out;
+real accum_ave;
+real accum_var;
+real time_vco;
+real time_ref;
+real eye;
+real accum_cycles; 
+real accum_evm_cycles; 
+real rms_eye_temp;
+real ave;
+real delta;
+real ii, qq;
+real accum_evm_rms;
+real ref_mag;
+real evm_temp;
+real rms_evm_out;
+real rms_ref;
+real accum_ref_rms;
+real ii_ref, qq_ref;
+real I_noise_volts;
+real Q_noise_volts;
+real I_rv;
+real Q_rv;
+
+real tmp_rms;
+
+integer bin[0:num_of_bins];
+integer count_var;
+real bin_borders[0:num_of_bins];
+real bin_size, eye_var;
+real  up_time;
+real  down_time;
+integer blank;
+real total_period;
+real symbol_period;
+
+real theta, theta_ref;
+electrical VCO, VCO_ref;
+
+analog function real funtheta;
+  input IphaseVCO, QphaseVCO, viin, vqin;
+  real IphaseVCO, QphaseVCO, viin, vqin;
+  real temp1, temp2;
+  begin
+    temp1 = vqin*IphaseVCO-QphaseVCO*viin;
+    temp2 = viin*IphaseVCO+vqin*QphaseVCO;
+    if ( temp2 == 0.0 ) begin
+      if ( temp1 < 0 ) funtheta = -`PI / 2;
+      else if ( temp1 == 0.0 ) funtheta = 0;
+      else funtheta = `PI / 2;
+    end else funtheta = atan2 (temp1, temp2);
+  end
+endfunction
+
+analog begin
+  @(initial_step)  begin
+      symbol_period = 1/symbol_rate;
+      Q_del = I_del+symbol_period/2;
+      ttol = symbol_period*1e-6;
+      t_rise_fall = symbol_period*0.01;
+      accum_ave = 0;
+      accum_var = 0;
+      accum_cycles = 0.01;
+      accum_evm_cycles = 0.01;
+      accum_ref_rms = 0;
+      accum_evm_rms = 0;
+      rms_evm_out = 0;
+      bin_size = (max_voltage-min_voltage)/num_of_bins;
+      for (j=0; j<=num_of_bins; j=j+1) begin
+         bin[j] = 0;
+	 bin_borders[j] = min_voltage+bin_size*j;
+      end
+      eye_var = (max_voltage+min_voltage)/2;
+      blank = 1;
+      symbol_period = 1/symbol_rate;
+      delta = symbol_period/1000.0;
+      total_period = symbol_period*number_of_symbols;
+      up_time = total_period - delta;
+      down_time = delta;
+      I_noise_volts = pow(I_noise,0.5);
+      Q_noise_volts = pow(Q_noise,0.5);
+      I_seed = 10;
+      Q_seed = 82;
+      rms_eye_temp = 0;
+   end
+
+// The "blank" variable forces all eye traces to return along zero.
+   @(timer(0, total_period)) begin
+        blank = 1;
+   end
+   @(timer(total_period-1.01*delta, total_period));
+   @(timer(total_period-delta, total_period)) begin
+        blank = 0;
+   end
+
+   theta = funtheta(cos(V(VCO)), sin(V(VCO)), V(I_in), V(Q_in) );
+   theta_ref = funtheta(cos(V(VCO_ref)), sin(V(VCO_ref)), V(I_ref), V(Q_ref) );
+   V(VCO) <+ idt( theta,0 ) / 1e-12;
+   V(VCO_ref) <+  idt( theta_ref,0 ) / 1e-12;
+
+// Sample the I-output and compute the eye statistics.
+   @(timer(I_del, symbol_period)) begin
+     I_rv = I_noise_volts * $dist_normal(I_seed,0,1);
+     Q_rv = Q_noise_volts * $dist_normal(Q_seed,0,1);
+     ii_ref = V(I_ref);
+     qq_ref = V(Q_ref);
+     ii = V(I_in) + I_rv;
+     qq = V(Q_in) + Q_rv;
+     eye = V(I_in);
+     if ($abstime >= measurement_delay) begin
+        accum_cycles = accum_cycles + 1;
+        accum_ave = accum_ave+abs(eye);
+        ave = accum_ave/accum_cycles;
+        accum_var = accum_var + eye*eye;
+        tmp_rms = (accum_cycles*accum_var-accum_ave*accum_ave)/(accum_cycles*accum_cycles);
+        if (tmp_rms >0) rms_eye_temp = pow(tmp_rms, 0.5);
+
+        if (theta_ref != 0) begin
+	   ref_mag = theta_ref;
+           accum_evm_cycles = accum_evm_cycles + 1;
+           accum_ref_rms = accum_ref_rms + ref_mag*ref_mag;
+           rms_ref = pow(accum_ref_rms/accum_evm_cycles, 0.5);
+           evm_temp = theta - ref_mag;
+           accum_evm_rms = accum_evm_rms + evm_temp*evm_temp;
+           if (rms_ref != 0) begin
+              rms_evm_out = 100*pow(accum_evm_rms/accum_evm_cycles, 0.5)/rms_ref;
+           end
+        end
+     end
+     for(i=0;i<num_of_bins;i=i+1) begin
+       if ( (bin_borders[i]<=eye) && (eye<bin_borders[i+1])) begin
+          bin[i]=bin[i]+1;
+          count_var = bin[i];
+          eye_var = min_voltage+bin_size*i;
+       end
+     end
+   end
+
+// Load the input pins
+   I(I_in) <+ V(I_in)/rin;
+   I(Q_in) <+ V(Q_in)/rin;
+   I(I_ref) <+ V(I_ref)/rin;
+   I(Q_ref) <+ V(Q_ref)/rin;
+
+// Output the data;
+   V(ave_eye) <+ ave;
+   V(root_var_eye) <+ rms_eye_temp;
+   V(I_eye) <+ blank*V(I_in);
+   V(Q_eye) <+ blank*V(Q_in);
+   V(sawtooth) <+ transition(blank*total_period,0,up_time,down_time/2);
+   V(rms_EVM) <+ rms_evm_out;
+
+   V(eye_hist) <+ eye_var;
+   V(eye_count_hist) <+ count_var;
+
+   V(I_scatter) <+ ii;
+   V(Q_scatter) <+ qq;
+   V(Iref_scatter) <+ ii_ref;
+   V(Qref_scatter) <+ qq_ref;
+end
+endmodule

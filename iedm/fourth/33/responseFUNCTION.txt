@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "J_avg = J_integ/(stepCount+1.0); // Find the average value of the current density over the given time window", 
+		"bug_line": "J_avg = J_integ/(stepCount-1.0); // Find the average value of the current density over the given time window",
+		"error_description": "Changed divisor from (stepCount+1.0) to (stepCount-1.0), causing division by zero when stepCount=1 and negative divisors when stepCount=0. This breaks the average current density calculation required for depinning threshold checks."
+	},
+	{
+		"original_line": "real   max_boundary_comp; // This represents a "restoring force" that clamps the domain wall at its maximum position (i.e., can't have a position > L_total)", 
+		"bug_line": "real   min_boundary_comp; // This represents a "restoring force" that clamps the domain wall at its maximum position (i.e., can't have a position > L_total)",
+		"error_description": "Variable name changed from max_boundary_comp to min_boundary_comp. This causes both boundary forces to share the same variable name, making the max boundary clamp overwrite the min boundary clamp value. The min boundary force is lost, and the velocity calculation incorrectly uses the max boundary value for both forces, breaking position clamping at x=0."
+	},
+	{
+		"original_line": "min_boundary_comp =  -limexp(-10*nPos(domain_wall_pos)); // Use a smooth function (an exponential) to clamp the minimum position at 0", 
+		"bug_line": "min_boundary_comp =  -limexp(10*nPos(domain_wall_pos)); // Use a smooth function (an exponential) to clamp the minimum position at 0",
+		"error_description": "The exponent sign is flipped, causing the clamping force to push the domain wall away from 0 when its position is negative. Instead of providing a restoring force at the lower boundary, it creates a repulsive force that accelerates the domain wall toward negative infinity, violating the non-negative position constraint."
+	},
+	{
+		"original_line": "real startTime; // Lower bound on integral of current density", 
+		"bug_line": "real startTime = 1e9; // Fixed initialization prevents time reset",
+		"error_description": "Initializing startTime to 1e9 prevents the @cross block from resetting the timing window. This breaks the depinning calculation since the time difference ($abstime - startTime) remains negative during normal operation, causing the domain wall to never depin even with sufficient current pulses."
+	},
+	{
+		"original_line": "    electrical R1, R2, w_n, w_p; // Electrical terminals of the model", 
+		"bug_line": "    input R1, R2, w_n, w_p; // Electrical terminals of the model",
+		"error_description": "Changed 'electrical' to 'input', making all ports unidirectional inputs. This violates the bidirectional current flow requirement for write-path terminals (w_n/w_p) and breaks read-path current sensing between R1/R2, preventing proper resistance switching."
+	},
+	{
+		"original_line": "    branch (domain_wall_pos) gmindcpath; // This will be a large "resistor" connected across the storage capacitor used to aid convergence", 
+		"bug_line": "    branch (domain_wall_pos, R1) gmindcpath; // This will be a large "resistor" connected across the storage capacitor used to aid convergence",
+		"error_description": "Changed branch from single-node (domain_wall_pos to ground) to two-node branch between domain_wall_pos (nanokinematic) and R1 (electrical). This creates a branch between incompatible disciplines, causing undefined behavior in the gmindcpath 'resistor' that's essential for convergence. The voltage-driven assignment nVel(gmindcpath) <+ ... will now fail as R1 belongs to a different discipline."
+	},
+	{
+		"original_line": "real   current_driven_comp; // This is the "driving force" component of the wall velocity, set by the write-path current density", 
+		"bug_line": "integer current_driven_comp; // This is the "driving force" component of the wall velocity, set by the write-path current density",
+		"error_description": "Changed variable type from real to integer, causing truncation of the driving force component and incorrect domain wall velocity calculation due to loss of fractional precision."
+	},
+	{
+		"original_line": "real   max_boundary_comp; // This represents a "restoring force" that clamps the domain wall at its maximum position (i.e., can't have a position > L_total)", 
+		"bug_line": "real   min_boundary_comp; // This represents a "restoring force" that clamps the domain wall at its maximum position (i.e., can't have a position > L_total)",
+		"error_description": "Declaring min_boundary_comp twice hides the original min_boundary_comp variable. This causes both boundary forces to use the same variable, eliminating the maximum position clamping. The domain wall can now move beyond L_total, violating position constraints."
+	},
+	{
+		"original_line": "        blowup = 1e3;", 
+		"bug_line": "        blowup = 1e-3;",
+		"error_description": "Reduced blowup threshold from 1000 nm to 0.001 nm. This causes simulation failure when domain wall position exceeds 0.001 nm, which violates the design since typical device lengths (L_total) are ~36 nm. The initial condition alone (0 or 36 nm) would trigger blowup, preventing simulation."
+	},
+	{
+		"original_line": "L_highstate1 = min(L_mtj, max(0, nPos(domain_wall_capacitor)-L_ext));", 
+		"bug_line": "L_highstate1 = min(L_mtj, max(0, nPos(domain_wall_capacitor)-L_space));",
+		"error_description": "Replaced L_ext with L_space in the position offset calculation. L_space is the separation between read-path electrodes, not the offset from the write-path. This causes incorrect mapping between domain wall position and MTJ resistance states, leading to erroneous read-path resistance calculations."
+	},
+	{
+		"original_line": "`define mu_b 9.27e-21 // Bohr magneton [emu]", 
+		"bug_line": "`define mu_b -9.27e-21 // Bohr magneton [emu]",
+		"error_description": "The negative Bohr magneton inverts the domain wall velocity direction. This causes the write current polarity to operate in reverse: positive current into w_n now decreases resistance instead of increasing it, violating the design specification where current into w_n should set the high resistance state."
+	},
+	{
+		"original_line": "current_driven_comp = wall_speed_per_J * -write_current_density; // Negate the current density because we need electron flow", 
+		"bug_line": "current_driven_comp = wall_speed_per_J * write_current_density; // Negate the current density because we need electron flow",
+		"error_description": "Removed the negation operator, causing the domain wall to move in the opposite direction of intended design. This inverts the device behavior: conventional current into w_n now decreases resistance instead of increasing it."
+	},
+	{
+		"original_line": "nPos(domain_wall_pos) <+ initstate*L_total; // Position is 0 if initstate is 0, or at the end of the device if initstate is 1", 
+		"bug_line": "nPos(domain_wall_pos) <+ (1 - initstate)*L_total; // Position is 0 if initstate is 0, or at the end of the device if initstate is 1",
+		"error_description": "Swaps the initial state mapping: now initstate=0 incorrectly sets position to L_total (high resistance state) while initstate=1 sets position to 0 (low resistance state), reversing the device's initial resistance configuration."
+	},
+	{
+		"original_line": "parameter real initstate = 0 from [0:1]; // Initial state of the device (0: low resistance; 1: high resistance)", 
+		"bug_line": "parameter real initstate = 0 from [0:1]; // Initial state of the device (0: high resistance; 1: low resistance)",
+		"error_description": "Swapped state documentation: 0 now incorrectly indicates high resistance while 1 indicates low resistance. This misleads users to set opposite initial states, causing functional mismatch where intended low-resistance starts as high-resistance and vice versa."
+	},
+	{
+		"original_line": "parameter real L_ext = 8.0 from (0.0 : inf); // Length of region between write-path electrode and read-path "step"", 
+		"bug_line": "parameter real L_ext = 0.0 from (0.0 : inf); // Length of region between write-path electrode and read-path "step"",
+		"error_description": "Setting L_ext to 0 removes the offset region between write-path and read-path. This causes the domain wall position to immediately affect MTJ resistance states, eliminating the designed buffer zone and altering switching behavior by making the device respond to minor domain wall movements near the electrodes."
+	},
+	{
+		"original_line": "     potential nanoposition;", 
+		"bug_line": "     potential nanovelocity;",
+		"error_description": "Changed potential nature from nanoposition (position) to nanovelocity (velocity). This causes the domain wall position storage to misinterpret velocity as position, breaking state tracking and resistance calculations since position derivatives become invalid."
+	},
+	{
+		"original_line": "parameter real rho_writepath = 200.0 from (0.0 : inf); // Resistivity of write-path [ohm*nm]", 
+		"bug_line": "parameter real rho_writepath = -200.0 from (0.0 : inf); // Resistivity of write-path [ohm*nm]",
+		"error_description": "Default resistivity changed to negative value. Resistivity must be positive; negative values cause non-physical negative resistance in the write-path, leading to simulation instability and incorrect current calculations."
+	},
+	{
+		"original_line": "parameter real TMR_percent = 100.0 from (0.0 : inf); // Tunnel magnetoresistance (TMR) ratio of MTJ [%]", 
+		"bug_line": "parameter real TMR_percent = -50.0 from (0.0 : inf); // Tunnel magnetoresistance (TMR) ratio of MTJ [%]",
+		"error_description": "Assigning negative TMR_percent (-50%) violates physical reality where TMR must be ≥0%. This causes MTJ_ratio = 1 + (-50)/100 = 0.5, incorrectly making the high-resistance state lower than the low-resistance state, inverting the device's memory behavior."
+	},
+	{
+		"original_line": "`include "disciplines.vams"", 
+		"bug_line": "// `include "disciplines.vams"",
+		"error_description": "Commented out the essential disciplines include file. Without this, all electrical/nanokinematic discipline definitions are missing, causing compilation failure and preventing any simulation of electrical behavior or domain wall motion dynamics."
+	},
+	{
+		"original_line": "    units = "nm";", 
+		"bug_line": "    units = "um";",
+		"error_description": "Changed position units from nanometers (nm) to micrometers (um). This introduces a 1000x scaling error in domain wall position calculations, breaking boundary conditions (min_boundary_comp/max_boundary_comp), resistance computations (L_highstate1/L_lowstate1), and velocity equations since all geometric parameters (L_mtj, L_ext, etc.) are defined in nm."
+	}
+]

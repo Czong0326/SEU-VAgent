@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "out_scaled = out_scaled + ((V(vd4) > vtrans) ? 16 : 0);", 
+		"bug_line": "out_scaled = out_scaled + ((V(vd4) > vtrans) ? 8 : 0);",
+		"error_description": "Changed bit weight from 16 to 8, violating binary weighting scheme. Bit 4 now has the same weight as Bit 3, causing output miscalculations when vd4 is high."
+	},
+	{
+		"original_line": "parameter real vref  = 1 from [0:inf);", 
+		"bug_line": "parameter real vref  = 0 from [0:inf);",
+		"error_description": "Default reference voltage changed from 1V to 0V. This causes the output voltage to always be 0V regardless of digital inputs, breaking the DAC conversion functionality as the analog output won't reflect the digital input values."
+	},
+	{
+		"original_line": "out_scaled = out_scaled + ((V(vd5) > vtrans) ? 32 : 0);", 
+		"bug_line": "out_scaled = out_scaled + ((V(vd5) < vtrans) ? 32 : 0);",
+		"error_description": "The condition for bit 5 (vd5) is inverted: it now adds 32 when the input is below vtrans (logic low) instead of above vtrans (logic high). This flips the contribution of bit 5 in the digital-to-analog conversion."
+	},
+	{
+		"original_line": "    analog begin", 
+		"bug_line": "    analog begin integer out_scaled = 0;",
+		"error_description": "Redeclares 'out_scaled' as an integer inside the analog block, shadowing the real-valued module-level variable. This forces integer division in the output calculation (vref*out_scaled/256), truncating fractional results to zero. Consequently, the DAC output remains 0V for all input combinations."
+	},
+	{
+		"original_line": "out_scaled = out_scaled + ((V(vd6) > vtrans) ? 64 : 0);", 
+		"bug_line": "out_scaled = out_scaled + ((V(vd5) > vtrans) ? 64 : 0);",
+		"error_description": "Reading from vd5 instead of vd6: The input for bit 6 (vd6) is ignored, while bit 5 (vd5) is used twice with different weights (32 and 64), causing incorrect analog output when vd5 and vd6 differ."
+	},
+	{
+		"original_line": "parameter real trise = 0 from [0:inf);", 
+		"bug_line": "parameter real trise = 1e9 from [0:inf);",
+		"error_description": "Sets default rise time to 1e9 seconds (≈31 years), causing unrealistically slow output transitions that violate the design requirement for immediate analog response."
+	},
+	{
+		"original_line": "out_scaled = out_scaled + ((V(vd6) > vtrans) ? 64 : 0);", 
+		"bug_line": "out_scaled = out_scaled + ((V(vd6) > vtrans) ? 32 : 0);",
+		"error_description": "Changed bit weight from 64 to 32, halving the contribution of the second-most significant bit (vd6) and causing incorrect analog output calculations."
+	},
+	{
+		"original_line": "    real out_scaled; // output scaled as fraction of 256", 
+		"bug_line": "    real out_scaled[0:0]; // output scaled as fraction of 256",
+		"error_description": "Changed out_scaled from scalar to array type. This causes compilation errors since the analog block attempts scalar assignments to an array variable without index references, violating the design's accumulation logic."
+	},
+	{
+		"original_line": "out_scaled = out_scaled + ((V(vd2) > vtrans) ? 4 : 0);", 
+		"bug_line": "out_scaled = out_scaled + ((V(vd3) > vtrans) ? 4 : 0);",
+		"error_description": "Input signal for bit2 (vd2) incorrectly replaced with bit3 (vd3). Causes bit3 to control both its native weight (8) and bit2's weight (4), corrupting the conversion when either bit changes."
+	},
+	{
+		"original_line": "parameter real tfall = 0 from [0:inf);", 
+		"bug_line": "parameter real tfall = -1;",
+		"error_description": "Set the default fall time (tfall) to a negative value (-1) and removed the range constraint. Negative transition times are physically impossible and cause simulation errors in the transition function."
+	},
+	{
+		"original_line": "out_scaled = 0;", 
+		"bug_line": "out_scaled = 128;",
+		"error_description": "Initializes out_scaled to 128 instead of 0, causing a constant 128 offset. This doubles the MSB contribution and creates output errors: when MSB=1, output becomes 256/256*vref (over full scale); when MSB=0, output has minimum 128/256*vref instead of 0."
+	},
+	{
+		"original_line": "V(vout) <+ transition( vref*out_scaled/256, tdel, trise, tfall );", 
+		"bug_line": "V(vout) <+ transition( vref*out_scaled/255, tdel, trise, tfall );",
+		"error_description": "Divisor changed from 256 to 255, causing incorrect voltage scaling. The DAC output becomes vref * D/255 instead of vref * D/256, resulting in ~0.4% gain error at full scale (D=255 should produce vref*255/256, but produces vref instead)."
+	},
+	{
+		"original_line": "parameter real vtrans  = 2.5;", 
+		"bug_line": "parameter real vtrans  = 0.0;",
+		"error_description": "Setting vtrans to 0V causes all input voltages above 0V to be interpreted as logic high (1). Since digital signals typically swing between 0V and a positive supply, this incorrectly classifies valid low signals (0V) as high when any noise or signal deviation above 0V occurs, corrupting the digital-to-analog conversion."
+	},
+	{
+		"original_line": "out_scaled = out_scaled + ((V(vd0) > vtrans) ? 1 : 0);", 
+		"bug_line": "out_scaled = out_scaled + ((V(vd0) > vtrans) ? 0 : 1);",
+		"error_description": "The ternary operator outputs 0 when input vd0 is high (above vtrans) and 1 when low, inverting the least significant bit (LSB) logic. This causes incorrect digital-to-analog conversion as the LSB is reversed."
+	},
+	{
+		"original_line": "V(vout) <+ transition( vref*out_scaled/256, tdel, trise, tfall );", 
+		"bug_line": "V(vout) <+ transition( vref*out_scaled/255, tdel, trise, tfall );",
+		"error_description": "Changed scaling denominator from 256 to 255. An 8-bit DAC has 256 possible values (0-255), so dividing by 255 causes incorrect output voltage steps and maximum output exceeding reference voltage."
+	},
+	{
+		"original_line": "parameter real vtrans  = 2.5;", 
+		"bug_line": "parameter real vtrans  = 10;",
+		"error_description": "The transition voltage is set to 10V, which is higher than typical digital logic levels (5V). This causes all digital inputs to register as logic low (0) regardless of actual input voltage, resulting in zero output voltage at all times."
+	},
+	{
+		"original_line": "out_scaled = out_scaled + ((V(vd1) > vtrans) ? 2 : 0);", 
+		"bug_line": "out_scaled = out_scaled + ((V(vd1) < vtrans) ? 2 : 0);",
+		"error_description": "Inverted comparison operator changes logic functionality. The bit now contributes when input is BELOW vtrans (logic low) instead of ABOVE vtrans (logic high), corrupting the digital-to-analog conversion by interpreting low signals as active for this bit position."
+	},
+	{
+		"original_line": "parameter real vref  = 1 from [0:inf);", 
+		"bug_line": "parameter real vref  = 0 from [0:inf);",
+		"error_description": "Default reference voltage changed from 1V to 0V, causing the DAC output to always be 0V regardless of input bits. This violates the design specification requiring proper voltage conversion relative to the reference voltage."
+	},
+	{
+		"original_line": "parameter real tfall = 0 from [0:inf);", 
+		"bug_line": "parameter integer tfall = 0 from [0:inf);",
+		"error_description": "Changes parameter type from real to integer, causing truncation of fractional values during assignment (e.g., 0.5 becomes 0) and violating real-number timing requirements for the transition function."
+	},
+	{
+		"original_line": "out_scaled = 0;", 
+		"bug_line": "out_scaled = 128;",
+		"error_description": "Initialized out_scaled to 128 instead of 0, introducing a constant offset error of half-scale (128/256 = 0.5 * vref) at the output. This causes incorrect DC bias where zero input produces 50% output voltage instead of 0V."
+	}
+]

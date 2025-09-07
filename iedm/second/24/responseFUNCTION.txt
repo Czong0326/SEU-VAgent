@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real sigout_max=2;", 
+		"bug_line": "parameter real sigout_min=2;",
+		"error_description": "Swapped parameter name from sigout_max to sigout_min causes both saturation limits to be set to 2. This violates the design requirement for asymmetric saturation bounds, making the lower limit (sigout_min) equal to the upper limit (2), and leaving the actual upper limit undefined (defaults to 0)."
+	},
+	{
+		"original_line": "   if (sigout0 <= sigout_min) begin", 
+		"bug_line": "   if (sigout0 >= sigout_max) begin",
+		"error_description": "Changed the lower bound check to incorrectly check against the upper bound. Now triggers an error when sigout0 is above sigout_max (which should be handled later) while completely ignoring the lower bound violation. This allows initial values below sigout_min to pass undetected."
+	},
+	{
+		"original_line": "sigout_val = integ_val;", 
+		"bug_line": "sigout_val = -integ_val;",
+		"error_description": "The negative sign inverts the output in the linear region, causing the integrator to function as a differentiator with sign reversal instead of providing the correct integrated value."
+	},
+	{
+		"original_line": "real input_expr;", 
+		"bug_line": "real input_expr = 0;",
+		"error_description": "Initializing input_expr to 0 causes incorrect saturation behavior. The variable should remain uninitialized to properly update during simulation. Fixed initialization overrides conditional assignments, preventing proper integration when unsaturated and forcing constant zero input when saturated."
+	},
+	{
+		"original_line": "V(sigout) <+ sigout_val;", 
+		"bug_line": "V(sigin) <+ sigout_val;",
+		"error_description": "Output assignment direction error: Instead of driving the output 'sigout', the modified line drives the input 'sigin'. This violates fundamental directionality by short-circuiting the input and output, causing incorrect integration behavior and potential convergence issues."
+	},
+	{
+		"original_line": "if (integ_val > sigout_max) begin", 
+		"bug_line": "if (integ_val > sigout_min) begin",
+		"error_description": "The condition incorrectly uses sigout_min (minimum output bound) instead of sigout_max for upper saturation check. This causes premature upper saturation when the integration value exceeds the lower bound, violating the design specification where saturation should only occur at the upper limit."
+	},
+	{
+		"original_line": "V(sigout) <+ sigout_val;", 
+		"bug_line": "V(sigin) <+ sigout_val;",
+		"error_description": "Assigns the output value to the input node instead of the output node. This directional error causes the integrator to drive its input signal, violating module interface specifications and creating a short circuit between input/output nodes."
+	},
+	{
+		"original_line": "if (integ_val > sigout_max) begin", 
+		"bug_line": "if (integ_val > sigout_min) begin",
+		"error_description": "Changed the comparison threshold from sigout_max to sigout_min. This causes upper saturation to trigger at the lower bound instead of the upper bound, inverting the saturation logic and violating the design requirement that output should saturate at sigout_max when exceeding the maximum limit."
+	},
+	{
+		"original_line": "      if (sat_low ) begin", 
+		"bug_line": "      if (sat_high ) begin",
+		"error_description": "The condition incorrectly checks for upper saturation (sat_high) instead of lower saturation (sat_low). This causes the lower saturation handling block to execute during upper saturation, forcing sigout_min when the output should be clamped at sigout_max."
+	},
+	{
+		"original_line": "                          sat_low = 1;", 
+		"bug_line": "                          sat_low = 0;",
+		"error_description": "When the integrated value crosses the lower threshold (sigout_min) and the input is negative, the model should enter low saturation by setting sat_low=1. Setting it to 0 instead prevents proper saturation, allowing the output to continue decreasing below sigout_min."
+	},
+	{
+		"original_line": "              end else begin", 
+		"bug_line": "              end else if (sat_high && sat_low) begin",
+		"error_description": "The condition 'sat_high && sat_low' is always false since the flags are mutually exclusive (verified by the error check at the end). This prevents the non-saturated case from ever executing, disabling the integrator's core functionality and causing the output to remain at initial/saturated values indefinitely."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* instrument_module, saturating_integ *)",
+		"error_description": "Added invalid module name 'saturating_integ' as an attribute parameter. This syntax error will cause compilation failure since attributes cannot take module names as parameters, breaking the design before simulation can start."
+	},
+	{
+		"original_line": "      if (sat_high && sat_low) begin", 
+		"bug_line": "      if (sat_high || sat_low) begin",
+		"error_description": "Changed the invalid state check from AND to OR. Now triggers false errors during normal saturation (single-limit) while failing to detect the actual invalid state where both limits are active simultaneously."
+	},
+	{
+		"original_line": "                          sat_high = 0;", 
+		"bug_line": "                          sat_low = 0;",
+		"error_description": "Assigning sat_low=0 immediately after setting it to 1 in the lower saturation condition prevents the model from properly entering saturation state. This breaks the state machine logic by clearing the low saturation flag before it can be used, causing the integrator to fail to clamp at sigout_min and improperly continue integration below the lower limit."
+	},
+	{
+		"original_line": "             if (V(sigin) > 0 ) begin", 
+		"bug_line": "             if (V(sigin) < 0 ) begin",
+		"error_description": "Reversed the input voltage polarity check. When integrator value crosses max threshold, saturation should activate only for positive inputs (which drive further saturation). The modified condition incorrectly activates saturation for negative inputs, causing improper clamping behavior and potential failure to exit saturation."
+	},
+	{
+		"original_line": "   real input_expr;", 
+		"bug_line": "   integer input_expr;",
+		"error_description": "Changing 'input_expr' from real to integer causes truncation of the input voltage value. This results in loss of fractional precision during integration, altering the saturation behavior and output signal accuracy."
+	},
+	{
+		"original_line": "end else if (integ_val < sigout_min) begin", 
+		"bug_line": "end else if (integ_val > sigout_min) begin",
+		"error_description": "Changed the saturation condition from checking if integral value is below minimum to checking if it's above minimum. This causes the output to incorrectly saturate to sigout_min when the integral value exceeds the minimum threshold rather than when it drops below, violating the intended saturation behavior."
+	},
+	{
+		"original_line": "      @ ( initial_step ) begin", 
+		"bug_line": "      @ ( initial_step or cross(V(sigin), 0) ) begin",
+		"error_description": "Added cross event to initial condition block. This causes the block to execute repeatedly when input crosses zero, improperly resetting integ_val and sat flags during simulation instead of only at initialization."
+	},
+	{
+		"original_line": "         $finish;", 
+		"bug_line": "         ;",
+		"error_description": "Removed $finish statement, allowing simulation to continue in unallowed state (both sat_high and sat_low flags set) instead of terminating, potentially propagating invalid saturation states."
+	},
+	{
+		"original_line": "      input_expr = V(sigin);", 
+		"bug_line": "      input_expr = V(sigout);",
+		"error_description": "Assigns the output voltage to the input expression instead of the input voltage. This directional error causes the integrator to incorrectly use its own output as input, creating a feedback loop that corrupts the integration function."
+	}
+]

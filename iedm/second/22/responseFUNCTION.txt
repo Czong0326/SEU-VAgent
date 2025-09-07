@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "if (Pos(posp,posn) - maxl + F(posp,posn) / 10.0e3 > 0.0) begin", 
+		"bug_line": "if (Pos(posp,posn) - maxl + F(posp,posn) / 1.0e3 > 0.0) begin",
+		"error_description": "Changed force scaling factor from 10.0e3 to 1.0e3, making the restrainer 10x more sensitive to force feedback. This causes premature triggering of position constraints under small forces, violating the intended mechanical behavior."
+	},
+	{
+		"original_line": "if (Pos(posp,posn) - maxl + F(posp,posn) / 10.0e3 > 0.0) begin", 
+		"bug_line": "if (Pos(posp,posn) - minl + F(posp,posn) / 10.0e3 > 0.0) begin",
+		"error_description": "Replaced 'maxl' with 'minl' in the upper-bound condition. This causes the restrainer to incorrectly use the minimum length threshold when checking for maximum extension violations, fundamentally inverting its clamping behavior at upper limits."
+	},
+	{
+		"original_line": "kinematic posp, posn;", 
+		"bug_line": "kinematic posp;",
+		"error_description": "The terminal 'posn' is left without a discipline declaration. This breaks the mechanical connection definition, causing the force (F) and position (Pos) access functions to fail for posn during simulation, leading to undefined behavior in the restrainer module."
+	},
+	{
+		"original_line": "kinematic posp, posn;", 
+		"bug_line": "position posp, posn;",
+		"error_description": "Changing discipline from 'kinematic' to 'position' makes force (F) access undefined. The analog block uses F(posp,posn) which requires kinematic discipline to support both position and force semantics."
+	},
+	{
+		"original_line": "    analog begin", 
+		"bug_line": "    digital begin",
+		"error_description": "Changed 'analog' to 'digital', making the block execute in discrete event domain instead of continuous-time analog domain. This violates the kinematic discipline requirements and prevents proper force/position calculations."
+	},
+	{
+		"original_line": "$strobe( "Bottomed out at t = %E s.\n", $abstime );", 
+		"bug_line": "$strobe( "Bottomed out at t = %E s.\n", minl );",
+		"error_description": "The module incorrectly reports the minimum extension parameter (minl) instead of the actual simulation time ($abstime) when the restrainer bottoms out, causing misleading timing information in diagnostics."
+	},
+	{
+		"original_line": "    end else begin", 
+		"bug_line": "    end else if (too_short) begin",
+		"error_description": "The condition 'too_short' is never true in the else case (within valid range), causing the force-zeroing block to never execute. This leaves force unset within the valid range and prevents resetting of the too_long/too_short flags, leading to incorrect force accumulation and out-of-range detection failures."
+	},
+	{
+		"original_line": "    analog begin", 
+		"bug_line": "    initial begin",
+		"error_description": "Changed 'analog' to 'initial', causing the block to execute only once at time zero instead of continuously. This prevents the restrainer from updating during simulation, leading to incorrect constraints after initial position evaluation."
+	},
+	{
+		"original_line": "parameter real maxl = 0.10; // maximum extension in meters", 
+		"bug_line": "parameter real maxl = 100.0; // maximum extension in meters",
+		"error_description": "The maximum extension parameter is set to 100.0 meters instead of 0.10 meters. This prevents the restrainer from activating the maximum extension limit during normal operation since extensions will never reach 100 meters, effectively disabling the intended constraint mechanism."
+	},
+	{
+		"original_line": "$strobe( "Bottomed out at t = %E s.\n", $abstime );", 
+		"bug_line": "$strobe( "Bottomed out at t = %E s.\n", minl );",
+		"error_description": "Replaced $abstime with minl parameter, causing the simulation to incorrectly report the minimum length value instead of the actual time when bottoming out occurs."
+	},
+	{
+		"original_line": "    analog begin", 
+		"bug_line": "    initial begin",
+		"error_description": "Changed 'analog' to 'initial', causing the restrainer logic to execute only once at simulation start instead of continuously. This prevents dynamic position/force updates during operation, violating the continuous monitoring requirement."
+	},
+	{
+		"original_line": "    analog begin", 
+		"bug_line": "    analog forever begin",
+		"error_description": "Added 'forever' keyword causing an infinite loop at time zero. The simulation hangs indefinitely since the analog block never completes its evaluation for any timestep, preventing time advancement."
+	},
+	{
+		"original_line": "inout posp, posn;", 
+		"bug_line": "input posp, posn;",
+		"error_description": "Changing terminals to input-only prevents the restrainer module from applying force contributions (F(posp,posn) back to the mechanical system, violating the bidirectional nature of kinematic systems where force must be both sensed and applied."
+	},
+	{
+		"original_line": "        else if (too_short) begin", 
+		"bug_line": "        else if (too_long) begin",
+		"error_description": "The condition incorrectly checks 'too_long' instead of 'too_short'. This prevents the 'Bottomed out' event message from ever being printed and fails to set the out_of_range flag when the restrainer is at minimum extension, violating the design specification for event detection."
+	},
+	{
+		"original_line": "integer too_long, too_short;", 
+		"bug_line": "integer too_long;",
+		"error_description": "The variable 'too_short' is no longer declared. This causes the bottoming-out detection logic to fail since assignments to 'too_short' now target an implicit wire instead of a variable. The conditionals checking 'too_short' will always evaluate as false, preventing the restrainer from properly detecting minimum extension violations."
+	},
+	{
+		"original_line": "if (Pos(posp,posn) - maxl + F(posp,posn) / 10.0e3 > 0.0) begin", 
+		"bug_line": "if (Pos(posp,posn) - minl + F(posp,posn) / 10.0e3 > 0.0) begin",
+		"error_description": "Replaced maxl with minl in the top-limit condition. The restrainer now incorrectly uses the minimum length threshold for maximum extension checks, causing premature activation of the top-limit constraint at the wrong extension length."
+	},
+	{
+		"original_line": "inout posp, posn;", 
+		"bug_line": "input posp; output posn;",
+		"error_description": "Changing port directions breaks the kinematic discipline requirement for bidirectional force/position flow. Output port posn cannot receive force values, causing incorrect restraint behavior and simulation failure."
+	},
+	{
+		"original_line": "if (Pos(posp,posn) - maxl + F(posp,posn) / 10.0e3 > 0.0) begin", 
+		"bug_line": "if (Pos(posp,posn) - minl + F(posp,posn) / 10.0e3 > 0.0) begin",
+		"error_description": "The condition incorrectly uses minl instead of maxl for the too_long check. This causes the restrainer to activate the maxl constraint based on the minimum extension threshold rather than the maximum, fundamentally inverting the restraint logic."
+	},
+	{
+		"original_line": "    Pos(posp,posn) <+ maxl;", 
+		"bug_line": "    Pos(posp,posn) <+ minl;",
+		"error_description": "When the extension exceeds maxl, the restrainer incorrectly sets the position to minl instead of maxl. This violates the design constraint by pulling the system to the minimum length when it should limit to the maximum length, causing opposite mechanical behavior."
+	},
+	{
+		"original_line": "    end else begin", 
+		"bug_line": "    end else if (1) begin",
+		"error_description": "Changing 'else' to 'else if (1)' creates an always-true condition that prevents the original else block from executing. The force-free state (F<+0) and flag resets never occur, causing incorrect force calculations when within range."
+	}
+]

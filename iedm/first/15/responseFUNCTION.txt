@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "         stopDirection = direction(stop_mode);", 
+		"bug_line": "         stopDirection = direction(start_mode);",
+		"error_description": "Assigned start_mode instead of stop_mode to stopDirection, causing the stop event to incorrectly use the starting signal's edge detection mode (rise/fall/cross) instead of its own configured mode."
+	},
+	{
+		"original_line": "parameter integer stop_count = 1;", 
+		"bug_line": "parameter integer stop_count = 0;",
+		"error_description": "Setting stop_count to 0 makes the stop condition unattainable since (stopCnt+1 == 0) requires an impossible negative event count, preventing measurement completion and causing incorrect delta calculations."
+	},
+	{
+		"original_line": "`define rise  1", 
+		"bug_line": "`define rise  0",
+		"error_description": "Redefining `rise to 0 (same as `arg) causes incorrect edge detection. The direction() function will misinterpret rise events as argument-based events, breaking crossing detection for start/stop signals since time-based events lack directional semantics required for edge-triggered measurements."
+	},
+	{
+		"original_line": "   integer crossStopDirection;", 
+		"bug_line": "   integer crossStopDirection = 1;",
+		"error_description": "Initializing crossStopDirection to 1 causes premature triggering of stop event detection. The flag should be dynamically set only during crossing events, but this hardcoded initialization makes the stop condition always appear true after the first iteration, corrupting delta measurements."
+	},
+	{
+		"original_line": "parameter real start_val = 0;", 
+		"bug_line": "parameter real start_val = stop_val;",
+		"error_description": "Sets start_val equal to stop_val parameter, forcing identical thresholds for start/stop events. Violates independent threshold requirement by creating dependency between unrelated parameters."
+	},
+	{
+		"original_line": "       $strobe("    stoping event did not occur.");", 
+		"bug_line": "       $strobe("    starting event did not occur.");",
+		"error_description": "Changed error message from stop event to start event failure. This misreports the actual issue by indicating the start event failed when the real problem is with the stop event, violating error reporting accuracy."
+	},
+	{
+		"original_line": "   real sDelay;", 
+		"bug_line": "   real sDelay = 1e-9;",
+		"error_description": "Initializing sDelay to 1ns biases all delta measurements by this fixed offset, corrupting timing calculations between start/stop events."
+	},
+	{
+		"original_line": "         if (startCross == -1M) begin", 
+		"bug_line": "         if (startCross == 0) begin",
+		"error_description": "Changed initialization check from -1M to 0. Since startCross is initialized to -1M and set to positive timestamps during events, this condition never triggers. This prevents recording of start events, causing the module to always report 'starting event did not occur'."
+	},
+	{
+		"original_line": "         if (stopCross == 0) begin", 
+		"bug_line": "         if (stopCross == -1M) begin",
+		"error_description": "Changes the condition to incorrectly check for the initial value (-1M) instead of the unset state (0). This prevents the stop event detection logic from executing since stopCross starts at -1M, causing the measurement to always miss stop events."
+	},
+	{
+		"original_line": "	       $strobe("    Stop argument = %2.12g s.\n", stopCross);", 
+		"bug_line": "	       $strobe("    Stop argument = %2.12g s.\n", startCross);",
+		"error_description": "Prints the start argument value instead of the stop argument value, causing incorrect reporting of the stop time and invalidating the delta calculation."
+	},
+	{
+		"original_line": " if (analysis("tran")) begin", 
+		"bug_line": " if (analysis("ac")) begin",
+		"error_description": "Changed analysis condition from "tran" to "ac". Now the probe incorrectly activates during AC analysis instead of transient analysis, violating the module's intended functionality for time-domain measurements."
+	},
+	{
+		"original_line": "         lc_stopDirection = last_crossing(V(stop_pos, stop_neg) - ", 
+		"bug_line": "         lc_stopDirection = last_crossing(V(start_pos, start_neg) - ",
+		"error_description": "Changed stop signal to start signal for stop event detection. This causes the stop event timing to be incorrectly calculated using the start signal instead of the stop signal, resulting in invalid delta measurements between events."
+	},
+	{
+		"original_line": "integer mode;", 
+		"bug_line": "real mode;",
+		"error_description": "Changed mode from integer to real type. The direction function compares mode against integer constants (`rise=1, `fall=2, etc.). Real-to-integer comparisons may fail due to floating-point precision issues, causing incorrect direction outputs when mode values are fractional."
+	},
+	{
+		"original_line": "       $strobe("    Start argument = %2.12g s.\n", startCross);", 
+		"bug_line": "       $strobe("    Start argument = %2.12g s.\n", stopCross);",
+		"error_description": "Changed 'startCross' to 'stopCross', causing the start event time to be incorrectly reported as the stop event time. This violates the measurement logic by swapping start/stop values in the output report."
+	},
+	{
+		"original_line": "   real sDelay;", 
+		"bug_line": "   integer sDelay;",
+		"error_description": "Changing sDelay from real to integer truncates fractional time values during delta calculation, causing precision loss in time measurements between start/stop events."
+	},
+	{
+		"original_line": "         lc_startDirection = last_crossing(V(start_pos, start_neg) -", 
+		"bug_line": "         lc_startDirection = last_crossing(V(start_neg, start_pos) -",
+		"error_description": "Swapped start_pos and start_neg in voltage difference. This inverts the voltage signal polarity, causing incorrect crossing detections as rising/falling events trigger at opposite thresholds."
+	},
+	{
+		"original_line": "integer startCnt, stopCnt;", 
+		"bug_line": "integer startCnt = 1, stopCnt = 1;",
+		"error_description": "Initializing counters to 1 causes the condition (startCnt+1 == start_count) to never evaluate as true for default start_count=1, preventing event triggering and breaking delta measurement functionality."
+	},
+	{
+		"original_line": "               if (startCnt+1 == start_count) begin", 
+		"bug_line": "               if (startCnt+1 == stop_count) begin",
+		"error_description": "The start event trigger condition incorrectly uses stop_count instead of start_count. This causes the module to trigger the start event when the number of stop events reaches stop_count rather than when start events reach start_count, fundamentally breaking the delta measurement logic."
+	},
+	{
+		"original_line": "`define at    10", 
+		"bug_line": "`define at    1",
+		"error_description": "Redefining `at to 1 (same as `rise) causes absolute time triggers to be misinterpreted as rising-edge triggers, leading to incorrect event detection when using time-based measurements."
+	},
+	{
+		"original_line": "real sDelay;", 
+		"bug_line": "real sDelay = 0;",
+		"error_description": "Initializing sDelay to 0 causes incorrect delta calculation. The variable holds the time difference between start/stop events, but the fixed initial value persists through measurements, overwriting the computed delta (stopCross - startCross) and always reporting 0 seconds."
+	}
+]

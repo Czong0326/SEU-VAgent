@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "    maskArray[poly_orderMinus1] = 1;", 
+		"bug_line": "    maskArray[poly_orderMinus1] = 0;",
+		"error_description": "Setting maskArray's last element to 0 instead of 1 corrupts the LFSR output mask, disrupting the pseudorandom sequence generation used for pilot symbol insertion in OFDM frames."
+	},
+	{
+		"original_line": "            else i = cnt - `CYCLICSamples;", 
+		"bug_line": "            else i = cnt + `CYCLICSamples;",
+		"error_description": "Changed subtraction to addition in index calculation. When cnt exceeds CYCLICSamples, this error causes the index i to be larger than intended (e.g., i=32 at cnt=16 instead of i=0), leading to out-of-bounds array access and corrupted output data during the non-cyclic prefix portion of the frame."
+	},
+	{
+		"original_line": "    output_period = frame_time / samples;", 
+		"bug_line": "    output_period = frame_time * samples;",
+		"error_description": "Changed division to multiplication, causing output_period to be frame_time multiplied by samples. This error makes the output timer event occur at a much slower rate than intended, leading to infrequent updates of the output signals I_out and Q_out."
+	},
+	{
+		"original_line": "for ( i = poly_order ; i >= 0; i = i - 1 ) begin", 
+		"bug_line": "for ( i = poly_order ; i >= 1; i = i - 1 ) begin",
+		"error_description": "Loop skips initialization of regiArray[0], leaving the first shift register element uninitialized. This corrupts the PN sequence generation since the initial state is incomplete."
+	},
+	{
+		"original_line": "output_period = frame_time / samples;", 
+		"bug_line": "output_period = frame_time / poly_order;",
+		"error_description": "The output period is incorrectly calculated using 'poly_order' (fixed polynomial order) instead of 'samples' (number of samples per frame). This causes the output timing to be based on an unrelated parameter, violating the required sample rate and frame timing specifications."
+	},
+	{
+		"original_line": "PNS[j] = regiArray[poly_orderMinus1] ;", 
+		"bug_line": "PNS[j] = regiArray[0] ;",
+		"error_description": "Changed shift register output tap from last stage (poly_orderMinus1) to first stage (index 0). This breaks the PN sequence generation since feedback polynomial taps assume output from the final register stage."
+	},
+	{
+		"original_line": "parameter integer poly[0:poly_length-1]= {1, 0, 0, 1, 0, 0, 0, 1};", 
+		"bug_line": "parameter integer poly[0:poly_length-1]= {1, 0, 0, 0, 0, 0, 0, 1};",
+		"error_description": "Changed the polynomial coefficient for x^3 from 1 to 0, breaking the linear feedback shift register (LFSR) used for PN sequence generation. This alters the feedback structure, causing incorrect PN sequence values that corrupt OFDM symbol mapping."
+	},
+	{
+		"original_line": "tmp   = poly[poly_order] * regiArray[poly_order-1];", 
+		"bug_line": "tmp   = poly[poly_order] * regiArray[poly_order];",
+		"error_description": "Changed index from poly_order-1 to poly_order. This accesses regiArray[poly_order] which is always 0 (initialized to 0) instead of the last register value (regiArray[poly_order-1]). This breaks the LFSR feedback computation, corrupting the PN sequence generation."
+	},
+	{
+		"original_line": "PNS[j] = regiArray[poly_orderMinus1] ;", 
+		"bug_line": "PNS[j] = regiArray[poly_order] ;",
+		"error_description": "The PN sequence assignment incorrectly accesses regiArray[poly_order] instead of regiArray[poly_orderMinus1]. Since poly_order is beyond the shift register's active indices (0 to poly_order-1), this reads uninitialized memory, corrupting the PN sequence generation with invalid values."
+	},
+	{
+		"original_line": "    if ( n == 0 ) begin // PN generator", 
+		"bug_line": "    if ( n == 1 ) begin // PN generator",
+		"error_description": "Changed trigger condition from n==0 to n==1. This causes the PN generator to activate one sample later than intended, disrupting pilot symbol insertion timing and corrupting the OFDM symbol structure."
+	},
+	{
+		"original_line": "         if ( pnc < 0 )  pnc = 126;", 
+		"bug_line": "         if ( pnc < 0 )  pnc = 127;",
+		"error_description": "Resetting PN sequence index to 127 exceeds valid array bounds [0:126]. This causes out-of-bound access in PNS[pnc], leading to undefined data for pilot subcarriers and corrupting OFDM symbol generation."
+	},
+	{
+		"original_line": "      cos_theta[i] = cos ( theta );", 
+		"bug_line": "      cos_theta[i] = sin ( theta );",
+		"error_description": "Replaced cosine with sine function for angle calculation. This causes incorrect complex exponential components in IFFT computation since both sin_theta and cos_theta arrays now store sine values, breaking orthogonal basis requirements for Fourier transforms."
+	},
+	{
+		"original_line": "offset   = `FFTLENGTH - `CYCLICSamples;", 
+		"bug_line": "offset   = `FFTLENGTH - `ZEROPAD_EXCHANGE;",
+		"error_description": "The offset for cyclic prefix calculation incorrectly uses ZEROPAD_EXCHANGE (26) instead of CYCLICSamples (16). This shifts the cyclic prefix start position from index 48 (64-16) to index 38 (64-26), causing the cyclic prefix to be taken from the middle of the symbol rather than the tail, destroying the cyclic prefix structure needed for OFDM orthogonality."
+	},
+	{
+		"original_line": "    input_period    = frame_time / (`FFTLENGTH - `CYCLICSamples);", 
+		"bug_line": "    input_period    = frame_time / (`FFTLENGTH + `CYCLICSamples);",
+		"error_description": "Changed divisor from subtraction to addition, causing the input period to be incorrectly calculated. This leads to excessive timer triggers per frame, resulting in corrupted IFFT input data and invalid OFDM symbol generation."
+	},
+	{
+		"original_line": "            Im_freq[tmp] = V(Q_in);", 
+		"bug_line": "            Im_freq[tmp] = V(I_in);",
+		"error_description": "The imaginary part of the frequency bin is incorrectly assigned from I_in instead of Q_in. This causes the Q_in input to be ignored and uses I_in for both real and imaginary components, corrupting the input constellation and disrupting OFDM modulation."
+	},
+	{
+		"original_line": "      tmp = 0 ;", 
+		"bug_line": "      tmp = 1 ;",
+		"error_description": "Initializes the PN feedback accumulator to 1 instead of 0, corrupting the pseudo-noise sequence generation due to constant bias in the LFSR calculation."
+	},
+	{
+		"original_line": "parameter integer poly[0:poly_length-1]= {1, 0, 0, 1, 0, 0, 0, 1};", 
+		"bug_line": "parameter integer poly[0:poly_length-1]= {1, 0, 0, 1, 0, 0, 0, 0};",
+		"error_description": "Modified the polynomial coefficient for the PN generator from 1 to 0, altering the LFSR feedback logic. This changes the generated pseudo-random sequence used for OFDM pilot tones, corrupting the modulation pattern."
+	},
+	{
+		"original_line": "parameter integer poly_length = 8;", 
+		"bug_line": "parameter integer poly_length = 7;",
+		"error_description": "Reducing poly_length from 8 to 7 causes the polynomial array to be truncated to 7 elements while the initialization requires 8 values. This mismatch leads to incorrect PN sequence generation during the initial setup, corrupting the reference signal used for synchronization in the OFDM module."
+	},
+	{
+		"original_line": "@(initial_step) begin", 
+		"bug_line": "@(timer(initial_time + frame_time, output_period)) begin",
+		"error_description": "Changed initialization event from initial_step to delayed timer. This prevents critical initial parameter setup (FFT coefficients, PN sequence, state variables) from occurring at simulation start. Instead, initialization happens after one frame period, causing uninitialized variables to be used during the first frame and breaking OFDM processing."
+	},
+	{
+		"original_line": "tmp         = tmp - 1;", 
+		"bug_line": "tmp         = tmp + 1;",
+		"error_description": "Changed index decrement to increment, causing array index to increase out-of-bounds during IFFT computation. This reverses the intended frequency bin traversal order and accesses invalid memory locations, corrupting the OFDM symbol generation."
+	}
+]

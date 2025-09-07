@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "if (iin_val >= idead_high) begin", 
+		"bug_line": "if (iin_val >= idead_low) begin",
+		"error_description": "Changed threshold from idead_high to idead_low, causing the upper amplification region to activate prematurely at the lower deadband limit. This eliminates the deadband region between idead_low and idead_high, making the amplifier incorrectly process mid-range inputs as upper-range signals."
+	},
+	{
+		"original_line": "end else if (iin_val <= idead_low) begin", 
+		"bug_line": "end else if (iin_val <= idead_high) begin",
+		"error_description": "Changed condition from idead_low to idead_high. This causes the lower region gain to incorrectly activate when input current is below the upper dead band threshold instead of below the lower threshold, merging the dead band and lower response regions."
+	},
+	{
+		"original_line": "$finish;", 
+		"bug_line": "// $finish;",
+		"error_description": "Changed $finish to a comment. When dead band parameters are invalid (idead_high <= idead_low), simulation no longer terminates and continues with incorrect parameters, causing functional errors in amplifier behavior."
+	},
+	{
+		"original_line": "iout_val = ileak;", 
+		"bug_line": "iout_val = 0;",
+		"error_description": "Replaces the offset current 'ileak' with 0, eliminating the intended offset current during dead band operation and violating the design specification that requires outputting 'ileak' when the input is within the dead band range."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   analog begin automatic real iout_val, iin_val;",
+		"error_description": "Declared local variables iout_val and iin_val inside the analog block, shadowing the module-level variables. This prevents updates to the module-level iout_val, causing the output current to always be 0 (initial value) instead of the computed dead-band amplifier behavior."
+	},
+	{
+		"original_line": "iout_val = gain_low * (iin_val - idead_low) + ileak;", 
+		"bug_line": "iout_val = gain_low * (iin_val - idead_high) + ileak;",
+		"error_description": "In the lower region (input ≤ idead_low), the module incorrectly subtracts idead_high instead of idead_low. This causes the deadband threshold for the lower region to use the upper limit, violating the design specification for separate deadband boundaries."
+	},
+	{
+		"original_line": "I(iout) <+ -iout_val;", 
+		"bug_line": "I(iout) <+ iout_val;",
+		"error_description": "The output current sign is inverted, causing the amplifier to sink current when it should source and vice versa, fundamentally reversing the intended output behavior."
+	},
+	{
+		"original_line": "parameter real ileak = 0;", 
+		"bug_line": "parameter real ileak = gain_high;",
+		"error_description": "The offset current parameter 'ileak' is mistakenly set to the gain parameter 'gain_high' (dimensionless) instead of a current value. This causes the offset current to default to 1 (unitless) instead of 0A, creating a severe unit mismatch and incorrect output current calculations."
+	},
+	{
+		"original_line": "	 if (idead_high <= idead_low) begin", 
+		"bug_line": "	 if (gain_high <= gain_low) begin",
+		"error_description": "The condition incorrectly checks gain parameters instead of dead band limits. This allows invalid dead band ranges (idead_high <= idead_low) to pass undetected, potentially causing undefined amplifier behavior when dead band limits are reversed."
+	},
+	{
+		"original_line": "I(iout) <+ -iout_val;", 
+		"bug_line": "I(iout) <+ iout_val;",
+		"error_description": "Removed negative sign, reversing output current direction. The module sinks current when it should source (and vice versa), violating the design specification where output current should flow from the module."
+	},
+	{
+		"original_line": "iout_val = ileak;", 
+		"bug_line": "iout_val = 0;",
+		"error_description": "Incorrectly sets deadband output current to 0 A instead of the specified ileak value, violating the design requirement to output offset current during deadband operation."
+	},
+	{
+		"original_line": "      iin_val = I(iin_p, iin_n);", 
+		"bug_line": "      iin_val = I(iin_n, iin_p);",
+		"error_description": "Reversing the current direction by swapping iin_p and iin_n inverts the sign of the measured differential current. This causes the deadband thresholds and gain regions to be applied to the opposite polarity of input current: positive currents trigger the low-gain region and negative currents trigger the high-gain region."
+	},
+	{
+		"original_line": "   real iout_val, iin_val;", 
+		"bug_line": "   real iout_val, iin_val = 0;",
+		"error_description": "Initializing iin_val to 0 causes the differential input current measurement to be permanently overridden. The actual input current (I(iin_p,iin_n)) is never used in calculations, forcing all outputs to default to ileak regardless of real inputs."
+	},
+	{
+		"original_line": "parameter real idead_low = -1e-3;", 
+		"bug_line": "parameter real idead_low = 1e-3;",
+		"error_description": "The default value of idead_low is set to 1e-3, which equals the default value of idead_high (1e-3). This violates the requirement that idead_high must be greater than idead_low, triggering the simulation termination error in the initial_step block and preventing normal operation."
+	},
+	{
+		"original_line": "parameter real idead_high = 1e-3;", 
+		"bug_line": "parameter real idead_high = -1e-3;",
+		"error_description": "The dead band upper bound is set to a negative value (-0.001) while the lower bound remains -0.001. This causes the dead band range to collapse to [-0.001, -0.001], making only exactly -0.001A the 'dead zone'. Any other input current (including positive values) will be amplified, violating the intended symmetric dead band behavior around zero current."
+	},
+	{
+		"original_line": "end else if (iin_val <= idead_low) begin", 
+		"bug_line": "end else if (iin_val > idead_low) begin",
+		"error_description": "The condition incorrectly checks for input current greater than the lower deadband threshold instead of less than or equal. This causes the lower amplification region to activate during the deadband (when it should be inactive), while the true lower region (below idead_low) gets incorrectly treated as deadband with only ileak output."
+	},
+	{
+		"original_line": "parameter real ileak = 0;", 
+		"bug_line": "parameter real ileak = idead_high;",
+		"error_description": "Sets ileak equal to idead_high (upper deadband threshold). This violates the design specification because ileak should be a constant offset current, not dependent on the deadband range. Now ileak dynamically changes with idead_high, causing incorrect output calculations (e.g., iout_val includes unintended scaling of the deadband threshold)."
+	},
+	{
+		"original_line": "parameter real idead_high = 1e-3;", 
+		"bug_line": "parameter real idead_high = -1e-3;",
+		"error_description": "Assigned idead_high a negative value (-1e-3) that is less than idead_low (-1e-3), violating the requirement that idead_high must be greater than idead_low. This causes the initial_step check to fail and simulation to abort."
+	},
+	{
+		"original_line": "output iout;", 
+		"bug_line": "input iout;",
+		"error_description": "Port direction error: Changed iout from output to input. The module attempts to drive current into an input port, violating directionality and causing simulation errors as outputs cannot drive inputs."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed analog block to initial block, causing the output current calculation to execute only once at time zero instead of continuously during simulation. This results in a static (incorrect) output value after initialization, violating the dynamic amplification behavior required by the design."
+	}
+]

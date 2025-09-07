@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "@ (cross(verr_n_start * verr_val,-1,1.0, vtune.potential.abstol))", 
+		"bug_line": "@ (cross(verr_n_start * verr_val,1,1.0, vtune.potential.abstol))",
+		"error_description": "Changed crossing direction from -1 to 1, causing the threshold flag to trigger on positive zero-crossings instead of negative ones. This inverts the error detection logic during phase 4, making the module incorrectly transition to phase 5 when the error product increases rather than decreases."
+	},
+	{
+		"original_line": "integer direction; // Tuning direction", 
+		"bug_line": "integer direction[0:0]; // Tuning direction",
+		"error_description": "Changed 'direction' from scalar to array. This causes compilation errors since all references to 'direction' in the code (e.g., assignments and arithmetic operations) now require array indexing, breaking the tuning direction logic."
+	},
+	{
+		"original_line": "endcase		// end of entire case statement", 
+		"bug_line": "endcase; phase_num = 1;		// end of entire case statement",
+		"error_description": "Resetting phase_num to 1 after the case statement prevents the state machine from advancing beyond phase 1. This breaks the tuning process by permanently locking the system in the initial waiting state, preventing any resistance adjustments."
+	},
+	{
+		"original_line": "real verr_p_start, verr_p_diff; // verr characteristics", 
+		"bug_line": "real verr_p_start, verr_n_diff; // verr characteristics",
+		"error_description": "Declares verr_n_diff twice while removing verr_p_diff. Phase 2 uses undeclared verr_p_diff, causing incorrect direction selection during tuning due to uninitialized values."
+	},
+	{
+		"original_line": "$display("Range specification error.  rmax = (%E) less than rmin = (%E).", rmax, rmin);", 
+		"bug_line": "$display("Range specification error.  rmax = (%E) less than rmin = (%E).", rmin, rmax);",
+		"error_description": "The error message swaps rmax and rmin values in the display output, misreporting the actual parameter values during range validation errors."
+	},
+	{
+		"original_line": "V(verr) <+ verr_val;", 
+		"bug_line": "V(verr) <+ -verr_val;",
+		"error_description": "Inverts the error signal polarity. The verr output should represent (V(vtune) - vtune_set) but now outputs (vtune_set - V(vtune)). This reverses the tuning direction, causing resistance changes to amplify rather than correct errors."
+	},
+	{
+		"original_line": "if (rmax <= rmin) begin", 
+		"bug_line": "if (rmax > rmin) begin",
+		"error_description": "Reversed condition error: The simulation now incorrectly terminates when rmax is greater than rmin (valid case) and fails to terminate when rmax is less than or equal to rmin (invalid case). This prevents proper range checking."
+	},
+	{
+		"original_line": "         2: begin", 
+		"bug_line": "         2: begin direction = -1; // Introduce directional error",
+		"error_description": "Forces negative tuning direction during phase 2 where resistance should only increase. Violates design specification that phase 2 should exclusively attempt tuning by increasing resistance (positive direction). Causes premature resistance decrease and incorrect tuning behavior during direction-sensing phase."
+	},
+	{
+		"original_line": "                  verr_p_start = verr_val;", 
+		"bug_line": "                  verr_p_start = verr_val + vtune_set;",
+		"error_description": "Added vtune_set to the error measurement during positive direction initialization. This contaminates the baseline error value with the target voltage, causing incorrect error difference calculations and faulty tuning direction decisions."
+	},
+	{
+		"original_line": "parameter real vtune_set = 1K from  [0:inf);", 
+		"bug_line": "parameter real vtune_set = 1K from  [-inf:inf);",
+		"error_description": "Changed the range from [0:inf) to [-inf:inf), allowing negative tuning voltages which violates the design specification requiring non-negative values for vtune_set."
+	},
+	{
+		"original_line": "direction = 0; // stop tuning", 
+		"bug_line": "direction = 1; // stop tuning",
+		"error_description": "When resistance hits rmax, direction is incorrectly set to 1 (positive tuning) instead of 0. This violates the design requirement to stop tuning at bounds, causing continuous resistance increase attempts beyond rmax when error persists, potentially leading to control instability."
+	},
+	{
+		"original_line": "		    end		// case 1", 
+		"bug_line": "		    phase_num = 3; end		// case 1",
+		"error_description": "Prematurely sets phase_num to 3 immediately after entering state 1, bypassing the timer wait and intended transition to state 2. This disrupts the state machine sequence by skipping the initial tuning direction check phase."
+	},
+	{
+		"original_line": "parameter real rinit     = 500 from (0:inf);", 
+		"bug_line": "parameter real rinit     = 50 from (0:inf);",
+		"error_description": "Initial resistance (50 ohms) is set below minimum resistance (rmin=100 ohms). During the initial settling phase, the analog block clamps the resistance to rmin instead of using rinit, violating the design requirement to wait 'tsettle' seconds with resistance set to rinit."
+	},
+	{
+		"original_line": "parameter real tsettle    = 100u from (0:inf);", 
+		"bug_line": "parameter real tsettle    = -100u from (0:inf);",
+		"error_description": "The negative tsettle value violates the parameter range (0:inf) and causes the timer events to never trigger, preventing the state machine from progressing beyond phase 1 and disabling the tuning functionality entirely."
+	},
+	{
+		"original_line": "5:", 
+		"bug_line": "5: direction = 0;",
+		"error_description": "Forces the tuning direction to zero in phase 5, halting the integral tuning action prematurely. This prevents the resistance from adjusting to minimize the error voltage, leaving the system in a non-optimal state indefinitely."
+	},
+	{
+		"original_line": "integer direction; // Tuning direction", 
+		"bug_line": "integer direction = 1; // Tuning direction",
+		"error_description": "Initialized 'direction' to 1 instead of 0. This forces an immediate upward tuning bias at t=0 before the initial_step event sets it to 0, causing premature resistance changes during the initial settling phase and violating the specified tsettle wait period."
+	},
+	{
+		"original_line": "parameter real tdir_check = 10u from (0:inf);", 
+		"bug_line": "parameter real tdir_check = -10u from (0:inf);",
+		"error_description": "Negative tdir_check value violates the parameter range (0:inf). This causes invalid timer calculations in the state machine (e.g., tstart_phase3 = tsettle + negative_value), triggering immediate state transitions and breaking the tuning direction detection logic."
+	},
+	{
+		"original_line": "         direction = 0; // stop tuning", 
+		"bug_line": "         direction = 1; // stop tuning",
+		"error_description": "When resistance hits rmin, direction is incorrectly set to 1 (positive tuning) instead of 0. This prevents integral windup protection and allows resistance to keep decreasing during clamping, causing uncontrolled oscillation when error is negative."
+	},
+	{
+		"original_line": "parameter real tsettle    = 100u from (0:inf);", 
+		"bug_line": "parameter real tsettle    = -100u from (-inf:inf);",
+		"error_description": "Setting tsettle to a negative value violates the physical requirement that settling time must be positive. This causes the state machine timer to never trigger for negative time values, permanently halting the tuning process in phase 1."
+	},
+	{
+		"original_line": "integer direction; // Tuning direction", 
+		"bug_line": "integer unsigned direction; // Tuning direction",
+		"error_description": "Changing 'direction' to unsigned causes negative tuning values (-1) to wrap around to large positive numbers. This corrupts the resistance calculation during tuning phases where negative adjustments are required, making the resistor tune in the wrong direction during critical phases."
+	}
+]

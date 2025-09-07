@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( final_step ) begin",
+		"error_description": "Changed event trigger from initial_step to final_step. This delays resistance calculation until simulation end instead of initialization, leaving resistance uninitialized (default 0Ω) during simulation, creating a short circuit between terminals."
+	},
+	{
+		"original_line": "parameter integer seed2 = 13 from [0:inf);", 
+		"bug_line": "parameter integer seed2 = 13 from (0:inf);",
+		"error_description": "Changed range inclusion from [0:inf) to (0:inf), excluding 0. This causes instantiation failure when seed2=0 is explicitly set, as 0 is no longer in the valid range."
+	},
+	{
+		"original_line": "$strobe("resistance of %M = %f \n",r);", 
+		"bug_line": "$strobe("resistance of %M = %f \n",r_mean);",
+		"error_description": "Prints the mean resistance parameter (r_mean) instead of the actual computed resistance (r), hiding the randomly generated value intended for debugging."
+	},
+	{
+		"original_line": "endfunction", 
+		"bug_line": "endfunction gasdev;",
+		"error_description": "Added incorrect function name 'gasdev' after endfunction, causing compilation failure due to name mismatch with function declaration 'gasdev'."
+	},
+	{
+		"original_line": "integer iseed1, iseed2;", 
+		"bug_line": "real iseed1, iseed2;",
+		"error_description": "Changing iseed1/iseed2 from integer to real causes type mismatch in $random calls. $random requires integer seed variables for proper operation, leading to simulation failure when generating random resistance values."
+	},
+	{
+		"original_line": "      r = r_mean + r_dev * (gasdev(v1, v2));", 
+		"bug_line": "      r = r_mean + r_dev * (abs(gasdev(v1, v2)));",
+		"error_description": "Using absolute value on the Gaussian deviation ensures resistance is always above the mean, violating the intended normal distribution (which requires negative deviations) and altering the statistical properties of the component."
+	},
+	{
+		"original_line": "	 if (show_val == 1) begin", 
+		"bug_line": "	 if (show_val != 1) begin",
+		"error_description": "Inverted condition error. The print statement now triggers for all show_val values EXCEPT 1, directly contradicting the parameter's intended purpose of printing only when explicitly enabled (show_val=1)."
+	},
+	{
+		"original_line": "parameter real r_dev = 1K from (0:inf);", 
+		"bug_line": "parameter real r_dev = -1 from (0:inf);",
+		"error_description": "Sets negative default value for standard deviation parameter r_dev, violating non-negative constraint (0:inf). This causes invalid parameter initialization since standard deviation cannot be negative."
+	},
+	{
+		"original_line": "parameter integer seed2 = 13 from [0:inf);", 
+		"bug_line": "parameter integer seed2 = 13 from [14:inf);",
+		"error_description": "The range constraint for seed2 is modified to [14:inf), but the default value remains 13 which is below the minimum allowed value. This causes a parameter range violation during instantiation since the default value is out of bounds."
+	},
+	{
+		"original_line": " iseed2 = seed2;", 
+		"bug_line": " iseed2 = seed1;",
+		"error_description": "The second seed is incorrectly set to seed1 instead of seed2. This causes both random seeds to be identical, breaking the independence of the two Gaussian random variables required for proper resistance distribution modeling."
+	},
+	{
+		"original_line": "parameter real r_dev = 1K from (0:inf);", 
+		"bug_line": "parameter real r_dev = 1K from (0:0];",
+		"error_description": "Changed the parameter range from (0:inf) to (0:0], forcing r_dev to always be zero. This eliminates resistance variation since r_dev * gasdev() becomes zero, making the resistor deterministic instead of randomly distributed."
+	},
+	{
+		"original_line": "parameter integer seed2 = 13 from [0:inf);", 
+		"bug_line": "parameter integer seed2 = 13 from [0:-1];",
+		"error_description": "The constraint [0:-1] defines an empty set since 0 > -1, making seed2 impossible to initialize. This violates the design requirement that seed2 must be a non-negative integer for proper Gaussian distribution generation."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( initial_step ) ; begin",
+		"error_description": "Added semicolon after the event, causing the event to control an empty statement. The initialization block executes unconditionally at every time step instead of just once during initialization, leading to continuous re-seeding and recomputation of resistance values."
+	},
+	{
+		"original_line": "module untrimmed_res(vp, vn);", 
+		"bug_line": "module untrimmed_res(vp);",
+		"error_description": "Removed port 'vn' from the module declaration. This leaves the internal net 'vn' unconnected to any external terminal, causing the resistor to be incorrectly connected between 'vp' and a floating net instead of two external terminals."
+	},
+	{
+		"original_line": "gasdev = sqrt(-2.0*log(v1))*cos(2*`PI*v2);", 
+		"bug_line": "gasdev = sqrt(-2.0*log10(v1))*cos(2*`PI*v2);",
+		"error_description": "Replaced natural logarithm (log) with base-10 logarithm (log10), fundamentally altering the Box-Muller transformation and destroying the Gaussian distribution properties since the transformation requires natural logarithms."
+	},
+	{
+		"original_line": "   analog function real gasdev;", 
+		"bug_line": "   analog function integer gasdev;",
+		"error_description": "Changed return type from 'real' to 'integer', causing truncation of Gaussian random values. The fractional part of resistance calculations will be lost, corrupting the statistical distribution required for accurate resistance modeling."
+	},
+	{
+		"original_line": " v1 = abs($random(iseed1)/`MAXINT);", 
+		"bug_line": " v1 = abs($random(iseed2)/`MAXINT);",
+		"error_description": "Both v1 and v2 now use the same seed (iseed2), eliminating statistical independence between the random variables. This violates the Box-Muller algorithm's requirement for two independent uniform inputs, corrupting the Gaussian distribution of resistance values."
+	},
+	{
+		"original_line": "parameter integer seed1 = 0 from [0:inf);", 
+		"bug_line": "parameter integer seed1_old = 0 from [0:inf);",
+		"error_description": "Renamed parameter 'seed1' to 'seed1_old', causing 'seed1' to become undefined in the initial block where it is assigned to iseed1. This results in compilation failure due to missing variable reference."
+	},
+	{
+		"original_line": " v1 = abs($random(iseed1)/`MAXINT);", 
+		"bug_line": " v1 = abs($random(iseed1)*`MAXINT);",
+		"error_description": "Changed division to multiplication, causing v1 to become an extremely large value (abs(random) * ~2e9) instead of a normalized [0,1) fraction. This makes log(v1) positive and large in gasdev(), resulting in sqrt(-2*log(v1)) attempting square root of a negative number during resistance calculation, producing NaN resistance and breaking simulation."
+	},
+	{
+		"original_line": "	    $strobe("resistance of %M = %f \n",r);", 
+		"bug_line": "	    r = r_dev;",
+		"error_description": "Changed the print statement to an assignment that overwrites the randomly generated resistance value with just the deviation parameter (r_dev) instead of the full calculation. This sets the resistance to an incorrect fixed value (equal to r_dev) when show_val=1, ignoring the mean and Gaussian distribution."
+	}
+]

@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "This is a simple passband model of an up-converting mixer stage. The local", 
+		"bug_line": "This is a simple passband model of an up-converting mixer stage. The local */ `define rout 0 /*",
+		"error_description": "Breaks out of the comment block early and redefines 'rout' as 0 via preprocessor macro. This causes division-by-zero errors in gain calculations (I_a/Q_a) and output current expressions, corrupting all signal processing."
+	},
+	{
+		"original_line": "Q_cmp = sqrt(pow(10,(Q_cpdb+1)/10)*2*rout*0.001)/Q_a;", 
+		"bug_line": "Q_cmp = sqrt(pow(10,(Q_cpdb+1)/10)*2*rout*0.001)*Q_a;",
+		"error_description": "Changed division by Q_a to multiplication, incorrectly scaling the compression voltage by gain squared. This violates the design by making the Q-channel non-linearity coefficient inversely proportional to gain instead of proportional."
+	},
+	{
+		"original_line": "I_rhoinmax = sqrt(I_a/(3*I_b));", 
+		"bug_line": "I_rhoinmax = sqrt(I_a/(4*I_b));",
+		"error_description": "Changed denominator constant from 3 to 4, incorrectly calculating the maximum input amplitude before compression. This violates the 1dB compression point specification by altering the nonlinearity threshold, causing premature/late signal clamping."
+	},
+	{
+		"original_line": "electrical Q_in;", 
+		"bug_line": "output electrical Q_in;",
+		"error_description": "Changing Q_in from inout to output violates the design as Q_in is an input port that receives external signals. The module sinks current through I(Q_in) <+ V(Q_in)/rin, which conflicts with output port behavior where the module should source current. This causes incorrect current flow direction and input impedance modeling."
+	},
+	{
+		"original_line": "real I_rho;", 
+		"bug_line": "integer I_rho;",
+		"error_description": "Changing I_rho from real to integer causes truncation of the input voltage value, leading to incorrect nonlinear gain calculations and distorted output signals."
+	},
+	{
+		"original_line": "nf      = noise figure [dB]", 
+		"bug_line": "nf      = noise figure [dBm]",
+		"error_description": "Unit error: Changed noise figure unit from dB to dBm. This causes incorrect noise_current calculation since the model expects dB but designer would provide dBm values, leading to 30dB error in noise power (dBm vs dB differ by 30dB in absolute power)."
+	},
+	{
+		"original_line": "Q_rho = V(Q_in);", 
+		"bug_line": "Q_rho = V(I_in);",
+		"error_description": "Assigns Q channel input voltage to I_in pin instead of Q_in pin, causing both I and Q channels to process the same input signal. This breaks IQ modulation by eliminating quadrature signal separation."
+	},
+	{
+		"original_line": "  I_rho = V(I_in);", 
+		"bug_line": "  I_rho = V(Q_in);",
+		"error_description": "The I branch input is incorrectly connected to the Q input signal, causing both I and Q branches to process the Q input while the I input is unused. This swaps/modifies signal paths and breaks IQ modulation."
+	},
+	{
+		"original_line": "electrical out;", 
+		"bug_line": "magnetic out;",
+		"error_description": "Changing output port discipline from electrical to magnetic causes type mismatch. The analog block uses voltage/current access (V(out), I(out)) which are incompatible with magnetic discipline (requires MMF/flux access), breaking the output signal generation."
+	},
+	{
+		"original_line": "real I_b;", 
+		"bug_line": "real I_b = 0.0;",
+		"error_description": "Initializing I_b to 0.0 prevents the nonlinear coefficient calculation in the initial block from being applied, effectively disabling the I-channel compression behavior while keeping the Q-channel nonlinearity intact. This violates the mixer's intended symmetrical nonlinear response."
+	},
+	{
+		"original_line": "parameter real quad_error = 0;", 
+		"bug_line": "parameter real quad_error_wrong = 0;",
+		"error_description": "Changed parameter name to 'quad_error_wrong', making it undefined in the phase calculation expressions. This breaks quadrature error control as the original 'quad_error' variable now defaults to 0, causing permanent phase imbalance in the mixer output."
+	},
+	{
+		"original_line": "module IQ_modulator(I_in , Q_in, out, phase_err);", 
+		"bug_line": "module IQ_modulator(I_in , Q_in, out);",
+		"error_description": "The phase_err port is removed, disconnecting the phase error input. This leaves the internal phase correction signal floating, causing incorrect LO phase modulation and quadrature imbalance in the mixer output."
+	},
+	{
+		"original_line": "real root2x2;", 
+		"bug_line": "real root2x2 = 1.414;",
+		"error_description": "Initialized root2x2 to 1.414 instead of the correct value 2*sqrt(2) (~2.828). This constant scales the output signal, so halving it reduces the mixer's output amplitude by 50%, violating gain specifications."
+	},
+	{
+		"original_line": "inout phase_err;", 
+		"bug_line": "output phase_err;",
+		"error_description": "Changed port direction from inout to output. This prevents reading external voltage values at phase_err (required for phase adjustment), making V(phase_err) always return 0. Breaks LO phase error compensation functionality while still allowing current injection."
+	},
+	{
+		"original_line": "Q_gain    = voltage gain in dB.", 
+		"bug_line": "Q_gain    = current gain in dB.",
+		"error_description": "Changing 'voltage gain' to 'current gain' misleads designers into thinking this parameter sets current amplification. In reality, the module processes voltage signals, causing improper gain application in the Q path since the model expects voltage gain specifications."
+	},
+	{
+		"original_line": "module IQ_modulator(I_in , Q_in, out, phase_err);", 
+		"bug_line": "module IQ_modulator(I_in , Q_in, phase_err, out);",
+		"error_description": "Swapped 'out' and 'phase_err' port positions. This causes signal misrouting: the output port now expects phase error input, while the phase error port drives the mixer output, fundamentally breaking the modulation functionality."
+	},
+	{
+		"original_line": "parameter real nf = 2 from [0:inf];", 
+		"bug_line": "parameter real nf = -2 from [0:inf];",
+		"error_description": "Setting noise figure (nf) to -2 dB violates physical constraints since noise figure cannot be negative. This causes rnf = pow(10, nf/10) to be less than 1, resulting in a negative value inside the square root during noise_current calculation, which will crash simulation or produce invalid results."
+	},
+	{
+		"original_line": "nf      = noise figure [dB]", 
+		"bug_line": "nf      = noise figure [dBm]",
+		"error_description": "Changed noise figure unit from dB to dBm, introducing a unit inconsistency. This causes incorrect noise_current calculations since the model expects dB but now receives dBm values, leading to excessive noise floor errors."
+	},
+	{
+		"original_line": "Q_theta = tmp+V(phase_err)-quad_error/2;", 
+		"bug_line": "Q_theta = tmp+V(phase_err)+quad_error/2;",
+		"error_description": "The quadrature phase error for the Q channel incorrectly uses a positive offset (+quad_error/2) instead of negative. This makes the I and Q LO phases identical rather than 90° apart, destroying the IQ modulation scheme by eliminating the orthogonal carrier relationship required for proper upconversion."
+	},
+	{
+		"original_line": "  else if (Q_rho < 0) Q_rhoout = -Q_rhooutmax;", 
+		"bug_line": "  else if (Q_rho < 0) Q_rhoout = Q_rhooutmax;",
+		"error_description": "For negative Q-channel inputs exceeding linear range, outputs positive maximum instead of negative maximum. This inverts the clamped output polarity for negative saturation."
+	}
+]

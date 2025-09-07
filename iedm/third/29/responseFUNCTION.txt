@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "- sigin_offset) + sigout_symm;", 
+		"bug_line": "+ sigin_offset) + sigout_symm;",
+		"error_description": "The input offset is incorrectly added instead of subtracted, inverting the effect of offset correction and violating the design specification that the adjusted input differential signal is the input differential signal minus the offset."
+	},
+	{
+		"original_line": "module vargain_diffamp(sigin_p, sigin_n, sigctrl_p, sigctrl_n, sigout);", 
+		"bug_line": "module vargain_diffamp(sigin_n, sigin_p, sigctrl_p, sigctrl_n, sigout);",
+		"error_description": "Swapped sigin_p and sigin_n in the port list. This reverses the polarity of the differential input, causing inverted signal processing since the internal calculation V(sigin_p, sigin_n) will compute the opposite voltage difference."
+	},
+	{
+		"original_line": "parameter real sigin_offset = 0;", 
+		"bug_line": "real sigin_offset = 1.0;",
+		"error_description": "Changed offset from parameter to internal variable with fixed 1.0 value. This prevents user configuration and introduces permanent offset error, violating design requirements for adjustable offset."
+	},
+	{
+		"original_line": "electrical sigin_p, sigin_n, sigctrl_p, sigctrl_n, sigout;", 
+		"bug_line": "electrical sigin_p, sigin_n, sigctrl_p, sigctrl_n;",
+		"error_description": "The output terminal 'sigout' is not declared as electrical, causing the assignment V(sigout) to fail since the terminal lacks proper discipline definition."
+	},
+	{
+		"original_line": "input sigin_p, sigin_n, sigctrl_p, sigctrl_n;", 
+		"bug_line": "input sigin_p, sigin_neg, sigctrl_p, sigctrl_n;",
+		"error_description": "Renaming 'sigin_n' to 'sigin_neg' causes an undeclared identifier error. The analog block references the original name 'sigin_n' in the voltage calculation V(sigin_p, sigin_n), leading to compilation failure and circuit malfunction."
+	},
+	{
+		"original_line": "end else if (sigout_val < sigout_low) begin", 
+		"bug_line": "end else if (sigout_val > sigout_low) begin",
+		"error_description": "Operator direction error: changed from '<' to '>'. This incorrectly clamps the output to the lower bound for values above the lower bound (while leaving values below the lower bound unclamped), violating the intended output range constraints."
+	},
+	{
+		"original_line": "parameter real gain_const= 1;", 
+		"bug_line": "parameter real gain_const= -1;",
+		"error_description": "Negative gain_const inverts the output signal polarity, violating the design's intended positive gain amplification behavior where output should follow input direction."
+	},
+	{
+		"original_line": "    $finish;", 
+		"bug_line": "    ;",
+		"error_description": "Replaced $finish with a null statement, disabling simulation termination when sigout_high <= sigout_low. This allows invalid parameter conditions to proceed undetected, violating the error handling requirement."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( initial_step(0) ) begin",
+		"error_description": "Changed initial_step event to initial_step(0) which is invalid syntax in Verilog-A. The correct initial_step event requires no arguments, so this modification introduces a compilation error while appearing superficially similar."
+	},
+	{
+		"original_line": "V(sigout) <+ sigout_val;", 
+		"bug_line": "V(sigout) <+ -sigout_val;",
+		"error_description": "The negative sign erroneously inverts the output signal, causing phase reversal and violating the non-inverting amplification behavior specified in the design description."
+	},
+	{
+		"original_line": "input sigin_p, sigin_n, sigctrl_p, sigctrl_n;", 
+		"bug_line": "input sigin_p, sigin_n, sigctrl_p; output sigctrl_n;",
+		"error_description": "Changed sigctrl_n from input to output. This violates the design requirement of having four input ports (two differential pairs) and one output port. The module now incorrectly treats the control signal port as an output, causing incorrect voltage reading and potential drive conflicts during simulation."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed 'analog' block to 'initial' block, causing the output calculation to execute only once at time zero instead of continuously during simulation. This prevents dynamic updates to the output voltage based on input changes after initialization."
+	},
+	{
+		"original_line": "$display("Range specification error.  sigout_high = (%E) less than sigout_low = (%E).\n", sigout_high, sigout_low );", 
+		"bug_line": "$display("Range specification error.  sigout_high = (%E) less than sigout_low = (%E).\n", sigout_low, sigout_high );",
+		"error_description": "Swapped 'sigout_high' and 'sigout_low' display arguments, causing reversed values in error message during range validation failure."
+	},
+	{
+		"original_line": "parameter real gain_const= 1;", 
+		"bug_line": "parameter real gain_const= -1;",
+		"error_description": "Changing gain constant to negative inverts the amplifier's output polarity, violating the design specification of positive gain amplification where output should follow the input polarity when control signal is positive."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed 'analog' block to 'initial' block. This converts the continuous analog behavior into a one-time initialization event. The amplifier output will only be calculated once at time zero instead of continuously during simulation, violating the fundamental requirement for continuous signal amplification."
+	},
+	{
+		"original_line": "input sigin_p, sigin_n, sigctrl_p, sigctrl_n;", 
+		"bug_line": "input sigin_p, sigin_n, sigctrl_p; output sigctrl_n;",
+		"error_description": "Changed sigctrl_n from input to output. This creates a directional conflict as the module drives an external control signal, violating the design where sigctrl_n should only receive external control inputs."
+	},
+	{
+		"original_line": "parameter real gain_const= 1;", 
+		"bug_line": "parameter integer gain_const= 1;",
+		"error_description": "Changing parameter type from real to integer causes truncation of fractional gain values during instantiation, violating the design's requirement for precise real-valued gain control and leading to incorrect amplification."
+	},
+	{
+		"original_line": "    $finish;", 
+		"bug_line": "    ;",
+		"error_description": "Removed the $finish statement that halted simulation when sigout_high <= sigout_low. This allows the module to continue operating with invalid output range parameters, causing potential undefined behavior and incorrect output clamping."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( timer(0, 1m) ) begin",
+		"error_description": "Replaced initial_step event with periodic timer(0,1m) causing sigout_symm calculation and range check to execute every 1ms instead of once at simulation start. This introduces incorrect dynamic recalculation of the constant midpoint value during simulation."
+	},
+	{
+		"original_line": "parameter real gain_const= 1;", 
+		"bug_line": "parameter real gain_const= 0;",
+		"error_description": "Setting gain_const to zero disables amplification, causing the output to ignore the input signal and always output the mid-supply voltage (sigout_symm), violating the design requirement for signal amplification."
+	}
+]

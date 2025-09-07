@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "* N_noise_x - White_noise internal node for barrier thickness variability", 
+		"bug_line": "* N_noise_s - White_noise internal node for barrier thickness variability",
+		"error_description": "Changed node name from N_noise_x to N_noise_s, incorrectly assigning barrier thickness variability to the CF cross-section noise node. This swaps functionality between the two noise sources, causing barrier variability to incorrectly affect SET operations and CF variability to affect RESET events."
+	},
+	{
+		"original_line": "tau_c[i] = 1/(const0 * Nc *exp(-pos[i]/lambda_c)*exp(-(pow(Erel_O-(Et_O-phi+Vtb*pos[i]/x),2)/(4*Erel_O*kb*Tcf))));", 
+		"bug_line": "tau_c[i] = 1/(const0 * Nc *exp(-pos[i]/lambda_c)*exp(-(pow(Erel_O-(Et_O-phi-Vtb*pos[i]/x),2)/(4*Erel_O*kb*Tcf))));",
+		"error_description": "The voltage sign in the energy barrier calculation is reversed (+Vtb becomes -Vtb), incorrectly modeling the electric field's effect on ion diffusion during capture events."
+	},
+	{
+		"original_line": "real Vtb;               // Voltage across the Top and Bottom electrodes (V) ", 
+		"bug_line": "real Vtb;               // Voltage across the Bottom and Top electrodes (V) ",
+		"error_description": "The comment incorrectly swaps voltage polarity. This reverses the sign convention for Vtb, causing incorrect voltage-dependent calculations (e.g., diffusion direction, SET/RESET triggers) throughout the model."
+	},
+	{
+		"original_line": "    (*desc = "Bond breaking activation energy", units = "eV"*)            parameter real Eag=1.2 from [0:inf);        ", 
+		"bug_line": "    (*desc = "Bond breaking activation energy", units = "eV"*)            parameter real Eag=1.2 from (inf:0];        ",
+		"error_description": "The parameter range is reversed (inf:0] instead of [0:inf), making it impossible to set any valid value since no number can be greater than infinity and less than/equal to zero. This causes instant simulation failure during initialization."
+	},
+	{
+		"original_line": "(*desc = "Energy barrier for injected electrons", units = "eV"*)        parameter real phi = 2.1;", 
+		"bug_line": "(*desc = "Energy barrier for injected electrons", units = "eV"*)        parameter real phi = -2.1;",
+		"error_description": "Negative energy barrier (-2.1 eV) violates physical reality as barrier heights must be positive. This sign error will invert exponential terms in defect transition calculations, causing unphysical defect capture/emission rates and corrupting RTN current simulation."
+	},
+	{
+		"original_line": "n = $rdist_poisson(rtn_rand_seed, N_O);     // Number of defects random generation", 
+		"bug_line": "n = $rdist_poisson(rtn_rand_seed, N_V);     // Number of defects random generation",
+		"error_description": "During RESET defect initialization, the Poisson distribution incorrectly uses N_V (oxygen vacancies density) instead of N_O (oxygen ions density). This swaps the defect type generation logic, creating vacancies during RESET when only ions should be generated."
+	},
+	{
+		"original_line": "                            tau=tau_e[i];", 
+		"bug_line": "                            tau=tau_c[i];",
+		"error_description": "In the 'else' branch for filled defects (state[i]==1), the emission time constant tau_e[i] is incorrectly replaced by the capture time constant tau_c[i]. This swaps the physical meaning of transition times - filled defects should emit electrons with tau_e, not capture them. This disrupts RTN dynamics by reversing defect state transition probabilities."
+	},
+	{
+		"original_line": "                                delta_R_ref = R;", 
+		"bug_line": "                                delta_R_ref = R_lrs;",
+		"error_description": "Assigns the low resistance state value R_lrs to delta_R_ref instead of the total device resistance R. This error incorrectly sets the RTN reference resistance to the LRS nominal value rather than the actual operating resistance, causing miscalculation of defect resistance scaling and invalid RTN current contributions in HRS conditions."
+	},
+	{
+		"original_line": "* n22       - Support node used for conductive filament temperature initialization 1[V] = 1[K]", 
+		"bug_line": "* n22       - Support node used for conductive filament temperature initialization 1[V] = 1[mK]",
+		"error_description": "Changed scaling from Kelvin to milliKelvin without adjusting initialization values. This causes Tinit=300 to be interpreted as 0.3K instead of 300K, freezing the filament temperature and breaking thermal dynamics."
+	},
+	{
+		"original_line": "                end else begin", 
+		"bug_line": "                end if (x <= 1e-10) begin",
+		"error_description": "Replaced 'else' with 'if', causing both HRS and LRS blocks to execute simultaneously when x <= 1e-10. This violates mutual exclusivity by updating defect parameters twice per timestep in LRS state."
+	},
+	{
+		"original_line": "tau_e[i] = 0;", 
+		"bug_line": "tau_e[1] = 0;",
+		"error_description": "Changed index from loop variable 'i' to fixed '1'. This overwrites only the first defect's emission time instead of initializing all unused defects. During RTN processing, defects beyond index 1 will have uninitialized tau_e values causing undefined behavior and potential simulation crashes."
+	},
+	{
+		"original_line": "(*desc = "Maximum variation allowed on the barrier thickness (=3sigma)", units = "nm"*) parameter real dx = 0.8 from[0:t_ox];", 
+		"bug_line": "(*desc = "Maximum variation allowed on the barrier thickness (=3sigma)", units = "nm"*) parameter real dx = -0.8 from[0:t_ox];",
+		"error_description": "Assigning a negative default value to dx violates the physical constraint that barrier thickness variation must be non-negative. This causes clamping logic to fail in noise calculations (e.g., max_x_noise_amplitude becomes negative), leading to undefined behavior in variability modeling during RESET events."
+	},
+	{
+		"original_line": "ddt_x = 0;                 // Barrier time derivative initialization", 
+		"bug_line": "ddt_x = -1e9;                 // Barrier time derivative initialization",
+		"error_description": "Initialized barrier time derivative to -1e9 nm/s instead of 0. This causes the barrier thickness to immediately collapse at simulation start, forcing an unintended SET event without any voltage applied."
+	},
+	{
+		"original_line": "Erel_O         = Erel0_O + $rdist_uniform(Erel_rand_seed,-Delta_Erel_O,Delta_Erel_O);", 
+		"bug_line": "Erel_O         = Erel0_V + $rdist_uniform(Erel_rand_seed,-Delta_Erel_O,Delta_Erel_O);",
+		"error_description": "Uses nominal oxygen vacancies relaxation energy (Erel0_V) instead of oxygen ions (Erel0_O), corrupting the oxygen ions' relaxation energy distribution during defect generation."
+	},
+	{
+		"original_line": "real tau_e[maximum_number_defects:1];            // Defect emission time to bottom electrode", 
+		"bug_line": "real tau_e[1:maximum_number_defects];            // Defect emission time to bottom electrode",
+		"error_description": "Reversing the array index order changes memory layout without adjusting access patterns. The code accesses tau_e[i] where i runs from 1 to maximum_number_defects, but the reversed indexing causes mismatched storage locations and improper time constant assignments during RTN calculations."
+	},
+	{
+		"original_line": "        (*desc = "Spread of the oxygen vacancies thermal ionization energy distribution ", units = "eV"*)            parameter real Delta_Et_V = 0.5;", 
+		"bug_line": "        (*desc = "Spread of the oxygen vacancies thermal ionization energy distribution ", units = "eV"*)            parameter real Delta_Et_V = -0.5;",
+		"error_description": "Assigning a negative value (-0.5 eV) to the spread parameter causes invalid range in $rdist_uniform during defect generation (low bound -(-0.5)=0.5 eV > high bound -0.5 eV), crashing simulations when RTN is active."
+	},
+	{
+		"original_line": "p[i] = 1 - exp(-($abstime - last_time[i])/tau); // Transition probability", 
+		"bug_line": "p[i] = 1 - exp(($abstime - last_time[i])/tau); // Transition probability",
+		"error_description": "Changed negative exponent to positive, causing transition probability to become negative (invalid) as time difference increases. The exponential term grows unbounded instead of decaying, making the probability calculation mathematically nonsensical and breaking defect state transitions."
+	},
+	{
+		"original_line": "real Srtn;                // CF cross-section in m^2", 
+		"bug_line": "real Srtn;                // CF cross-section in cm^2",
+		"error_description": "Changed unit from m² to cm² without conversion factor. This causes incorrect defect density calculations in RTN module since all other parameters use SI units (meters), leading to 10,000x error in cross-sectional area values."
+	},
+	{
+		"original_line": "for(i = 1; i <= n ; i = i+1) begin", 
+		"bug_line": "for(i = 1; i <= n+1 ; i = i+1) begin",
+		"error_description": "Changed loop condition to run one extra iteration (i<=n+1). When the number of defects (n) is at its maximum (maximum_number_defects), the loop attempts to access an array index (n+1) that is out-of-bounds (array indices are 1 to maximum_number_defects), causing undefined behavior or simulation crash."
+	},
+	{
+		"original_line": "        delta_R[i] = delta_R[i]*f_correction;                        ", 
+		"bug_line": "        delta_R[i] = delta_R[i] * 1.0;                        ",
+		"error_description": "Removed the f_correction scaling factor, preventing proper normalization of defect resistances. This causes RTN resistance variations to remain uncalibrated, leading to incorrect current contributions during SET/RESET events."
+	}
+]

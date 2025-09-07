@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "@ (cross(V(vin_carry) - vtrans, -1)) c = 0;", 
+		"bug_line": "@ (cross(V(vin_carry) - vtrans, -1)) c = 1;",
+		"error_description": "Sets carry input (c) to 1 instead of 0 on falling edge transitions. This inverts the carry input value when signal falls below threshold, causing incorrect sum and carry outputs by violating the full adder's truth table."
+	},
+	{
+		"original_line": "@ (cross(V(vin1) - vtrans, 1))   a = 1;", 
+		"bug_line": "@ (cross(V(vin1) - vtrans, 1))   a = 0;",
+		"error_description": "Sets input bit 'a' to 0 on rising edge instead of 1. This inverts the logic value for vin1, causing incorrect sum and carry calculations in the full adder."
+	},
+	{
+		"original_line": "electrical vin1, vin2, vin_carry, vout_sum, vout_carry;", 
+		"bug_line": "electrical vin1, vin2, vin_carry, vout_sum; current vout_carry;",
+		"error_description": "Changed vout_carry discipline to current while analog block contributes voltage (V(vout_carry) <+ ...). This creates a type mismatch where voltage is incorrectly applied to a current node, causing simulation failure or undefined behavior."
+	},
+	{
+		"original_line": "                           ? vlogic_high : vlogic_low;", 
+		"bug_line": "                           ? vlogic_low : vlogic_high;",
+		"error_description": "The ternary operator for the carry output is inverted, causing the carry signal to output low voltage when it should be high and high voltage when it should be low. This violates the full adder's truth table by inverting the carry output."
+	},
+	{
+		"original_line": "@ (cross(V(vin1) - vtrans, 1))   a = 1;", 
+		"bug_line": "@ (cross(V(vin1) - vtrans, 1))   a = 0;",
+		"error_description": "Assigns a=0 on positive crossing of vin1 instead of a=1. This incorrectly sets the input bit to low state when signal rises above threshold, causing erroneous sum and carry outputs."
+	},
+	{
+		"original_line": "   real vout_sum_val;", 
+		"bug_line": "   real vout_sum_val, vout_carry_val;",
+		"error_description": "Duplicate declaration of vout_carry_val causes compilation error. The variable is already declared in line 44, violating single definition rule in VerilogA."
+	},
+	{
+		"original_line": "	    $display("Range specification error.  vlogic_high = (%E) less than vlogic_low = (%E).\n", vlogic_high, vlogic_low );", 
+		"bug_line": "	    $display("Range specification error.  vlogic_high = (%E) less than vlogic_low = (%E).\n", vlogic_low, vlogic_high );",
+		"error_description": "Swaps the display arguments, showing vlogic_low value as vlogic_high and vice versa. This misreports the actual values during the error message, making debugging difficult while preserving the functional check."
+	},
+	{
+		"original_line": "vout_carry_val = ((c && (a || b)) || (a && b))", 
+		"bug_line": "vout_carry_val = ((c && (a || b)) && (a && b))",
+		"error_description": "Changed OR operator to AND, causing carry output to be high ONLY when all three inputs are high. This violates full-adder truth table where carry should be high when at least two inputs are high."
+	},
+	{
+		"original_line": "output vout_sum, vout_carry;", 
+		"bug_line": "output vout_sum; input vout_carry;",
+		"error_description": "Changed vout_carry from output to input. This causes a functional error because the module attempts to drive an input port (vout_carry) in the analog block, violating port direction constraints."
+	},
+	{
+		"original_line": "                           ? vlogic_high : vlogic_low;", 
+		"bug_line": "                           ? vlogic_low : vlogic_high;",
+		"error_description": "Swapped ternary operator branches, inverting carry output logic: now outputs low voltage when carry should be high and vice versa."
+	},
+	{
+		"original_line": "@ (cross(V(vin1) - vtrans, -1))  a = 0;", 
+		"bug_line": "@ (cross(V(vin1) - vtrans, -1))  a = 1;",
+		"error_description": "Sets a=1 on falling edge of vin1 instead of a=0, causing incorrect input state detection. This flips the logic value during low transitions, leading to erroneous sum and carry outputs."
+	},
+	{
+		"original_line": "@ (cross(V(vin_carry) - vtrans, 1))  c = 1;", 
+		"bug_line": "@ (cross(V(vin_carry) - vtrans, 1))  c = 0;",
+		"error_description": "Sets carry input (c) to 0 instead of 1 on positive crossing events. This causes the carry input to be incorrectly interpreted as low when transitioning above the threshold, violating the full adder's truth table for all cases where carry=1."
+	},
+	{
+		"original_line": "    if (vtrans > vlogic_high || vtrans < vlogic_low) begin", 
+		"bug_line": "    if (vtrans > vlogic_high && vtrans < vlogic_low) begin",
+		"error_description": "Changed logical OR to AND, making the threshold voltage warning condition impossible since vtrans cannot be both above vlogic_high AND below vlogic_low simultaneously. This prevents valid inconsistency warnings when vtrans is outside the [vlogic_low, vlogic_high] range."
+	},
+	{
+		"original_line": "module full_adder(vin1, vin2, vin_carry, vout_sum, vout_carry);", 
+		"bug_line": "module full_adder(vin1, vin2, vout_sum, vin_carry, vout_carry);",
+		"error_description": "Swapped 'vin_carry' input and 'vout_sum' output ports. This incorrectly makes carry-in an output and sum an input, reversing signal flow directions and violating full-adder functionality."
+	},
+	{
+		"original_line": "parameter real vlogic_high = 5;", 
+		"bug_line": "parameter real vlogic_high = 0;",
+		"error_description": "Sets logic-high voltage equal to logic-low voltage (0V), causing all HIGH outputs to be incorrectly interpreted as LOW by downstream components, completely disabling the adder's functionality."
+	},
+	{
+		"original_line": "V(vout_sum) <+ transition( vout_sum_val, tdel, trise, tfall);", 
+		"bug_line": "V(vout_carry) <+ transition( vout_sum_val, tdel, trise, tfall);",
+		"error_description": "Output assignment swapped - sum value incorrectly drives carry output. This causes both outputs to show sum value, breaking carry functionality and violating full-adder behavior."
+	},
+	{
+		"original_line": "V(vout_carry) <+ transition( vout_carry_val, tdel, trise, tfall);", 
+		"bug_line": "V(vout_carry) <+ transition( vout_sum_val, tdel, trise, tfall);",
+		"error_description": "The carry output incorrectly uses the sum value instead of the carry value, causing both outputs to always be identical instead of implementing correct full-adder logic."
+	},
+	{
+		"original_line": "@ (cross(V(vin1) - vtrans, -1))  a = 0;", 
+		"bug_line": "@ (cross(V(vin2) - vtrans, -1))  a = 0;",
+		"error_description": "Changes the falling-edge trigger from vin1 to vin2, causing incorrect cross-signal interference where vin2's state modifies the vin1 input register."
+	},
+	{
+		"original_line": "	 if (vlogic_high < vlogic_low) begin", 
+		"bug_line": "	 if (vlogic_high == vlogic_low) begin",
+		"error_description": "Changed range check to equality comparison. Now fails to detect invalid configurations where vlogic_high is less than vlogic_low, allowing impossible logic thresholds."
+	},
+	{
+		"original_line": "@ (cross(V(vin2) - vtrans, -1))  b = 0;", 
+		"bug_line": "@ (cross(V(vin2) - vtrans, -1))  b = 1;",
+		"error_description": "Sets input b to high (1) instead of low (0) on falling edges of vin2. This inverts the expected logic state during low-voltage phases, causing incorrect sum and carry calculations in the adder."
+	}
+]

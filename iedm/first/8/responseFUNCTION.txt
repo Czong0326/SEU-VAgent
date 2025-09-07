@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "         if (log_to_file) begin", 
+		"bug_line": "         if (log_to_file <= 0) begin",
+		"error_description": "The condition now incorrectly logs when log_to_file is <= 0 instead of non-zero. This inverts the intended behavior since logging occurs when disabled (0) but fails when enabled (positive values)."
+	},
+	{
+		"original_line": "V(vd3) <+ vd_val[3];", 
+		"bug_line": "V(vd3) <+ vd_val[4];",
+		"error_description": "Assigns the voltage value intended for bit 4 (vd4) to bit 3 (vd3). This causes bit reversal in the DAC input pattern, corrupting all output voltages and DNL measurements."
+	},
+	{
+		"original_line": "@ ( timer(tnext)) begin // at a measurement point", 
+		"bug_line": "@ ( timer(tsettle)) begin // at a measurement point",
+		"error_description": "Changed timer event from variable 'tnext' to fixed parameter 'tsettle'. This causes only the first measurement (code 0) to occur at tsettle, while subsequent measurements scheduled at tnext (tsettle + increment) are never triggered since the event condition is fixed to tsettle."
+	},
+	{
+		"original_line": "tnext = tnext + tsettle;", 
+		"bug_line": "tnext = tnext + tsettle * 2;",
+		"error_description": "Doubles the settling time between code measurements, violating the tsettle parameter specification. This causes excessive delay in the test sequence, potentially missing transient responses and corrupting DNL calculations by introducing timing mismatches."
+	},
+	{
+		"original_line": "`define NUM_DAC_BITS 8", 
+		"bug_line": "`define NUM_DAC_BITS 7",
+		"error_description": "Reducing DAC bits from 8 to 7 causes array index overflow in vd_val[7] and code_mask[7] assignments. The module still processes 256 codes but only uses 7 bits, leaving the 8th bit (vd7) uninitialized and corrupting DNL calculations by mapping multiple codes to identical outputs."
+	},
+	{
+		"original_line": "max_dnl = abs(dnl[code]);", 
+		"bug_line": "max_dnl = dnl[code];",
+		"error_description": "Removed absolute value calculation, causing signed DNL values to be stored instead of magnitudes. This results in negative DNL values corrupting the maximum tracking logic since comparisons use absolute values, fundamentally breaking the DNL measurement by failing to identify the true maximum deviation."
+	},
+	{
+		"original_line": "real    code_vout[0:`NUM_CODES-1];", 
+		"bug_line": "real    code_vout[0:`NUM_CODES];",
+		"error_description": "The array size is increased to 257 elements (0 to 256) instead of 256 (0 to 255). This causes the DAC measurement to store an extra unused element, and more critically, the code later accesses indices 0-255 but initializes up to index 256, potentially including uninitialized data in DNL calculations when code reaches 255."
+	},
+	{
+		"original_line": "V(vd7) <+ vd_val[7];", 
+		"bug_line": "V(vd7) <+ vd_val[6];",
+		"error_description": "The most significant bit (vd7) is incorrectly driven by the voltage value of bit6 (vd_val[6]) instead of its own dedicated value (vd_val[7]). This causes the two highest bits to always share identical voltages, corrupting the DAC output for all codes where bit6 and bit7 should differ, leading to severe DNL calculation errors."
+	},
+	{
+		"original_line": "integer max_dnl_code;", 
+		"bug_line": "real max_dnl_code;",
+		"error_description": "Changed max_dnl_code from integer to real type. This causes a type mismatch in the $strobe statement where '%d' format specifier expects an integer but receives a real value, resulting in incorrect code number reporting during DNL output."
+	},
+	{
+		"original_line": "for (bit=0;bit<`NUM_DAC_BITS; bit=bit+1) begin", 
+		"bug_line": "for (bit=0;bit<=`NUM_DAC_BITS; bit=bit+1) begin",
+		"error_description": "Changed loop condition from < to <=, causing off-by-one error. This makes the loop run 9 times instead of 8, attempting to access vd_val[8] which is out of bounds (0-7). Results in undefined behavior or simulation crash."
+	},
+	{
+		"original_line": "V(vd7) <+ vd_val[7];", 
+		"bug_line": "V(vd0) <+ vd_val[7];",
+		"error_description": "The output driver for the MSB (vd7) is incorrectly redirected to the LSB terminal (vd0). This swaps the bit significance, causing all DAC codes to be misinterpreted and severely distorting the output."
+	},
+	{
+		"original_line": "width_expect = (code_vout[`NUM_CODES-1] - code_vout[0])", 
+		"bug_line": "width_expect = (code_vout[`NUM_CODES-1] + code_vout[0])",
+		"error_description": "Changed subtraction to addition, incorrectly calculating the expected step width as the sum of endpoint voltages instead of their difference. This causes the LSB calculation to be fundamentally wrong, propagating errors through all DNL measurements."
+	},
+	{
+		"original_line": "max_dnl_code = -1;", 
+		"bug_line": "max_dnl_code = 256;",
+		"error_description": "Initializing max_dnl_code to 256 (beyond valid code range 0-255) causes incorrect maximum DNL reporting. When no DNL exceeds 0, the invalid code 256 is reported instead of -1, violating expected behavior for unmeasured cases."
+	},
+	{
+		"original_line": "integer bit, mask;", 
+		"bug_line": "integer mask;",
+		"error_description": "The variable 'bit' is no longer declared, causing all loops that depend on it (bit index in DAC bit processing) to fail during compilation or runtime."
+	},
+	{
+		"original_line": "code_mask[bit] = mask;", 
+		"bug_line": "code_mask[bit] = mask * 0;",
+		"error_description": "Sets all mask values to zero instead of power-of-two bit masks, breaking the code-to-bit conversion logic. This causes all data lines to permanently read as low regardless of the input code, preventing DAC output measurement."
+	},
+	{
+		"original_line": "for (bit=0; bit < `NUM_DAC_BITS; bit=bit+1) begin", 
+		"bug_line": "for (bit=0; bit <= `NUM_DAC_BITS; bit=bit+1) begin",
+		"error_description": "Changed loop condition from '<' to '<=', causing an extra iteration (bit=8). This writes beyond the allocated vd_val[0:7] and code_mask[0:7] arrays, corrupting adjacent memory and leading to undefined behavior."
+	},
+	{
+		"original_line": "max_dnl_code = code;", 
+		"bug_line": "max_dnl_code = code + 1;",
+		"error_description": "Off-by-one error causes reporting of incorrect DAC code for maximum DNL. The module incorrectly attributes the DNL peak to the subsequent code rather than the actual problematic transition, misrepresenting the failure location in test results."
+	},
+	{
+		"original_line": "      end else begin			// finished", 
+		"bug_line": "      end else if (code > 0) begin			// finished",
+		"error_description": "The modified condition prevents the 'finished' state from triggering when code reaches 256, as 'code > 0' is always true after the first iteration. This prevents the DNL calculation from ever executing since the finalization block requires the 'just_finished' flag to be set."
+	},
+	{
+		"original_line": "      real    max_dnl;", 
+		"bug_line": "      real    max_dnl = 1000.0;",
+		"error_description": "Initializing max_dnl to 1000.0 prevents the condition (max_dnl < abs(dnl[code])) from ever being true for typical DNL values (which are fractions of an LSB). As a result, the reported maximum DNL remains 1000.0 and the code remains -1, which is incorrect."
+	},
+	{
+		"original_line": "                        / (`NUM_CODES - 1);", 
+		"bug_line": "                        / (`NUM_CODES);",
+		"error_description": "Changed divisor from (`NUM_CODES - 1) to (`NUM_CODES). This calculates the expected step size using 256 divisions instead of 255, incorrectly defining the ideal LSB voltage. Since DAC codes range from 0 to 255, there are only 255 steps between them, not 256."
+	}
+]

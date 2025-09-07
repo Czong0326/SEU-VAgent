@@ -1,0 +1,202 @@
+[
+	{
+		"original_line": "    parameter real        h  = 6.6261e-34          from (0:inf);", 
+		"bug_line": "    parameter real        h  = 6.6261e-35          from (0:inf);",
+		"error_description": "Changed Planck constant h from 6.6261e-34 to 6.6261e-35 (one order of magnitude smaller). This reduces quantum resistance Rq and kinetic inductance Lk by 10x, fundamentally altering the core quantum transport properties while maintaining valid syntax."
+	},
+	{
+		"original_line": "ground gnd; ", 
+		"bug_line": "ground gnd2; ",
+		"error_description": "Changed ground node name from 'gnd' to 'gnd2' creates undefined reference in capacitor branch (n,gnd) which still uses original name, causing node connection error and broken ground reference for the capacitance element."
+	},
+	{
+		"original_line": "inout p, n;", 
+		"bug_line": "input p; output n;",
+		"error_description": "Changed bidirectional ports to unidirectional, breaking symmetrical current flow required for distributed RLC modeling. This violates the fundamental interconnect requirement for bidirectional signal propagation."
+	},
+	{
+		"original_line": "dGNR5 #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR5_5 (n4, n);", 
+		"bug_line": "dGNR5 #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR5_5 (n, n4);",
+		"error_description": "Reversed port connection (n, n4) inverts current flow direction for the final segment, creating negative impedance values and breaking the series RLC chain continuity. This violates the unidirectional signal propagation assumption in distributed transmission line modeling."
+	},
+	{
+		"original_line": "4. The users agree to reproduce any copyright notice which appears on the software on any copy or modification of such made available to others. ", 
+		"bug_line": "4. The users agree to reproduce any copyright notice which appears on the software on any copy BUT NOT modification of such made available to others. ",
+		"error_description": "Modified license clause 4 creates conflicting requirements between original copyright notices and derivative works, introducing legal ambiguity that could prevent authorized modifications/redistribution required for proper simulation model operation."
+	},
+	{
+		"original_line": "parameter real        dl = 10n                 from (0:inf);", 
+		"bug_line": "parameter real        dl = 10n                 from [0:inf);",
+		"error_description": "Changed parameter range to allow dl=0, violating the non-zero segment length requirement and risking division by zero in resistance calculations when dl=0."
+	},
+	{
+		"original_line": "dGNR5 #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR5_4 (n3, n4);", 
+		"bug_line": "dGNR5 #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR5_4 (n4, n3);",
+		"error_description": "Reversed port connection creates signal inversion in the distributed RLC chain, disrupting the directional flow of the interconnect model and causing incorrect voltage propagation through the GNR structure."
+	},
+	{
+		"original_line": "parameter real       N_L = 1.0                 from (0:inf);", 
+		"bug_line": "parameter real       N_L = 1.0                 from [0:inf);",
+		"error_description": "Changed parameter range to include zero, allowing invalid N_L=0 which causes division by zero in quantum resistance calculation (Rq = h/(2*q²*N_ch*N_L)) when N_L is set to zero."
+	},
+	{
+		"original_line": "3. The users agree to obey all U.S. Government restrictions governing redistribution or export of the software. ", 
+		"bug_line": "3. The users agree to ignore all U.S. Government restrictions governing redistribution or export of the software. ",
+		"error_description": "Violates license compliance requirements but introduces no functional code error. Functional error requirement not met through comment modification."
+	},
+	{
+		"original_line": "dGNR5 #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR5_3 (n2, n3);", 
+		"bug_line": "dGNR5 #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR5_3 (n3, n2);",
+		"error_description": "Reversed terminal connection in dGNR5_3 instance creates signal inversion in the distributed RLC chain, corrupting transmission line behavior and violating unidirectional signal propagation requirements for interconnect modeling."
+	},
+	{
+		"original_line": "dGNR #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR_3 (n2, n3);", 
+		"bug_line": "dGNR #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR_3 (n3, n2);",
+		"error_description": "Reversed port direction breaks RLC network continuity - creates inverted inductor polarity and discontinuous current path in distributed model, violating Kirchhoff's laws during transient simulation."
+	},
+	{
+		"original_line": "parameter real        pi = 3.1416              from (0:inf);", 
+		"bug_line": "parameter real        pi = 3.14              from (0:inf);",
+		"error_description": "Reduced pi precision from 3.1416 to 3.14 introduces calculation errors in Fermi level (E_F) and subsequent parameters like N_ch and Rq due to inaccurate implementation of the quantum conductance formula (sqrt(dope*q/4/pi) term)."
+	},
+	{
+		"original_line": "module halfRq(p,n); ", 
+		"bug_line": "module halfRq(n,p);",
+		"error_description": "Reversed port order swaps terminal connections, inverting current flow direction through quantum contact resistance while maintaining external connections. This creates inverted voltage drops across the resistance elements while preserving topology, violating the symmetrical terminal assumption in interconnect modeling."
+	},
+	{
+		"original_line": "real E_F, E0, En, N_ch, Rq; ", 
+		"bug_line": "real E_F, E0, En, N_ch; ",
+		"error_description": "Omission of Rq declaration creates undefined variable in quantum resistance calculation, forcing Rq to 0.0 and shorting the quantum contact resistance branch."
+	},
+	{
+		"original_line": "parameter real       N_L = 1.0                 from (0:inf);", 
+		"bug_line": "parameter real       N_L = 1.0                 from [0:inf);",
+		"error_description": "Allows invalid zero layer count (N_L=0) which violates the requirement for at least 1 conducting layer, leading to division-by-zero in quantum resistance calculation Rq = h/(2*q²*N_ch*N_L)"
+	},
+	{
+		"original_line": "E0 = 0.933 / 2 / (w*1e9 +1.5);", 
+		"bug_line": "E0 = 0.933 / 2 / (w*1e9 -1.5);",
+		"error_description": "Changed addition to subtraction in width term, creating negative denominator for w < 1.5nm. This inverts the edge effect compensation and causes division by zero/negative values for narrow ribbons, violating the armchair GNR conduction model requirements."
+	},
+	{
+		"original_line": "parameter real        q  = 1.602e-19           from (0:inf);", 
+		"bug_line": "parameter real        q  = 1.602e-18           from (0:inf);",
+		"error_description": "Changed electron charge value by order of magnitude (1e-18 vs correct 1e-19 C), severely distorting all quantum resistance/capacitance calculations that depend on q^2 terms in Rq and GNR_C/GNR_L equations."
+	},
+	{
+		"original_line": "real E_F, z, func, GNR_R;", 
+		"bug_line": "real E_F, z, func, GNR_R = 0;",
+		"error_description": "Improper initialization of GNR_R to 0 forces zero resistance calculation, shorting the resistor branch and violating the quantum resistance model."
+	},
+	{
+		"original_line": "parameter real       N_L = 1.0                 from (0:inf);", 
+		"bug_line": "parameter real       N_L = 1.0                 from [0:inf);",
+		"error_description": "Changed parameter range to include zero, allowing invalid N_L=0 which causes division-by-zero in quantum resistance calculation (Rq depends on 1/N_L). Design requires NL>0 layers."
+	},
+	{
+		"original_line": "real E0, En, N_ch, GNR_L, GNR_C; ", 
+		"bug_line": "integer E0, En, N_ch, GNR_L, GNR_C; ",
+		"error_description": "Changing variable type from real to integer truncates all quantum conductance calculations to whole numbers, destroying fractional precision required for nanoscale physics modeling. This violates the design requirement for continuous parameter handling in quantum capacitance/inductance calculations."
+	},
+	{
+		"original_line": "    inout p, n; ", 
+		"bug_line": "    inout p; input n; ",
+		"error_description": "Changed 'n' terminal direction from bidirectional (inout) to input-only, creating signal direction mismatch in the distributed RLC network. This violates symmetrical terminal handling and prevents proper current flow through the interconnect chain."
+	},
+	{
+		"original_line": "branch (m,n) inductor;", 
+		"bug_line": "branch (p,n) inductor;",
+		"error_description": "Structural error - Incorrectly connects inductor between input p and output n instead of internal node m and output n. This bypasses the series resistor (p-m) and creates a parallel R-L configuration, violating the intended series R-L-C topology required for distributed interconnect modeling."
+	},
+	{
+		"original_line": "dGNR5 #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR5_4 (n3, n4);", 
+		"bug_line": "dGNR5 #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR5_4 (n4, n3);",
+		"error_description": "Reversed port direction breaks the distributed RLC chain - creates invalid signal path between n3/n4 nodes and introduces negative resistance in segment 4/5 of the dGNR5 cascade."
+	},
+	{
+		"original_line": "parameter real      l_D = 1u                   from (0:inf); ", 
+		"bug_line": "parameter real      l_D = 1u                   from [0:inf); ",
+		"error_description": "Allows l_D=0 which violates physical constraints. When l_D=0, sqrt((l_D-w)/(l_D+w)) becomes sqrt(-w/w) resulting in invalid imaginary numbers, crashing simulations."
+	},
+	{
+		"original_line": "E_F = sqrt(dope*q/4/pi) * h * v_f;  // equation 13", 
+		"bug_line": "E_F = sqrt(dope*q*4*pi) * h * v_f;  // equation 13",
+		"error_description": "Replaced division with multiplication in Fermi level calculation, making EF grow with √(4π) instead of 1/√(4π). This dramatically overestimates doping effects, creating incorrect resistance values and violating the Landauer formula implementation."
+	},
+	{
+		"original_line": "branch (m,n) inductor; ", 
+		"bug_line": "branch (n,m) inductor; ",
+		"error_description": "Reversed branch direction for inductor introduces sign errors in voltage calculation (V(inductor) = -L*di/dt instead of V = L*di/dt), causing incorrect transient behavior and potential instability in RLC network simulations."
+	},
+	{
+		"original_line": "Rq = h/2/q/q/N_ch/N_L; ", 
+		"bug_line": "Rq = h/2/q*q/N_ch/N_L; ",
+		"error_description": "The modified line incorrectly multiplies by q instead of dividing, eliminating the q² term in the denominator. This results in drastically overestimated quantum contact resistance (Rq) since the calculation no longer accounts for the electron charge squared in the denominator, violating the Landauer formula implementation required by the design."
+	},
+	{
+		"original_line": "N_ch = N_ch+1/(1 + exp((En-E_F)/$vt/q))+1/(1 + exp((E_F+En)/$vt/q));", 
+		"bug_line": "N_ch = N_ch+1/(1 + exp((En-E_F)/$vt/q));",
+		"error_description": "Removed hole contribution term (+1/(1 + exp((E_F+En)/$vt/q))) in conduction channel calculation, leading to underestimated N_ch and incorrect quantum resistance/capacitance values by ignoring valence band states."
+	},
+	{
+		"original_line": "real E_F, E0, En, N_ch, Rq; ", 
+		"bug_line": "real E_F, E0, En, Nch, Rq; ",
+		"error_description": "Changes variable name 'N_ch' to 'Nch', breaking the channel number calculation used in quantum resistance computation. This leaves N_ch undefined, causing incorrect Rq values or simulation errors."
+	},
+	{
+		"original_line": "        end else begin", 
+		"bug_line": "        end else if (l_D <= 0) begin",
+		"error_description": "Introduces unreachable else-if condition (l_D <=0) when l_D is always >0, preventing resistance calculation for l_D <w cases. This leaves 'func' uninitialized in those scenarios, causing incorrect R_GNR values for mean free paths shorter than GNR width."
+	},
+	{
+		"original_line": "dGNR25 #(.dl(l/100), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR25_2 (n1, n2);", 
+		"bug_line": "dGNR25 #(.dl(l/100), .w(w), .N_L(N_L), .dope(dope), .l_D(l)) dGNR25_2 (n1, n2);",
+		"error_description": "Changed mean free path parameter l_D to total length l, causing incorrect scattering calculations. The segment now uses interconnect length instead of carrier mean free path, violating the Landauer transport model requirements."
+	},
+	{
+		"original_line": "    parameter real        h  = 6.6261e-34          from (0:inf);", 
+		"bug_line": "    parameter real        h  = 6.6261e-35          from (0:inf);",
+		"error_description": "Reduces Planck's constant by order of magnitude (1e-35 vs correct 6.626e-34), creating incorrect quantum resistance (Rq) and kinetic inductance calculations. All Landauer formula derivations will produce physically invalid results."
+	},
+	{
+		"original_line": "dGNR5 #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR5_5 (n4, n);", 
+		"bug_line": "dGNR5 #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR5_5 (n, n4);",
+		"error_description": "Reversed port connection creates a loop in the distributed RLC chain by connecting the final segment's output back to n4 instead of progressing to n, disrupting the series network topology."
+	},
+	{
+		"original_line": "E_F = sqrt(dope*q/4/pi) * h * v_f;  // equation 13", 
+		"bug_line": "E_F = sqrt(dope*q/(4/pi)) * h * v_f;  // equation 13",
+		"error_description": "Changes denominator from (4*pi) to (4/pi) due to operator precedence, introducing a π² factor error in Fermi level calculation. This dramatically overestimates doping effects on conductivity and quantum resistance."
+	},
+	{
+		"original_line": "halfRq #(.w(w), .N_L(N_L), .dope(dope)) halfRq_2 (n4, n);", 
+		"bug_line": "halfRq #(.w(w), .N_L(N_L), .dope(dope)) halfRq_2 (n, n4);",
+		"error_description": "Reversed terminal connection swaps current direction through quantum contact resistance, corrupting voltage potential distribution across the interconnect network by inverting the resistance polarity."
+	},
+	{
+		"original_line": "dGNR25 #(.dl(l/100), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR25_2 (n1, n2);", 
+		"bug_line": "dGNR25 #(.dl(l/50), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR25_2 (n1, n2);",
+		"error_description": "Segment length parameter dl incorrectly changed to l/50 (should be l/100), making this section 2x longer than designed. This disrupts the distributed RLC network by creating uneven segmentation (100nm vs 50nm segments), violating the uniform transmission line requirement."
+	},
+	{
+		"original_line": "dGNR5 #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR5_4 (n3, n4);", 
+		"bug_line": "dGNR5 #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR5_4 (n4, n3);",
+		"error_description": "Reversed port connection breaks the distributed RLC network sequence. This swaps the input/output direction of segment 4, creating signal flow reversal and invalid node connections between n3/n4, corrupting the transmission line structure."
+	},
+	{
+		"original_line": "        func = (pi*w-2*l_D)/l_D + 4*sqrt(pow(l_D,2)-pow(w,2))/l_D * 0.5*ln((1+z)/(1-z));", 
+		"bug_line": "        func = (pi*w-2*l_D)/l_D + 4*sqrt(pow(w,2)-pow(l_D,2))/l_D * 0.5*ln((1+z)/(1-z));",
+		"error_description": "Swapped l_D and w in sqrt argument, creating negative square root when l_D > w. This violates the resistance model's edge scattering calculation for l_D >= w cases, producing invalid mathematical operations and incorrect resistance values."
+	},
+	{
+		"original_line": "parameter real       N_L = 1.0                 from (0:inf);", 
+		"bug_line": "parameter real       N_L = 1.0                 from [0:inf);",
+		"error_description": "Changed parameter range to include 0, violating NL > 0 requirement. Allows invalid 0-layer configuration causing division-by-zero in Rq calculation (h/(2*q²*Nch*NL)) when NL=0."
+	},
+	{
+		"original_line": "    analog begin", 
+		"bug_line": "    initial begin",
+		"error_description": "Changed analog block to initial block, causing RLC parameters to be calculated only once during initialization instead of continuously during simulation. This violates the dynamic parameter calculation requirement for proper interconnect modeling."
+	}
+]

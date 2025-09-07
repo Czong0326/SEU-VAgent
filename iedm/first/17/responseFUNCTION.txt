@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "module dig_vco(vin, vout);", 
+		"bug_line": "module dig_vco(vout, vin);",
+		"error_description": "Swapped input/output ports: vin becomes output port and vout becomes input port. This reverses signal directionality, causing input control voltage to drive the output pin while the oscillator output tries to read from what should be the input pin."
+	},
+	{
+		"original_line": "integ_dir = 1.0;", 
+		"bug_line": "integ_dir = 0.0;",
+		"error_description": "Initial integration direction set to zero prevents the triangle wave from oscillating. This halts the VCO output at vlogic_low since cross events never trigger, violating the requirement for continuous oscillation."
+	},
+	{
+		"original_line": "input vin;", 
+		"bug_line": "output vin;",
+		"error_description": "Changed port direction from input to output. This violates the design as 'vin' is a control input that should only be read, not driven. Output direction would cause contention when external signals drive this port."
+	},
+	{
+		"original_line": "parameter real vlogic_high = 5;", 
+		"bug_line": "parameter real vlogic_high = 0;",
+		"error_description": "Sets high logic level to 0V, identical to default vlogic_low (0V). This causes constant 0V output, eliminating the square wave oscillation required for VCO functionality."
+	},
+	{
+		"original_line": "input vin;", 
+		"bug_line": "output vin;",
+		"error_description": "Changed input port to output direction. This violates the design specification where 'vin' must be an input control voltage. The module now incorrectly treats the control voltage as an output, causing functional mismatch and potential driver conflicts."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( final_step ) begin",
+		"error_description": "Changed initial_step to final_step event. The integration direction 'integ_dir' now initializes at simulation end instead of start, leaving it uninitialized (0.0) during operation. This prevents triangle wave generation, halting oscillator output."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "parameter real center_freq = 2.5K;",
+		"error_description": "Redeclares 'center_freq' as a parameter at module scope, creating duplicate definition conflict with existing parameter declaration. This violates Verilog-A scoping rules and prevents frequency customization."
+	},
+	{
+		"original_line": "integ_dir = 1.0;", 
+		"bug_line": "integ_dir = 0.0;",
+		"error_description": "Initializing integ_dir to 0.0 instead of 1.0 prevents the triangle wave integrator from starting. With zero integration rate, the triangle value remains constant at 0, never triggering cross events or oscillation. The VCO output gets stuck at its initial state (vlogic_low) instead of generating a square wave."
+	},
+	{
+		"original_line": "input vin;", 
+		"bug_line": "output vin;",
+		"error_description": "Changed input port to output direction. This violates the design by reversing signal flow - external voltage control input now becomes driven output, causing driver conflicts and preventing actual input frequency modulation."
+	},
+	{
+		"original_line": "module dig_vco(vin, vout);", 
+		"bug_line": "module dig_vco(vout, vin);",
+		"error_description": "Swapped input/output port order causes signal reversal - external input now drives internal output port and vice versa, fundamentally breaking VCO functionality by inverting signal flow direction."
+	},
+	{
+		"original_line": "V(vout) <+ transition(vout_val, tdel, trise, tfall);", 
+		"bug_line": "V(vout) <+ transition(triangle, tdel, trise, tfall);",
+		"error_description": "Replaced 'vout_val' with 'triangle' variable. Instead of outputting the square wave (vlogic_high/vlogic_low), this outputs the internal triangle waveform, violating the digital oscillator specification that requires a square wave output."
+	},
+	{
+		"original_line": "   real vout_val;", 
+		"bug_line": "   real vout_val = vlogic_low;",
+		"error_description": "Initializes output value to vlogic_low, causing the first full oscillation period (until first zero crossing) to remain stuck at low level instead of producing a square wave. Violates required 50% duty cycle from startup."
+	},
+	{
+		"original_line": "parameter real vlogic_low  = 0;", 
+		"bug_line": "parameter real vlogic_low  = 5;",
+		"error_description": "Sets the low logic level to 5V, matching the default high logic level (5V). This causes constant 5V output instead of a square wave since both logic states become identical."
+	},
+	{
+		"original_line": "triangle = idt(integ_dir*(center_freq + vco_gain*V(vin)), 0);", 
+		"bug_line": "triangle = idt(integ_dir*(center_freq - vco_gain*V(vin)), 0);",
+		"error_description": "Changed '+' to '-' in frequency calculation, causing inverted VCO response where frequency decreases with increasing input voltage instead of increasing."
+	},
+	{
+		"original_line": "parameter real trise = 1n from (0:inf);", 
+		"bug_line": "parameter real trise = 0 from (0:inf);",
+		"error_description": "Setting trise to zero violates the range constraint (0:inf) and causes functional failure in the transition function, as zero rise time creates discontinuities that break analog simulation convergence."
+	},
+	{
+		"original_line": "output vout;", 
+		"bug_line": "input vout;",
+		"error_description": "Changed output port to input direction. This violates the design specification where 'vout' must drive the generated square wave signal. Making it input prevents output signal generation and causes illegal driving conflicts in the analog block."
+	},
+	{
+		"original_line": "freq = center_freq + vco_gain*V(vin);", 
+		"bug_line": "freq = center_freq - vco_gain*V(vin);",
+		"error_description": "Changed the '+' to '-' in the frequency calculation, reversing the VCO gain effect. Higher input voltages now decrease output frequency instead of increasing it, violating the intended voltage-to-frequency conversion behavior."
+	},
+	{
+		"original_line": "   real freq;", 
+		"bug_line": "   integer freq;",
+		"error_description": "Changing 'freq' from real to integer truncates fractional frequency values during calculation (center_freq + vco_gain*V(vin)), causing quantization errors in the output oscillation frequency that violate the analog design specification."
+	},
+	{
+		"original_line": "V(vout) <+ transition(vout_val, tdel, trise, tfall);", 
+		"bug_line": "V(vout) <+ transition(vout_val, tfall, trise, tdel);",
+		"error_description": "Swapped delay time (tdel) and fall time (tfall) parameters in the transition function, causing incorrect timing where the output fall time incorrectly acts as signal delay and vice versa."
+	},
+	{
+		"original_line": "real vout_val;", 
+		"bug_line": "integer vout_val;",
+		"error_description": "Changing vout_val from real to integer causes truncation of output voltage levels (vlogic_high/vlogic_low) to integer values, violating the design specification for analog voltage output precision."
+	}
+]

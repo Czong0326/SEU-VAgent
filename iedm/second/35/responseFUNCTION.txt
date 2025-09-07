@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "			niki = nik / tmp4;", 
+		"bug_line": "			niki = nik / tmp2;",
+		"error_description": "The k-site ionized donor concentration incorrectly uses the h-site denominator (tmp2) instead of the k-site denominator (tmp4). This logical error distorts the ionized donor concentration calculation, leading to incorrect charge neutrality and carrier concentrations in the semiconductor model."
+	},
+	{
+		"original_line": "tmp = x / y;", 
+		"bug_line": "tmp = x * y;",
+		"error_description": "Replaced division with multiplication, fundamentally altering the symmetric ratio calculation required for soft limiting. This error violates the function's purpose of odd-symmetric soft limiting by incorrectly computing the input ratio, causing distorted output characteristics."
+	},
+	{
+		"original_line": "tmp4 = 1.0 + tmp3;", 
+		"bug_line": "tmp4 = 1.0 - tmp3;",
+		"error_description": "Sign inversion in the denominator for k-site impurity ionisation calculation. Changes the physical model from 1 + g·exp(ΔE) to 1 - g·exp(ΔE), causing negative concentrations when g·exp(ΔE) > 1 and violating charge conservation principles."
+	},
+	{
+		"original_line": "real cgs0, phij0, vgd, vgs, vto, vjt, delta1, delta2, vjl, tmp;", 
+		"bug_line": "real cgs0, phij0, vgd, vgs, vto, vjt, delta1, delta2, tmp;",
+		"error_description": "The variable 'vjl' is not declared, causing an undefined variable error during compilation. This prevents the calculation of the limited junction voltage needed for charge computation in the else branch."
+	},
+	{
+		"original_line": "analog function real njf_dg_sat_volt;", 
+		"bug_line": "analog function integer njf_dg_sat_volt;",
+		"error_description": "Changed return type from real to integer, causing incorrect numerical precision and potential truncation errors in voltage calculations."
+	},
+	{
+		"original_line": "        		niki = nik / tmp4;", 
+		"bug_line": "        		niki = nik * tmp4;",
+		"error_description": "Replaced division with multiplication, causing overestimation of ionized k-site impurities by a factor of (1 + gik * exp(epsik - x))^2 instead of the correct Fermi-Dirac statistics, disrupting charge neutrality calculations."
+	},
+	{
+		"original_line": "analog function real njf_dg_sat_volt;", 
+		"bug_line": "analog function real njf_dg_sat_volt_wrong;",
+		"error_description": "Changed function name to 'njf_dg_sat_volt_wrong', causing undefined function errors when called elsewhere in the model since the original function name is referenced in other modules."
+	},
+	{
+		"original_line": "    input phij0, phipo;", 
+		"bug_line": "    input phipo, phij0;",
+		"error_description": "Swapped input order causes reversed subtraction in function body (phij0 - phipo becomes phipo - phij0). This inverts the turn-off voltage calculation, breaking the JFET model's threshold behavior."
+	},
+	{
+		"original_line": "njf_sg_gd_chrg = cgd0 * soft_min(vgs, vgd, delta1);", 
+		"bug_line": "njf_sg_gd_chrg = cgd0 * soft_max(vgs, vgd, delta1);",
+		"error_description": "Replaced soft_min with soft_max, causing the gate-drain depletion charge calculation to use the maximum voltage instead of the minimum. This incorrectly increases the depletion charge when vgs and vgd differ, violating the physical behavior where charge should be limited by the smaller controlling voltage."
+	},
+	{
+		"original_line": "c		Real part of complex number", 
+		"bug_line": "c		Imaginary part of complex number",
+		"error_description": "Swapped variable description causes incorrect output assignment. The function now incorrectly labels the real part (c) as imaginary, while the imaginary part (d) remains correctly labeled but the code logic remains unchanged. This mismatch will cause callers to misinterpret the outputs, using the real part as imaginary and vice versa in subsequent calculations."
+	},
+	{
+		"original_line": "    n0prime = 0.0;", 
+		"bug_line": "    n0prime = 1.0;",
+		"error_description": "Changes the derivative of electron concentration from 0 to 1.0 in p-type material. This incorrect derivative disrupts the Newton-Raphson convergence for charge neutrality calculations, causing inaccurate carrier concentrations and electrochemical potential in p-type semiconductors."
+	},
+	{
+		"original_line": "    if (xi == 0.0)", 
+		"bug_line": "    if (xi == 1.0)",
+		"error_description": "Changed the condition from checking if transport parameter xi is zero to checking if it equals one. This causes the simple saturation voltage formula to be incorrectly used when xi=1 (where complex calculation is needed), and skips the simple case when xi=0, violating the intended branch logic."
+	},
+	{
+		"original_line": "            input ndi, nai;", 
+		"bug_line": "            output ndi, nai;",
+		"error_description": "Changed input direction to output for ndi/nai. These variables represent ionised impurity concentrations used in calculations, but declaring them as outputs makes them function parameters rather than internal variables. This violates data flow as the function expects these as inputs for energy shift calculations, causing undefined behavior when called without passing these outputs."
+	},
+	{
+		"original_line": "				channel approximation and depletion approximation.", 
+		"bug_line": "				channel approximation and accumulation approximation.",
+		"error_description": "Changed 'depletion approximation' to 'accumulation approximation', misrepresenting the underlying physical model. This violates the design specification which relies on depletion approximation for junction capacitance calculations, leading to incorrect modeling assumptions."
+	},
+	{
+		"original_line": "analog function real soft_lim;", 
+		"bug_line": "analog function integer soft_lim;",
+		"error_description": "Changed return type from 'real' to 'integer'. This introduces a type mismatch since the function returns fractional values from continuous analog calculations, causing truncation errors when assigned to integer variables."
+	},
+	{
+		"original_line": "`define FUNCTIONS_VA 1", 
+		"bug_line": "`define FUNCTIONS_VA 0",
+		"error_description": "Changed macro value from 1 to 0. This causes conditional inclusion failures throughout the codebase since `ifdef FUNCTIONS_VA checks will now fail (0 evaluates as undefined). All subsequent function definitions will be skipped, breaking all modules dependent on these common functions."
+	},
+	{
+		"original_line": "    endfunction", 
+		"bug_line": "    endtask",
+		"error_description": "Replaced 'endfunction' with 'endtask', causing a compilation error due to mismatched block termination. Functions must end with 'endfunction', while 'endtask' is used for tasks. This violates VerilogA syntax rules and prevents the ionisation function from being recognized properly."
+	},
+	{
+		"original_line": "    real phij01, phipo1, phij2, phipo2;", 
+		"bug_line": "    real phij01, phipo1, phij2, phipo1;",
+		"error_description": "Duplicate variable 'phipo1' replaces 'phipo2'. This causes secondary gate pinch-off potential (phipo2) to be overwritten by primary gate value, corrupting the turn-off voltage calculation in njf_dg_to_volt() by using identical potentials for both gates."
+	},
+	{
+		"original_line": "yprime = -0.5 * (tmp1 / tmp5 + tmp2 / tmp6) - 2.0 * tmp9 * y;", 
+		"bug_line": "yprime = -0.5 * (tmp1 / tmp5 + tmp2 / tmp6) + 2.0 * tmp9 * y;",
+		"error_description": "Sign reversal in derivative term (+ instead of -) causes Newton-Raphson iterations to diverge instead of converge, resulting in incorrect saturation voltage calculation for double-gate JFETs."
+	},
+	{
+		"original_line": "    Software) is provided are as the following:", 
+		"bug_line": "    Software) is provided are as the following: */",
+		"error_description": "Prematurely terminates the comment block with '*/', exposing the subsequent disclaimer text as invalid VerilogA code and causing compilation failure."
+	}
+]

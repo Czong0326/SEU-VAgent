@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "output vout;", 
+		"bug_line": "input vout;",
+		"error_description": "Changing port direction from output to input creates a conflict since the module drives vout internally. This violates the design where vout should be an output signal, causing potential short-circuit issues when connected to external drivers."
+	},
+	{
+		"original_line": "vint = vsum + vint;", 
+		"bug_line": "vint = vsum;",
+		"error_description": "Removed accumulator term (+ vint), breaking integrator functionality. The integrator now resets to vsum each clock cycle instead of accumulating values, destroying the sigma-delta modulation process."
+	},
+	{
+		"original_line": "   real vd;", 
+		"bug_line": "   real vd = vout_high;",
+		"error_description": "Initializes feedback variable 'vd' to full-scale output voltage, causing massive initial offset that corrupts the first integration cycle and propagates errors through subsequent modulation cycles."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* instrument_module_off *)",
+		"error_description": "Changing 'instrument_module' to 'instrument_module_off' disables critical simulation instrumentation. This prevents monitoring of internal analog states (vint/vsum) during verification, hiding integration errors that could cause quantization miscalculation in the sigma-delta ADC."
+	},
+	{
+		"original_line": "vint = vsum + vint;", 
+		"bug_line": "vint = vsum - vint;",
+		"error_description": "Changed integrator accumulation from addition to subtraction, reversing the feedback polarity and causing unstable oscillation instead of signal tracking."
+	},
+	{
+		"original_line": "   real vint ;", 
+		"bug_line": "   real vint = 1.0;",
+		"error_description": "Initializing the integrator state vint to 1.0 introduces a constant offset error. The design requires the integrator to start at 0.0 for correct operation, but the fixed initial value causes continuous signal distortion and violates the sigma-delta modulator's intended behavior."
+	},
+	{
+		"original_line": "@ (cross(V(vclk)-vtrans_clk, 1.0))begin", 
+		"bug_line": "@ (cross(V(vin)-vtrans_clk, 1.0))begin",
+		"error_description": "Sampling trigger incorrectly uses input signal vin instead of clock vclk, causing asynchronous sampling dependent on analog input rather than clock edges."
+	},
+	{
+		"original_line": "vsum = V(vin) - vd ;", 
+		"bug_line": "vsum = V(vin) + vd ;",
+		"error_description": "Changed subtraction to addition, creating positive feedback instead of negative feedback. This disrupts the sigma-delta modulation by causing integrator runaway and unstable output behavior."
+	},
+	{
+		"original_line": "real vint ;", 
+		"bug_line": "real vint = 1.0;",
+		"error_description": "Initializing the integrator state variable vint to 1.0 causes incorrect startup behavior. The design requires vint to start at 0.0 for proper integration, violating the intended analog signal processing functionality."
+	},
+	{
+		"original_line": "output vout;", 
+		"bug_line": "input vout;",
+		"error_description": "Changed port direction from output to input, violating module interface specification. This causes compilation errors due to conflicting port directions and prevents driving the ADC output signal."
+	},
+	{
+		"original_line": "V(vout) <+ transition(vout_val, tdel, trise, tfall);", 
+		"bug_line": "V(vout) <+ transition(vout_high * vout_val, tdel, trise, tfall);",
+		"error_description": "The output voltage incorrectly scales vout_val by vout_high, creating a feedback conflict since vd already uses scaled vout_val, causing integrator instability and incorrect quantization."
+	},
+	{
+		"original_line": "parameter real vth=0.0 ;", 
+		"bug_line": "parameter real vth=1.0 ;",
+		"error_description": "Changed quantizer threshold from 0V to 1V. This causes asymmetric quantization where positive inputs are incorrectly quantized as low (-1) until the integrator output exceeds 1V, violating the 2-level symmetric quantization design."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( final_step ) begin",
+		"error_description": "Changed initialization event from simulation start to simulation end. This prevents critical variables (vout_val, hi, lo) from being initialized, leaving them at default 0.0 values. The quantizer and DAC feedback will malfunction since vd = 0 * 0 = 0, breaking the sigma-delta modulation loop."
+	},
+	{
+		"original_line": "parameter real vout_high=5.0 ;", 
+		"bug_line": "parameter real vout_high=0.0 ;",
+		"error_description": "Setting vout_high to 0.0 disables the feedback loop by making the DAC output (vd) always zero. This breaks sigma-delta modulation as the integrator receives no correction signal, causing uncontrolled accumulation of input voltage and loss of noise-shaping functionality."
+	},
+	{
+		"original_line": "output vout;", 
+		"bug_line": "input vout;",
+		"error_description": "Changed port direction from output to input. The module attempts to drive vout internally while it's declared as input, causing simulation errors due to driving an input port."
+	},
+	{
+		"original_line": "parameter real vtrans_clk=2.5 ;", 
+		"bug_line": "parameter real vtrans_clk= -2.5 ;",
+		"error_description": "Negative clock threshold voltage causes incorrect triggering since real clock voltages are positive. The cross() event will never detect transitions, halting ADC operation as clock events are never processed."
+	},
+	{
+		"original_line": "vsum = V(vin) - vd ;", 
+		"bug_line": "vsum = V(vin) + vd ;",
+		"error_description": "Changed negative feedback to positive feedback by replacing subtraction with addition. This causes the modulator to become unstable and latch up instead of tracking the input signal."
+	},
+	{
+		"original_line": "parameter real tfall=20n from (0:inf);", 
+		"bug_line": "parameter real tfall=0 from (0:inf);",
+		"error_description": "Setting tfall=0 violates the range constraint (0:inf) which excludes zero, causing undefined behavior in transition functions. This forces instantaneous voltage transitions which may create discontinuities and numerical instability during simulation."
+	},
+	{
+		"original_line": "real vd;", 
+		"bug_line": "real vd = 1.0;",
+		"error_description": "Initializes feedback voltage vd to 1.0V instead of default 0.0V. This incorrect offset propagates through the sigma-delta loop, causing continuous integration errors and disrupting the modulator's noise-shaping behavior by introducing a DC bias in the output."
+	},
+	{
+		"original_line": "vout_val = hi ;", 
+		"bug_line": "vout_val = lo;",
+		"error_description": "Quantizer incorrectly outputs low value (lo) when integrated voltage (vint) exceeds threshold (vth), violating the design where high output (hi) should be produced for above-threshold conditions. This inverts the quantization logic."
+	}
+]

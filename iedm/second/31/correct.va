@@ -1,0 +1,43 @@
+// IEEE 1801-2015 Standard Header
+`include "disciplines.vams"
+
+module res_linear_template (p, n);
+inout p, n;
+electrical p, n;
+
+// Process parameters with typical values/units
+parameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]
+parameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]
+parameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]
+parameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]
+
+// Safety protection for resistance value
+generate if (R0 <= 0) begin
+  initial $display("Fatal Error: R0 must be positive!");
+end
+endgenerate
+
+// Temperature-dependent resistance calculation
+analog begin
+  // Get simulation temperature (in Celsius)
+  real temp = $temperature;
+
+  // Calculate temperature deviation from reference
+  real delta_T = temp - T_REF;
+
+  // Resistance calculation with temperature compensation
+  real R_actual = R0 * (1 + 
+                      TC1*1e-6 * delta_T +        // 1st-order temp effect
+                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect
+                    );
+
+  // Implement Ohm's Law with final resistance
+  I(p,n) <+ V(p,n) / R_actual;  // I = V/R
+
+  // Parameter validation during simulation
+  if (R_actual <= 0) begin
+    $strobe("Warning: Negative resistance detected at %t!", $realtime);
+  end
+end
+
+endmodule

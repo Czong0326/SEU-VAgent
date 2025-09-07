@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "`define __RBT_THERMAL_VA__", 
+		"bug_line": "`define __RBT_THERMAL_VA_BUGGY__",
+		"error_description": "Modified include guard macro name breaks conditional compilation. The module will be redefined during multiple inclusions causing compilation errors."
+	},
+	{
+		"original_line": "analog begin", 
+		"bug_line": "analog initial_step begin",
+		"error_description": "Changed the analog block to execute only during initial step. This prevents continuous thermal updates, causing the temperature to remain fixed after initialization and violating dynamic thermal behavior requirements."
+	},
+	{
+		"original_line": "parameter real rbt_THK = `RBT_THK from (0:inf);	// Thickness of the bar", 
+		"bug_line": "parameter real rbt_THK = `RBT_THK from (inf:0);	// Thickness of the bar",
+		"error_description": "Reversed range (inf:0) creates an invalid parameter constraint where lower bound > upper bound. This allows negative/zero thickness values, causing Cth=0 in thermal capacitance calculation and division-by-zero risk in thermal modeling."
+	},
+	{
+		"original_line": "localparam Cth = rbt_cm * rbt_rho * rbt_W * rbt_L * rbt_THK;", 
+		"bug_line": "localparam Cth = rbt_cm * rbt_rho * rbt_W * rbt_L;",
+		"error_description": "Omitted thickness parameter (rbt_THK) in thermal capacitance calculation, resulting in underestimated capacitance since volume = W*L*THK is incomplete. This violates the physical model where thickness directly contributes to mass and heat capacity."
+	},
+	{
+		"original_line": "`define __RBT_THERMAL_VA__", 
+		"bug_line": "`define __RBT_THERMAL_VA_",
+		"error_description": "Modified include guard macro name by removing one trailing underscore. This breaks the header guard, causing potential multiple-definition errors during compilation if this module is included more than once."
+	},
+	{
+		"original_line": "thermal T;", 
+		"bug_line": "thermal S;",
+		"error_description": "Changed port name from 'T' to 'S', breaking the connection between the thermal port and the internal equations. The analog block references 'T' for power/temperature calculations, but the port is now incorrectly named 'S', causing undefined behavior."
+	},
+	{
+		"original_line": "parameter real rbt_Rth = `RBT_RTH from (0:inf);	// Thermal resistance", 
+		"bug_line": "parameter real rbt_Rth = `RBT_RTH from (inf:0);	// Thermal resistance",
+		"error_description": "Reversed the parameter range from (0:inf) to (inf:0), creating an invalid empty range since no value can be simultaneously greater than infinity and less than zero. This causes a compilation error due to impossible constraint."
+	},
+	{
+		"original_line": "parameter real rbt_L   = `RBT_L   from (0:inf);	// Resonator Length", 
+		"bug_line": "parameter real rbt_L   = `RBT_L   from (inf:0];	// Resonator Length",
+		"error_description": "The range (inf:0] is invalid and reversed (should be (0:inf)). This allows negative resonator lengths, violating the physical design requirement of positive dimensions and causing non-physical thermal capacitance calculations."
+	},
+	{
+		"original_line": "`include "disciplines.vams"", 
+		"bug_line": "`include "electrical.vams"",
+		"error_description": "Incorrectly includes electrical disciplines instead of thermal disciplines, causing undefined behavior for thermal node T since thermal domain equations require specific discipline definitions from disciplines.vams."
+	},
+	{
+		"original_line": "`else", 
+		"bug_line": "`ifdef UNDEFINED_MACRO",
+		"error_description": "Replaced conditional `else with undefined macro check, causing the module definition to be permanently skipped since UNDEFINED_MACRO never exists. This prevents thermal calculations from being compiled."
+	},
+	{
+		"original_line": "`else", 
+		"bug_line": "`ifdef BROKEN",
+		"error_description": "Changed conditional compilation directive from 'else' to 'ifdef BROKEN'. This prevents the module from being compiled unless BROKEN macro is defined, which never occurs. The thermal model becomes permanently disabled, breaking all temperature-dependent functionality."
+	},
+	{
+		"original_line": "parameter real rbt_W   = `RBT_W   from (0:inf);	// Width of bar", 
+		"bug_line": "parameter real rbt_w   = `RBT_W   from (0:inf);	// Width of bar",
+		"error_description": "Changed parameter name from 'rbt_W' to 'rbt_w' (case sensitivity). This causes undefined reference errors in 'Cth' calculation where 'rbt_W' is used, breaking thermal capacitance computation."
+	},
+	{
+		"original_line": "`else", 
+		"bug_line": "`ifdef",
+		"error_description": "Changed `else to `ifdef without providing an identifier, creating a preprocessor syntax error. This breaks the include guard structure, preventing the module from compiling and making the thermal model non-functional."
+	},
+	{
+		"original_line": "parameter real rbt_W   = `RBT_W   from (0:inf);	// Width of bar", 
+		"bug_line": "parameter real rbt_W   = `RBT_W   from (inf:0);	// Width of bar",
+		"error_description": "Swapped range limits (inf:0) creates an invalid empty parameter range since inf > 0, causing simulation errors during parameter validation as width must be positive."
+	},
+	{
+		"original_line": "`ifdef __RBT_THERMAL_VA__", 
+		"bug_line": "`ifndef __RBT_THERMAL_VA__",
+		"error_description": "Changed include guard from #ifdef to #ifndef, causing the module definition to be skipped entirely when the header is first included. This prevents the thermal module from being defined, breaking all subsequent instantiations."
+	},
+	{
+		"original_line": "parameter real rbt_cm  = `RBT_CM  from (0:inf);	// Mass heat capacity", 
+		"bug_line": "parameter real rbt_cm  = `RBT_CM  from (inf:0);	// Mass heat capacity",
+		"error_description": "Swapped range limits (inf:0) instead of (0:inf) makes the parameter range invalid since 'inf' must be the upper bound. This causes compilation errors and prevents the model from simulating as the range becomes syntactically incorrect."
+	},
+	{
+		"original_line": "parameter real rbt_W   = `RBT_W   from (0:inf);	// Width of bar", 
+		"bug_line": "parameter real rbt_W   = `RBT_W   from (-inf:inf);	// Width of bar",
+		"error_description": "Allowing negative values for bar width (rbt_W) violates physical constraints, causing unphysical negative area calculations in thermal capacitance (Cth) and breaking energy conservation laws."
+	},
+	{
+		"original_line": "parameter real rbt_Rth = `RBT_RTH from (0:inf);	// Thermal resistance", 
+		"bug_line": "parameter real rbt_Rth = `RBT_RTH from (-inf:inf);	// Thermal resistance",
+		"error_description": "The thermal resistance range is incorrectly extended to include negative values (-inf:inf), violating physical constraints since thermal resistance must always be positive. This allows non-physical negative resistance values during simulation."
+	},
+	{
+		"original_line": "inout T;", 
+		"bug_line": "input T;",
+		"error_description": "Changing port direction from inout to input prevents driving the thermal node, violating conservative energy requirements. The module cannot inject power (Pwr contributions), breaking thermal equations."
+	},
+	{
+		"original_line": "parameter real rbt_rho = `RBT_RHO from (0:inf); // Density", 
+		"bug_line": "parameter real rbt_rho = `RBT_RHO from (inf:0); // Density",
+		"error_description": "Swapped the range limits (inf:0) instead of (0:inf), creating an invalid empty range where no values satisfy inf <= value <= 0. This causes parameter validation failure during simulation setup."
+	}
+]

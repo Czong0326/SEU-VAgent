@@ -1,0 +1,149 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright @ 2016 Purdue University.
+//  
+// The terms under which the software and associated documentation (the Software) is provided are as the following:
+//  
+// The Software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, 
+// fitness for a particular purpose and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages or other 
+// liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the Software or the use or other dealings
+// in the Software.
+//   
+// Purdue grants, free of charge, to any users the right to modify, copy, and redistribute the Software, both within the user's 
+// organization and externally, subject to the following restrictions:
+//  
+// 1. The users agree not to charge for the code itself but may charge for additions, extensions, or support.
+//  
+// 2. In any product based on the Software, the users agree to acknowledge the Research Group that developed the software. This acknowledgment shall 
+//    appear in the product documentation.
+//  
+// 3. The users agree to obey all U.S. Government restrictions governing redistribution or export of the software.
+//  
+// 4. The users agree to reproduce any copyright notice which appears on the software on any copy or modification of such made available to others.
+// 
+// Agreed to by 
+// Yanfei Shen, Saeed Mohammadi, Purdue University
+// Nov. 8, 2016
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// VerilogA for transistor_model_va_V1, veriloga
+// fix ground problem
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+module NMOSRF(g,d,s);
+
+parameter real       W           =    126e-4     from(0:inf);                 // width in cm
+parameter real       LG          =    4e-6       from(0:inf);                 // gate norminal length in cm
+parameter real       Lov         =    1.2e-6     from(0:inf);                 // gate overlap length in cm
+parameter real       Temp        =    298        from(0:inf);                 // temperature in C
+parameter real       Cinv        =    2.625e-6   from(0:inf);                 // gate capacitance under strong inversion
+parameter real       n           =    1.6252     from(0:inf);                 // subthreshold coeffient S = n*phit*ln10
+parameter real       DIBL        =    0.1568     from[0:inf);                 // drain induced barrier lowering
+parameter real       contactR    =    153.4919   from(0:inf);                 //
+parameter real       mu0         =    104.668    from(0:inf);
+parameter real       vx0         =    7.133e6    from(0:inf);
+parameter real       Vt0         =    0.4472     from(0:inf);
+
+parameter real       alpha       =    3.5        from(0:inf);
+parameter real       beta        =    1.8        from(0:inf);
+parameter real       ks          =    0.5        from(0:inf);                 // shot noise suppression factor
+
+
+inout g,d,s;
+electrical g, d, s;
+electrical gi, di, dd, si, ss, gNs;
+ground gnd;
+
+real Vgsi, Vdsi;
+real Rs, Rd, Leff;
+real phit, nphit, alphaphit;
+real Vtp, Ff, Qinv, Vdsats, Vdsat, Fsat, Id;
+real Cgd, Cds, Cdgnd, Cdse, Cdsi, Cgs, Cgse, Cgsi, Cggnd, Csgnd;
+real Cpd, Cpg, Cps;
+real Ri;
+real Rgext, Rsext, Rdext;
+real Ls, Ld, Lg;
+real garmaDS, garmaGS;
+
+analog begin
+
+// RF parameters
+
+        Cpg         =        13.653f;
+        Cpd         =        12.113f;
+        Cps         =        12.113f;
+        
+        Rgext       =        6.4361 * 126e-4 / W;                       // normalized by 126um size transistors
+        Ls          =        44.549p;                                   
+        Ld          =        35.371p;
+        Lg          =        85.37p;
+          
+        Cgd         =        47.1212f * W / 126e-4;
+        Cds         =        37.2017f * W / 126e-4;
+        garmaDS     =        0.0;
+        Cdgnd       =        Cds*garmaDS;
+        Cdsi        =        Cds*(1.0-garmaDS);
+        garmaGS     =        0.0;
+        Cgs         =        86.0845f * W / 126e-4;
+        Cggnd       =        Cgs * garmaGS;
+        Cgse        =        Cgs * (1.0-garmaGS);
+        Cgsi        =        18.645f * W / 126e-4;
+        Csgnd       =        Cdgnd;
+        Ri          =        899.0395;
+
+// DC characteristics
+
+        Vdsi        =        V(di) - V(si);
+        Vgsi        =        V(gi) - V(si);
+        
+	Rs          =        1.0e-4 * contactR / W;
+	Rd          =        Rs;
+	Leff        =        LG - Lov;
+	
+        phit        =        $vt(Temp);
+        nphit       =        n * phit;
+        alphaphit   =        alpha * phit;
+        
+        Vtp         =        Vt0 - DIBL * Vdsi ;
+        Ff          =        1.0 / (1.0 + exp((Vgsi - (Vtp - 0.5 * alphaphit)) / alphaphit));
+
+        Qinv        =        Cinv * nphit * ln(1.0 + exp((Vgsi - (Vtp - alphaphit * Ff)) / nphit));
+
+        Vdsats      =        vx0 * Leff / mu0;
+        Vdsat       =        Vdsats*(1.0 - Ff) + phit * Ff;
+        Fsat        =        abs(Vdsi/Vdsat)/pow(1.0+pow(abs(Vdsi/Vdsat), beta), 1.0/beta);
+        
+        Id          =        Qinv * vx0 * Fsat * W;
+
+// RF and noise characteristics
+        
+        I(di, si)   <+       Id + white_noise(1.2 * `P_Q * Id, "shot");
+        I(dd, di)   <+       V(dd, di)/Rd + white_noise(4*`P_K*$temperature/Rd,"thermal");
+        I(si, ss)   <+       V(si, ss)/Rs + white_noise(4*`P_K*$temperature/Rs,"thermal");
+             
+        V(d, dd)    <+       ddt(Ld*I(d,dd));
+        V(ss, s)    <+       ddt(Ls*I(ss,s)); 
+        
+        I(dd, ss)   <+       ddt(Cdsi*V(dd,ss));
+        
+        I(gi, dd)   <+       ddt(Cgd*V(gi,dd));
+        
+        I(gi, ss)   <+       ddt(Cgse*V(gi,ss));
+        I(gi, gNs)  <+       ddt(Cgsi*V(gi,gNs));
+        I(gNs, ss)  <+       V(gNs,ss)/Ri;
+        
+        V(g, gi)    <+       I(g,gi)*Rgext + Lg*ddt(I(g,gi));
+        V(g, gi)    <+       white_noise(4*`P_K*$temperature*Rgext,"thermal");
+     
+        I(dd, gnd)  <+       ddt(Cdgnd*V(dd, gnd));
+        I(ss, gnd)  <+       ddt(Csgnd*V(ss, gnd));
+        I(gi, gnd)  <+       ddt(Cggnd*V(gi, gnd));
+        
+        I(g, gnd)   <+       ddt(Cpg*V(g, gnd));
+        I(d, gnd)   <+       ddt(Cpd*V(d, gnd));
+        I(s, gnd)   <+       ddt(Cps*V(s, gnd));
+          
+end
+endmodule
+

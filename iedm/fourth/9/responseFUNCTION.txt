@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "        poles[4*i]   = re_pole;", 
+		"bug_line": "        poles[4*i]   = -re_pole;",
+		"error_description": "The real part of the pole is incorrectly assigned with a negative sign. This creates unstable positive real-part poles in the transfer function, violating the requirement for stable left half-plane poles in filter design."
+	},
+	{
+		"original_line": "   sinh_nu = sinh(nu);", 
+		"bug_line": "   sinh_nu = sin(nu);",
+		"error_description": "Replaced hyperbolic sine function 'sinh' with trigonometric sine 'sin'. This fundamental mathematical error corrupts pole location calculations, making the filter non-functional as the pole real parts become periodic values instead of exponentially scaled constants."
+	},
+	{
+		"original_line": "           cosh_nu = cosh(nu);   ", 
+		"bug_line": "           cosh_nu = sinh(nu);   ",
+		"error_description": "Replaced cosh(nu) with sinh(nu) for cosh_nu assignment. This swaps the hyperbolic cosine and sine functions in pole calculation, distorting the imaginary part of filter poles and corrupting the Chebyshev filter frequency response."
+	},
+	{
+		"original_line": "   eps = sqrt(pow(10.0,ripple/10.0)-1.0);", 
+		"bug_line": "   eps = sqrt(pow(10.0,ripple/20.0)-1.0);",
+		"error_description": "Changed division factor from 10.0 to 20.0, incorrectly converting ripple (dB) to voltage ratio instead of power ratio. This miscalculates epsilon, corrupting pole locations and filter response."
+	},
+	{
+		"original_line": "   parameter real rin = 50 from (0:inf);", 
+		"bug_line": "   parameter real rin_input = 50 from (0:inf);",
+		"error_description": "Changed parameter name from 'rin' to 'rin_input', causing undefined identifier errors in the analog block where 'rin' is used for input resistance calculations, breaking the module functionality."
+	},
+	{
+		"original_line": "        $stop(1);", 
+		"bug_line": "        ; // $stop(1) removed",
+		"error_description": "The simulation no longer halts when filter order N is less than 2, allowing invalid filter configurations to proceed silently."
+	},
+	{
+		"original_line": "where H(s) is the polynomial transfer function of Chebyshev HPF implemented", 
+		"bug_line": "where H(s) is the polynomial transfer function of Chebyshev LPF implemented",
+		"error_description": "Changed filter type from highpass (HPF) to lowpass (LPF) in the design description comment, misrepresenting the actual filter behavior and violating the module's intended functionality as a highpass filter."
+	},
+	{
+		"original_line": "`define N 8", 
+		"bug_line": "`define N 1",
+		"error_description": "Filter order reduced to 1 violates the design requirement that order must be at least 2. This causes the initial_step check to fail and halt simulation since Chebyshev filters require order ≥ 2 for proper pole calculation."
+	},
+	{
+		"original_line": "   inout inp,inn, outp,outn;", 
+		"bug_line": "   input inp,inn, outp,outn;",
+		"error_description": "Changed all ports to input-only, preventing the module from driving output signals outp/outn since output ports require driving capability."
+	},
+	{
+		"original_line": " I(inp) <+ V(inp)/rin;", 
+		"bug_line": " I(inp) <+ V(inn)/rin;",
+		"error_description": "Input current incorrectly references negative input voltage instead of positive input. This creates cross-coupling between differential inputs, violating the intended input resistance model where each input should only depend on its own voltage."
+	},
+	{
+		"original_line": "im_pole = tmp * ImP[i];", 
+		"bug_line": "im_pole = tmp * ReP[i];",
+		"error_description": "Replaced ImP[i] with ReP[i], incorrectly using the real part of the normalized pole for imaginary component calculation. This breaks pole symmetry, creates non-complex-conjugate poles, and fundamentally alters the filter's frequency response."
+	},
+	{
+		"original_line": "integer i, Npair, Np1p, k;", 
+		"bug_line": "integer i, Npair, Np1p;",
+		"error_description": "The loop control variable 'k' is no longer declared. This causes compilation errors in the subsequent for-loops that depend on 'k' (e.g., for (k=0; ...), resulting in undefined behavior and preventing the filter initialization calculations."
+	},
+	{
+		"original_line": "poles[4*i+2] =  re_pole;", 
+		"bug_line": "poles[4*i+2] =  -re_pole;",
+		"error_description": "The real part of the conjugate pole is incorrectly negated, breaking the complex conjugate symmetry required for real-valued systems. This creates unstable positive real parts in the transfer function, causing filter instability and oscillation."
+	},
+	{
+		"original_line": "poles[4*i+1] = 0.0;", 
+		"bug_line": "poles[4*i+1] = wb;",
+		"error_description": "Assigns pole imaginary part to corner frequency (wb) instead of 0.0, creating invalid complex poles in odd-order filters and disrupting the Chebyshev transfer function."
+	},
+	{
+		"original_line": "poles[4*i+1] =  im_pole;", 
+		"bug_line": "poles[4*i+1] = -im_pole;",
+		"error_description": "The sign inversion creates identical negative imaginary parts for both poles in conjugate pairs, breaking the required complex conjugate symmetry. This causes unstable filter behavior and incorrect frequency response."
+	},
+	{
+		"original_line": "nu =  asinh(1.0/eps)/`N;", 
+		"bug_line": "nu =  asinh(1.0/eps)*`N;",
+		"error_description": "Multiplies by filter order `N instead of dividing, causing incorrect pole calculation. This results in excessive ripple attenuation and shifted corner frequency due to hyperbolic function scaling errors."
+	},
+	{
+		"original_line": "im_pole = tmp * ImP[i];", 
+		"bug_line": "im_pole = tmp * ReP[i];",
+		"error_description": "The imaginary pole calculation incorrectly uses the real part array ReP instead of the imaginary part array ImP. This swaps real/imaginary components in pole pairs, distorting the filter's frequency response and stability."
+	},
+	{
+		"original_line": "ImP[k-1] =   cosh_nu * cos(teta);", 
+		"bug_line": "ImP[k-1] =   cosh_nu * sin(teta);",
+		"error_description": "Trigonometric function error: Replaced cosine with sine in pole imaginary part calculation. This distorts pole locations by mixing sine/cosine components, corrupting the Chebyshev filter response and ripple characteristics."
+	},
+	{
+		"original_line": "else real_gain = pow(10.0,gain/20.0);", 
+		"bug_line": "else real_gain = pow(10.0,gain/10.0);",
+		"error_description": "Incorrect exponent divisor (10.0 instead of 20.0) for voltage gain conversion. This squares the intended gain value since voltage gain requires 20.0 in the denominator for dB-to-linear conversion."
+	},
+	{
+		"original_line": "inp-    | H(s) |   ---rout----outp", 
+		"bug_line": "inp-    | H(s) |   ---rin----outp",
+		"error_description": "Changed output resistor from rout to rin. This incorrectly uses the input resistance value for the output stage, causing impedance mismatch and signal attenuation at the output since rin (typically 50Ω) is used instead of rout (specified separately) in the output path."
+	}
+]

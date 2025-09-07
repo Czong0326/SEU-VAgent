@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "    dummy = ionisation(NDC, NAC, tempk, n0c, p0c, efc);", 
+		"bug_line": "    dummy = ionisation(NAC, NDC, tempk, n0c, p0c, efc);",
+		"error_description": "Swapped NDC and NAC parameters reverses doping roles: donors become acceptors and vice versa. This corrupts channel carrier concentration calculations, Fermi level position, and subsequent conductivity/phij0b values since channel doping polarity is inverted."
+	},
+	{
+		"original_line": "	    real tempk;		// Absolute device temperature / K", 
+		"bug_line": "	    real tempk_wrong;		// Absolute device temperature / K",
+		"error_description": "Changed variable name from 'tempk' to 'tempk_wrong', breaking all subsequent temperature-dependent calculations. The correct 'tempk' variable remains undeclared, causing uninitialized values in thermal voltage, mobility, and saturation velocity computations."
+	},
+	{
+		"original_line": "    real rb_noscale;		// Unscaled body resistance / ohm", 
+		"bug_line": "    real rb_noscale = 0.0;		// Unscaled body resistance / ohm",
+		"error_description": "Forcing rb_noscale to zero overrides the temperature-dependent calculation in initial_model block. This causes RB parameter to be ignored, eliminates body resistance temperature dependence, and makes rb always zero regardless of device parameters."
+	},
+	{
+		"original_line": "            claim, damages or other liability, whether in an action of contract,", 
+		"bug_line": "            claim, damages or other liability, whether in an action of contract, */",
+		"error_description": "Prematurely terminates the comment block with '*/', causing subsequent license text to be interpreted as Verilog code. This leads to compilation failures due to invalid syntax in the exposed license text."
+	},
+	{
+		"original_line": "    if (vdsi >= 0.0) begin", 
+		"bug_line": "    if (vbsi >= 0.0) begin",
+		"error_description": "Changed condition from vdsi (drain-source voltage) to vbsi (body-source voltage). This incorrectly uses body-source voltage instead of drain-source voltage to determine operating mode, causing erroneous mode selection and subsequent current/charge calculations."
+	},
+	{
+		"original_line": "        V(si_s) <+ 0.0;", 
+		"bug_line": "        I(si_s) <+ 0.0;",
+		"error_description": "Changed voltage contribution to current contribution. When source resistance (rs) is zero, should short si/s nodes by setting V(si_s)=0. Using I(si_s)=0 leaves voltage undefined and breaks the short circuit requirement."
+	},
+	{
+		"original_line": "    if (RIE < 0.0)", 
+		"bug_line": "    if (RIE > 0.0)",
+		"error_description": "The condition incorrectly checks for positive RIE values instead of negative ones. This allows physically impossible negative gate overetch depths while rejecting valid positive/zero values, violating the non-negative constraint for process parameters."
+	},
+	{
+		"original_line": "    epss = `P_EPS0 * EPSR;", 
+		"bug_line": "    epss = `P_EPS0 * 1.0;",
+		"error_description": "Changed EPSR to fixed constant 1.0, ignoring the material's actual relative permittivity parameter. This error causes incorrect semiconductor permittivity calculations, affecting all capacitance and potential calculations in the model."
+	},
+	{
+		"original_line": "epss = `P_EPS0 * EPSR;", 
+		"bug_line": "epss = `P_EPS0 / EPSR;",
+		"error_description": "Replaced multiplication with division, incorrectly calculating semiconductor permittivity as vacuum permittivity divided by relative permittivity instead of multiplied by it. This violates the physical definition ε = ε₀·εᵣ and causes significant underestimation of capacitance effects."
+	},
+	{
+		"original_line": "    parameter real LC = 1e-4 from (0 : inf);", 
+		"bug_line": "    parameter real LC = 0.0 from (0 : inf);",
+		"error_description": "Setting default channel length (LC) to 0.0 causes division by zero in conductance calculation (goc_noscale = sigmac * WC * hc / LC) and violates physical constraints requiring positive length."
+	},
+	{
+		"original_line": "		`error("RIE is less than zero.");", 
+		"bug_line": "		`error("RIE is greater than zero.");",
+		"error_description": "Changed error condition from negative RIE to positive RIE. Now incorrectly flags valid positive RIE values as errors while allowing negative RIE values that violate the non-negative constraint."
+	},
+	{
+		"original_line": "rb_noscale = lin_adapt(RB, tdiff, RBTC);", 
+		"bug_line": "rb_noscale = lin_adapt(RD, tdiff, RBTC);",
+		"error_description": "Replaced body resistance parameter RB with drain resistance parameter RD in the temperature adaptation calculation, causing the body resistance scaling to incorrectly use the drain resistance value instead of the body resistance value."
+	},
+	{
+		"original_line": "    2. In any product based on the Software, the users agree to acknowledge", 
+		"bug_line": "    2. In any product based on the Software, the users agree not to acknowledge",
+		"error_description": "Changed license requirement from mandatory acknowledgment to prohibition of acknowledgment, violating the software's redistribution terms by removing credit attribution."
+	},
+	{
+		"original_line": "        if (DELTA1 < 0.0 || DELTA1 > 1.0)", 
+		"bug_line": "        if (DELTA1 < 0.0 && DELTA1 > 1.0)",
+		"error_description": "Changed logical OR (||) to AND (&&), creating an impossible condition. DELTA1 can never be simultaneously negative and greater than 1, bypassing all validation checks for this critical junction capacitance parameter."
+	},
+	{
+		"original_line": "    (* desc="Body resistance", units="ohm",", 
+		"bug_line": "    (* desc="Body capacitance", units="F",",
+		"error_description": "Changed parameter description from 'Body resistance' to 'Body capacitance' and units from 'ohm' to 'F'. This misrepresents the physical meaning of parameter RB, causing simulation tools to interpret it as capacitance instead of resistance. The calculation of rb (body resistance) will now incorrectly use a capacitance value, breaking Ohm's Law in the body resistance branch."
+	},
+	{
+		"original_line": "    (* desc="Temperature exponent of VSAT", units="",", 
+		"bug_line": "    (* desc="Temperature coefficient of VSAT", units="(deg C)^-1",",
+		"error_description": "Changed parameter description from 'exponent' to 'coefficient' and units from dimensionless to reciprocal degrees Celsius. This fundamentally alters the parameter's interpretation from a dimensionless exponent in the power function to a linear temperature coefficient, causing incorrect vsat calculations in thermal modeling."
+	},
+	{
+		"original_line": "    parameter real RSTC = 0.0;", 
+		"bug_line": "    parameter real RSTC = 1.0;",
+		"error_description": "Changed default temperature coefficient of RS from 0 to 1. This causes incorrect positive temperature dependence where none was intended, violating the design specification that RS should remain stable across temperature by default."
+	},
+	{
+		"original_line": "GMBI = ddx(ids, V(bi));", 
+		"bug_line": "GMBI = ddx(ids, V(di));",
+		"error_description": "Changed derivative variable from body voltage (V(bi)) to drain voltage (V(di)), incorrectly calculating body transconductance as drain transconductance. This swaps the control terminal for GMBI and breaks body effect modeling."
+	},
+	{
+		"original_line": "        rb = 0.0;", 
+		"bug_line": "        rb = -1.0;",
+		"error_description": "This modification introduces a non-physical negative resistance (-1.0 ohm) when RB=0.0, violating fundamental electrical principles and causing potential simulation instability."
+	},
+	{
+		"original_line": "    parameter real NDB = (TYPE == `N_TYPE ? 0.0 : 1e21);", 
+		"bug_line": "    parameter real NDB = (TYPE == `N_TYPE ? 1e21 : 0.0);",
+		"error_description": "Swapped donor concentration assignments for body doping. In N_TYPE devices, NDB should be 0 (P-type body) but is incorrectly set to 1e21. In P_TYPE devices, NDB should be 1e21 (N-type body) but is set to 0. This reverses the body doping type, causing incorrect junction behavior and threshold voltage calculations."
+	}
+]

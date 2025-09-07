@@ -1,0 +1,83 @@
+// VerilogA for fix, osc, veriloga
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+// This is the behavioral description of the oscillator.
+
+// fundname: the name of the fundamentail frequency default: ""
+// power: output power when matched(dBm) default: 10 dBm
+// f: output frequency (Hz)              default: 1 GHz
+// rout: output impedance (Ohm)          default: 50 Ohm
+// bottom: the noise floor (dBc/Hz)      default: -60 dBc/Hz
+// f1: frequency point for n1 (Hz)       default: 1KHz
+// n1: phase noise at f1(dBc/Hz)         default: -40 dBc/Hz
+// f2: frequency point for n2 (Hz)       default: 0 (see below)
+// n2: phase noise at f2(dBc/Hz)         default: 0
+
+// note that the power is RMS power delivered to the output when matched
+// to the output impedance.
+
+// if f2 is not set to nonzero, then the flicker noise is ignored.
+
+`define db20_real(x) pow(10, (x)/20)
+`define db10_real(x) pow(10, (x)/10)
+
+
+module osc(out);
+inout out;
+electrical out;
+parameter real fc = 0 ;
+parameter real n1 = -40 ;
+parameter real f1 = 1000 ;
+parameter real bottom = -60 ;
+parameter real rout = 50 ;
+parameter real power = 10 ;
+parameter real freq = 1e+09 ;
+parameter string fundname = "LO" ;
+//parameter real amp =  sqrt(2.0)*sqrt(4*`db10_real(power-30)/rout);
+electrical gnd, int;
+ground gnd;
+
+  real amp;
+  real vc;
+  real kw, kf;   // coefficients of white and flicker noise
+  real kb;       // white noise coeff for the noise floor
+  real y1;
+  
+  isource #(.type("sine"), .ampl(sqrt(2.0)*sqrt(4*`db10_real(power-30)/rout)), .fundname(fundname), .freq(freq) ) is1(gnd,out);
+
+analog begin
+
+    @(initial_step ) begin
+	amp = sqrt(2.0)*sqrt(4*`db10_real(power-30)/rout);
+	kb = `db10_real(bottom);
+	if(fc == 0) begin // no flicker noise
+	  y1 = `db10_real(n1)-kb;
+	  kw = f1*sqrt(y1);
+	  kf = 0;
+	end else begin
+	  y1 = `db10_real(n1)-kb;
+	  kw = sqrt(y1/(1/(f1*f1)+fc/(f1*f1*f1)));
+	  kf = sqrt(fc)*kw;
+        end
+    end
+
+    // form the integral of noise 
+    I(int) <+ white_noise(amp*amp*kw*kw, "osc");
+    I(int) <+ flicker_noise(amp*amp*kf*kf, 1, "osc");
+    I(int) <+ 1/(2*`M_PI)*ddt(V(int));
+
+    I(out) <+ V(out)/rout;
+    vc = sqrt(2.0)*V(int)/amp;
+
+    // insert the phase noise into the real signal
+    $cds_set_rf_source_info ( fundname, freq);
+    I(out) <+ -amp*cos(2*`M_PI*freq*$abstime)*sin(vc);
+    // insert the white noise floor
+    I(out) <+ white_noise(amp*amp*kb/2, "osc");
+
+end
+
+
+endmodule

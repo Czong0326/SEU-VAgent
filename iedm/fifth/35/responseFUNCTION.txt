@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "inout Back,Drain,Side,Source;", 
+		"bug_line": "inout Back,Side,Source;",
+		"error_description": "Removed the Drain port declaration. This causes the Drain terminal to become an internal node instead of a port, making it impossible to connect externally. The piezoResVA instance I1 and the substrate resistor (Rsubs) connected to Drain will be left floating during simulation."
+	},
+	{
+		"original_line": "parameter real Sr = 0.0e9                     from (-inf:inf);      // the residual stress in the beam [GPa]", 
+		"bug_line": "parameter real Sr = 0.0e9                     from (1e9:inf);      // the residual stress in the beam [GPa]",
+		"error_description": "Changed valid stress range from (-inf,inf) to (1e9,inf), forcing Sr=0 to be clamped to 1e9 Pa. This introduces unintended tensile stress, altering mechanical behavior and violating the design specification of zero residual stress."
+	},
+	{
+		"original_line": "parameter real C = 0.6e-6                     from [-inf:inf);      // the specific damping coefficient for the beam", 
+		"bug_line": "parameter real C = -0.6e-6                     from [-inf:inf);      // the specific damping coefficient for the beam",
+		"error_description": "Changed damping coefficient from positive to negative. Negative damping violates physics by adding energy to the system instead of dissipating it, causing instability and unbounded oscillations in the resonator model."
+	},
+	{
+		"original_line": "parameter real H = 110.0e-9                   from (0:inf);         // height of the beam [m]", 
+		"bug_line": "parameter real H = 0.0                   from [0:inf);         // height of the beam [m]",
+		"error_description": "Setting beam height to zero violates physical constraints and causes division by zero in cross-sectional area calculations (W*H) during resistance computations, leading to simulation blow-up."
+	},
+	{
+		"original_line": "I(Side, net9) <+ ddt(Q);", 
+		"bug_line": "I(net9, Side) <+ ddt(Q);",
+		"error_description": "Reversed current direction in capacitor model. The modified line incorrectly defines current flowing from net9 to Side when charge increases, violating the intended behavior where positive dQ/dt should correspond to current entering Side terminal."
+	},
+	{
+		"original_line": "`include "constants.vams"", 
+		"bug_line": "`include "constant.vams"",
+		"error_description": "Misspelled include filename prevents access to fundamental constants like `CURRENT_ABSTOL and `CHARGE_ABSTOL required for simulation accuracy, causing undefined macro errors during compilation."
+	},
+	{
+		"original_line": "I(Side, net9) <+ ddt(Q);", 
+		"bug_line": "I(Side, net9) <+ Q;",
+		"error_description": "Replaced capacitive current derivative (ddt(Q)) with static charge value (Q). This changes the dynamic capacitor into a static charge source, eliminating frequency-dependent behavior and causing incorrect transient responses."
+	},
+	{
+		"original_line": "parameter real Sr = 0.0e9                     from (-inf:inf);      // the residual stress in the beam [GPa]", 
+		"bug_line": "parameter real Sr = 0.0e9                     from [0:inf);      // the residual stress in the beam [GPa]",
+		"error_description": "Changed stress range from (-inf:inf) to [0:inf). This excludes negative stress values, preventing simulation of compressive residual stresses which are physically valid for silicon beams, violating the design specification."
+	},
+	{
+		"original_line": "parameter real Rg = 263.0e3                   from [0:inf);         // resistance between two gates, back and side", 
+		"bug_line": "parameter real Rg = 0.0                   from [0:inf);         // resistance between two gates, back and side",
+		"error_description": "Changed Rg from 263kΩ to 0Ω, creating a division-by-zero error in the current calculation I(Back,Side) <+ V(Back,Side)/Rg, causing simulation failure."
+	},
+	{
+		"original_line": "parameter real POIS  = 0.17                   from [0:inf);         // poisson's ratio for Si in <111> dir", 
+		"bug_line": "parameter real POIS  = -0.17                  from (-inf:inf);        // poisson's ratio for Si in <111> dir",
+		"error_description": "Negative Poisson's ratio is unphysical for silicon. This error will cause incorrect stress-strain calculations in the mechanical model, leading to wrong resonance frequencies and piezoresistive responses."
+	},
+	{
+		"original_line": "        electrical Back,Drain,Side,Source;", 
+		"bug_line": "        electrical Back,Drain,Side;",
+		"error_description": "Missing declaration for 'Source' pin causes undefined reference errors in subsequent analog block where Source is used, breaking all electrical connections involving the Source terminal."
+	},
+	{
+		"original_line": "piezoResVA #(.L(L),.W(W),.H(H),.RESIS(RESIS),.POIS(POIS),.piEff(piEff)) I1(Drain,net9,net10);", 
+		"bug_line": "piezoResVA #(.L(L),.W(W),.H(H),.RESIS(RESIS),.POIS(POIS),.piEff(0.0)) I1(Drain,net9,net10);",
+		"error_description": "Setting piEff (piezoresistive coefficient) to zero eliminates the piezoresistive effect in the second resistor, making resistance independent of mechanical strain and violating the core sensing mechanism."
+	},
+	{
+		"original_line": "I(Drain, Source) <+ V(Drain, Source)/Rsubs;", 
+		"bug_line": "I(Drain, Source) <+ V(Drain, Source)/Rg;",
+		"error_description": "Replaced substrate resistance Rsubs with gate resistance Rg, causing incorrect current flow between Drain and Source by using the wrong resistance parameter."
+	},
+	{
+		"original_line": "parameter real L = 6.0e-6                     from (0:inf);         // length of the beam [m]", 
+		"bug_line": "parameter real L = -6.0e-6                     from (0:inf);         // length of the beam [m]",
+		"error_description": "Assigned negative value to beam length parameter L. Physical dimensions must be positive; negative length violates mechanical model assumptions and will cause simulation failures in subsequent calculations."
+	},
+	{
+		"original_line": "        electrical Back,Drain,Side,Source;", 
+		"bug_line": "        electrical Drain,Side,Source;",
+		"error_description": "Omission of 'Back' from electrical discipline declaration leaves it as an undefined wire. This causes simulation errors when accessing V(Back,Side)/I(Back,Side) and in gateInteractionVA connection which expects Back as electrical node."
+	},
+	{
+		"original_line": "parameter real Cs = 2.9218e-17                from [0:inf);         // side gate capacitance", 
+		"bug_line": "parameter real Cs = -2.9218e-17                from [0:inf);         // side gate capacitance",
+		"error_description": "Changed side gate capacitance to negative value, violating physical reality (capacitance must be positive). This causes non-physical negative capacitance in the coupling between Side terminal and beam, corrupting charge/current calculations in the analog block."
+	},
+	{
+		"original_line": "parameter real Rsubs = 10.0e12                from [0:inf);         // substrate resistance ", 
+		"bug_line": "parameter real Rsubs = 0.0                    from [0:inf);         // substrate resistance ",
+		"error_description": "Setting substrate resistance to zero causes division by zero in I(Drain,Source) calculation, violating the intended high-impedance substrate design and causing simulation blowup."
+	},
+	{
+		"original_line": "        parameter real Sr = 0.0e9                     from (-inf:inf);      // the residual stress in the beam [GPa]", 
+		"bug_line": "        parameter real Sr = 100.0e9                     from (-inf:inf);      // the residual stress in the beam [GPa]",
+		"error_description": "Changed residual stress from 0 to 100 GPa, introducing unphysically high tensile stress that drastically alters beam stiffness and resonant frequency, violating the intended stress-free design."
+	},
+	{
+		"original_line": "        electrical Back,Drain,Side,Source;", 
+		"bug_line": "        electrical Back,Drain,Side; kinematic Source;",
+		"error_description": "Changed 'Source' pin discipline from electrical to kinematic. This violates interface requirements: 1) piezoResVA submodule expects electrical connection at Source port, 2) analog block's I(Drain,Source) and V(Drain,Source) operations require matching electrical disciplines, 3) external circuit expects electrical terminal behavior."
+	},
+	{
+		"original_line": "`include "disciplines.vams"", 
+		"bug_line": "`include "discipline.vams"",
+		"error_description": "Changed the include filename to a non-existent file 'discipline.vams'. This will cause compilation failure due to missing discipline definitions, preventing recognition of electrical/kinematic nodes and making the entire model non-functional."
+	}
+]

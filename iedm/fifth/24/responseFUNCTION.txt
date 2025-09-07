@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "input vin1, vin2, vsel;", 
+		"bug_line": "input vin1, vsel; output vin2;",
+		"error_description": "Changed vin2 from input to output. The module reads vin2 as an input but declares it as an undriven output, causing undefined voltage values when vin2 is selected."
+	},
+	{
+		"original_line": "output vout;", 
+		"bug_line": "input vout;",
+		"error_description": "Changed output port to input direction. This creates a functional error because the module attempts to drive an input port (V(vout) <+ vout_val), violating port direction rules and causing simulation failure."
+	},
+	{
+		"original_line": "input vin1, vin2, vsel;", 
+		"bug_line": "input vin1, vin2; output vsel;",
+		"error_description": "Changed 'vsel' from input to output. This causes the selection voltage to be undriven (since nothing drives this output internally), leading to undefined behavior in the multiplexer selection logic and potential signal contention when externally driven."
+	},
+	{
+		"original_line": "else if (selector == 0)begin", 
+		"bug_line": "else if (selector == 2)begin",
+		"error_description": "Changed condition from selector==0 to selector==2. Since selector only takes values 0 or 1, this branch never executes, preventing the multiplexer from ever outputting vin2."
+	},
+	{
+		"original_line": "parameter real vth  = 2.5;", 
+		"bug_line": "parameter real vth  = 0.0;",
+		"error_description": "The threshold voltage is incorrectly set to 0.0V. This changes the multiplexer's switching behavior: vin1 is now selected when vsel > 0V (instead of >2.5V), and vin2 when vsel < 0V, violating the specified 2.5V threshold requirement."
+	},
+	{
+		"original_line": "      else if (selector == 0)begin", 
+		"bug_line": "      else if (selector == 1)begin",
+		"error_description": "The condition checks for selector==1 instead of selector==0. This creates a logical error where the vin2 path is never selected since the same condition (selector==1) is already handled in the preceding if-block. When vsel < vth, the output fails to switch to vin2."
+	},
+	{
+		"original_line": "parameter real vth  = 2.5;", 
+		"bug_line": "parameter real vth  = -1000;",
+		"error_description": "The threshold voltage is set to an extremely low value (-1000V), causing the multiplexer to always select vin1 regardless of the selection input since any realistic vsel voltage will be greater than this threshold, violating the design requirement to switch between inputs based on vsel."
+	},
+	{
+		"original_line": "parameter real vth  = 2.5;", 
+		"bug_line": "parameter real vth  = 0.5;",
+		"error_description": "Changed threshold voltage from 2.5V to 0.5V. This causes incorrect multiplexer switching where vsel > 0.5V selects vin1 instead of the intended 2.5V threshold, violating the design specification."
+	},
+	{
+		"original_line": "input vin1, vin2, vsel;", 
+		"bug_line": "input vin1, vin2;",
+		"error_description": "The input port 'vsel' is missing. This prevents the selection signal from being provided to the module, causing the internal 'vsel' net to remain undriven and resulting in incorrect multiplexer behavior as the selection logic becomes non-functional."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* instrument_module )",
+		"error_description": "Removed the closing '*' from the attribute comment, causing a syntax error during compilation that prevents the module from being recognized and instrumented by simulation tools."
+	},
+	{
+		"original_line": "V(vout) <+ vout_val;", 
+		"bug_line": "V(vin1) <+ vout_val;",
+		"error_description": "Drives the input vin1 instead of output vout, corrupting the input signal by overwriting it with the multiplexer output value."
+	},
+	{
+		"original_line": "electrical vin1, vin2, vsel, vout ;", 
+		"bug_line": "thermal vin1, vin2, vsel, vout ;",
+		"error_description": "Changed discipline from electrical to thermal for all ports. This incorrectly interprets voltage signals as temperature values, causing threshold comparisons (V(vsel) > vth) to mix Kelvin and Volts units, leading to erroneous switching behavior."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "parameter real vth = 1.0;",
+		"error_description": "Changes the threshold parameter from 2.5V to 1.0V by declaring a new module-level parameter. This violates the design specification where the threshold should be 2.5V, causing incorrect switching behavior when vsel is between 1.0V and 2.5V."
+	},
+	{
+		"original_line": "      else if (selector == 0)begin", 
+		"bug_line": "      else if (selector == 1)begin",
+		"error_description": "Changed condition from selector==0 to selector==1. This creates duplicate handling for selector=1 while leaving selector=0 unhandled. When vsel < vth, the output won't update to vin2 but retain the previous value, violating multiplexer functionality."
+	},
+	{
+		"original_line": "output vout;", 
+		"bug_line": "input vout;",
+		"error_description": "Changed output port direction to input, violating the design specification where vout must be an output. This causes a functional error as the module attempts to drive an input port, which is illegal in Verilog-A and breaks signal flow."
+	},
+	{
+		"original_line": "module analog_mux(vin1, vin2, vsel, vout);", 
+		"bug_line": "module analog_mux(vin1, vin2, vsel_misnamed, vout);",
+		"error_description": "Renaming the selection port to 'vsel_misnamed' breaks the internal connection. The module still references 'vsel' in its implementation, leaving the selection voltage undefined and causing unpredictable multiplexer behavior."
+	},
+	{
+		"original_line": "if (selector == 1)begin", 
+		"bug_line": "if (selector == 0)begin",
+		"error_description": "Changed condition to activate when selector is 0 instead of 1. This causes vin1 to be selected when vsel < vth (should select vin2) and leaves output undefined when vsel > vth (should select vin1)."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* ground_supply *)",
+		"error_description": "Changed attribute to 'ground_supply' incorrectly marking this module as a ground supply. This violates the design by potentially causing simulator short-circuit errors during discipline resolution since outputs shouldn't be ground supplies."
+	},
+	{
+		"original_line": "selector = (V(vsel) > vth) ? 1: 0;", 
+		"bug_line": "selector = (V(vsel) > 0) ? 1: 0;",
+		"error_description": "Changed threshold voltage from parameter 'vth' to fixed 0V, violating design specification that uses configurable threshold voltage for selection logic."
+	},
+	{
+		"original_line": "output vout;", 
+		"bug_line": "input vout;",
+		"error_description": "Changing port direction from output to input prevents internal voltage assignment (V(vout) <+ vout_val) since input ports cannot be driven, causing compilation errors and breaking output functionality."
+	}
+]

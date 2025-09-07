@@ -1,0 +1,181 @@
+`include "discipline.h"
+`include "constants.h"
+
+/*
+ *  Copyright (c) 1998
+ *  by Cadence Design Systems, Inc.  All rights reserved.
+ * 
+ *  $Date: 2004/07/15 03:51:24 $
+ *  $Revision: 1.2 $
+ *
+ *
+ */
+
+//
+// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996
+//
+//
+
+
+// Mixer model in Verilog-A
+//
+// - mixer
+//
+// in: input node
+// out: output node
+//
+// INSTANCE parameters
+//    gain             = gain from IN to OUT [dB]
+//    plo              = power of the LO input [dBm]
+//    rin              = input impedance for IN [Ohm]
+//    rout             = output impedance for OUT [Ohm]
+//    rlo              = input impedance for LO [Ohm]
+//    ip2              = input referenced IP2 [dBm]
+//    ip3              = input referenced IP3 [dBm]
+//    nf               = noise figure (DSB) [dB]
+//    isolation_LO2IN  = isolation from LO to IN [dB]
+//    isolation_LO2OUT = isolation from LO to OUT [dB]
+//    isolation_IN2OUT = isolation from LO to OUT [dB]
+//
+// MODEL parameters
+//    {none}
+
+// note: that in this simple model, we assume reflection coefficient is 0,
+// i.e., s11=s22=s33=0.
+// note: we have to introduce plo, since the gain of a mixer is refered to 
+//       the RF input, ignoring the power of LO. We are assuming the LO is 
+//       sine waves 
+
+`define db20_real(x)  (pow(10, (x)/20))
+`define db10_real(x)  (pow(10, (x)/10))
+
+module mixer(in, lo, out);
+   electrical in, lo, out;
+   parameter real gain = 10 from [-50:50];
+   parameter real plo = 10 from [-100:100];
+   parameter real rin = 50 from (0:inf);
+   parameter real rout = 200 from (0:inf);
+   parameter real rlo = 50 from (0:inf);
+   parameter real ip2 = 5;
+   parameter real ip3 = 5;
+   parameter real nf = 2 from [0:inf);
+   parameter real isolation_LO2IN = 20 from (0:inf);
+   parameter real isolation_LO2OUT = 20 from (0:inf);
+   parameter real isolation_IN2OUT = 20 from (0:inf);
+
+   
+   // think this way: port1: IN; port2: LO, port3: OUT
+   // the S matrix looks like this
+   //        x  x 
+   //           x
+   //        x  x  x
+   real      a1, a2, a3;
+   real      a2limit;
+   real      a2t2, a2t2limit, a2t2_with_dc;
+   real      s12, s31, s32;
+   real      rgain;          // real gain
+   real      rplo;         // amplitude of the LO signal
+   real      rip2, rip3;     // real ip2 and ip3
+   real      rnf;            // real NF
+   real      noise_current;
+   electrical in_int, out_int, lo_int;
+   real      c2, c3;
+
+   // high pass filter implementation needs internal nodes
+   electrical lp0, lp1, lp2, lp3;
+   
+   analog begin
+      @(initial_step) begin
+	 // unfold the S parameters from dB to real values
+	 s12 = `db20_real(-isolation_LO2IN);
+	 s31 = `db20_real(-isolation_IN2OUT);
+	 s32 = `db20_real(-isolation_LO2OUT);
+	 rgain = `db20_real(gain);
+	 rplo = `db10_real(plo-30);
+
+	 a2limit = `M_PI/sqrt(2.0)*sqrt(rplo);
+	 a2t2limit = a2limit*a2limit*1e-8;  // 1e-6 to make IP2 worst case
+	 
+
+	 // note ip2, ip3 are in dBm!
+	 rip2 = `db10_real(ip2-30);
+	 rip3 = `db10_real(ip3-30);
+	 // Note rip3 is already power, while textbook formula is about 
+	 // the square root of the power (plus a factor of 2)!
+	 // so, 2 is the factor because complex voltage in Spectre is the
+	 // peak-peak value, 4 is because a1 is twice the real power limit
+	 c3 = 4.0/3.0*rgain/(2*rip3*4);
+
+	 // c2 for IP2 of current definition for half-IP
+	 c2 = sqrt(2.0)*rgain/sqrt(rip2);
+    
+	 // noise current
+	 rnf  = `db10_real(nf);
+	 noise_current = 2*sqrt((rnf-1)*1.380620e-23*$temperature/rin);
+      end 
+      
+      // calculate the normalized incident waves: a1, a2, a3
+      a1 = V(in)/sqrt(rin)+I(in, in_int)*sqrt(rin);
+      a2 = V(lo)/sqrt(rlo)+I(lo, lo_int)*sqrt(rlo);
+      a3 = V(out)/sqrt(rout)+I(out, out_int)*sqrt(rout);
+    
+      // lo:
+      I(lo_int) <+ V(lo)/rlo;
+
+      // Some saturation effects.
+      // For RF input, make sure the output is saturated to the maximum
+      // because of third order effects.
+      if(a1 > sqrt(rgain/(3*c3))) 
+	a1 = sqrt(rgain/(3*c3));
+      else if(a1 < -sqrt(rgain/(3*c3))) 
+	a1 = -sqrt(rgain/(3*c3));
+
+      // create the second order of LO
+      a2t2_with_dc = a2*a2;
+      // We have doubled the frequency. Now we need to remove the DC part.
+      // The DC part is extracted by applying a lowpass filter, and then
+      // subtracted from the a2t2.
+      
+`define wc (2*`M_PI*0.5e8)
+      V(lp0) <+ a2t2_with_dc;
+      I(lp0, lp1) <+ V(lp0, lp1);
+      V(lp1, lp2) <+ 0.3827/`wc*ddt(I(lp1,lp2));
+      I(lp2) <+ 1.0824/`wc*ddt(V(lp2));
+      V(lp2, lp3) <+ 1.5772/`wc*ddt(I(lp2,lp3));
+      I(lp3) <+ 1.5307/`wc*ddt(V(lp3));
+
+      a2t2 = a2t2_with_dc-V(lp3);
+
+      if(a2t2 > a2t2limit)
+	a2t2 = a2t2limit;
+      else if(a2t2 < -a2t2limit)
+	a2t2 = -a2t2limit;
+      // For LO input, clip it such that the input power of fundamental
+      // frequency is up to plo.
+      if(a2 > a2limit)
+	a2 = a2limit;
+      else if(a2 < -a2limit)
+	a2 = -a2limit;
+
+      // input:
+      I(in_int) <+ V(in)/rin;
+      I(in_int) <+ -a2*s12/sqrt(rin);
+
+      // output:
+      I(out_int) <+ V(out)/rout;
+      I(out_int) <+ -a1*s31/sqrt(rout);
+      I(out_int) <+ -a2*s32/sqrt(rout);
+      
+      // a2 has to be normalized 
+      // this line implements the gain and IP3
+      // The first 2 is because of sin*sin will split the signal to two bands
+      I(out_int) <+ -2*a2/(a2limit*4/`M_PI)*(a1*rgain-a1*a1*a1*c3)/sqrt(rout);
+
+      // This line implements the IP2 for half-IF problem
+      I(out_int) <+ -c2*a1*a1*a2t2/(a2t2limit*4/`M_PI)/sqrt(rout);
+
+      // note the noise_current^2. Be careful about the noise input!
+      I(in) <+ white_noise(noise_current*noise_current, "mixer");
+   end
+endmodule // mixer
+

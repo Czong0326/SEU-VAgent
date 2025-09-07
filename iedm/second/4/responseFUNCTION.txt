@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real ms=1.6M from (0:inf);", 
+		"bug_line": "parameter real ms=1.6m from (0:inf);",
+		"error_description": "Changed saturation magnetization unit from mega (M) to milli (m), reducing the value from 1.6e6 to 1.6e-3. This causes the core to saturate at unrealistically low field intensities, violating the intended magnetic behavior."
+	},
+	{
+		"original_line": "   analog function real sign;", 
+		"bug_line": "   analog function integer sign;",
+		"error_description": "Changed return type from real to integer. This causes truncation of fractional values in the sign calculation, leading to incorrect magnetization direction detection when MMF derivatives are fractional."
+	},
+	{
+		"original_line": "      end else begin", 
+		"bug_line": "      end else if (abs(Heff) > 0.001 * gamma) begin",
+		"error_description": "The else branch condition is modified to an impossible condition (abs(Heff) > 0.001*gamma) when the branch is only entered when the condition is false. This prevents the Taylor series approximation from being applied for small Heff values, leaving Manh unassigned and causing incorrect magnetization calculations."
+	},
+	{
+		"original_line": "`define pi      3.14159265358979323846264338327950288419716939937511", 
+		"bug_line": "`define pi      3.0",
+		"error_description": "Incorrect pi value (3.0 instead of actual constant) causes inaccurate permeability calculation (`u0 = pi*4e-7), introducing significant errors in magnetization (M) and flux density (B) computations throughout the magnetic model."
+	},
+	{
+		"original_line": "real z;", 
+		"bug_line": "integer z;",
+		"error_description": "Changed the input variable type from real to integer, causing truncation of fractional values in coth() calculations. This introduces significant precision errors in anhysteric magnetization computation since hyperbolic functions require continuous inputs."
+	},
+	{
+		"original_line": "H = MMF(mp,mn) / len;", 
+		"bug_line": "H = MMF(mp,mn) * len;",
+		"error_description": "Replaced division with multiplication, causing incorrect magnetic field intensity calculation. H should be MMF divided by magnetic path length, but multiplying instead distorts core magnetization behavior."
+	},
+	{
+		"original_line": "      MMF(Hdot) <+ ddt(H);", 
+		"bug_line": "      MMF(Hdot) <+ H;",
+		"error_description": "Replaced derivative (ddt) with direct value, breaking the hysteresis model's directional dependence. The sign(dH/dt) calculation for delta now incorrectly uses H instead of its rate of change, corrupting magnetization direction detection."
+	},
+	{
+		"original_line": "Manh = ms * Heff/(3.0*gamma);     // Taylor series expansion of coth", 
+		"bug_line": "Manh = ms * Heff * (3.0*gamma);     // Taylor series expansion of coth",
+		"error_description": "Division operator replaced by multiplication, fundamentally altering the Taylor series approximation. This causes anhysteric magnetization (Manh) to scale with Heff squared instead of linearly, violating the model's small-field behavior and producing incorrect flux density calculations."
+	},
+	{
+		"original_line": "      `ifdef __VAMS_ENABLE__", 
+		"bug_line": "      `ifdef __VAMS_DISABLE__",
+		"error_description": "Changed conditional macro from __VAMS_ENABLE__ to __VAMS_DISABLE__. Since __VAMS_DISABLE__ is never defined, the VAMS-specific Phi(<mp>) call will never be used, forcing the non-VAMS Phi(mp,mp) call even in VAMS-compliant simulators. This breaks the intended VAMS interface handling."
+	},
+	{
+		"original_line": "Manh = ms * Heff/(3.0*gamma);     // Taylor series expansion of coth", 
+		"bug_line": "Manh = ms * H/(3.0*gamma);     // Taylor series expansion of coth",
+		"error_description": "Replaced Heff with H, causing the Taylor approximation to use raw field intensity instead of effective field (Heff = H + alpha*M). This ignores magnetic coupling effects in small-field conditions, leading to inaccurate anhysteretic magnetization calculations."
+	},
+	{
+		"original_line": "`ifdef __VAMS_ENABLE__", 
+		"bug_line": "`ifdef __VAMS_DISABLE__",
+		"error_description": "Changed condition to check for undefined macro __VAMS_DISABLE__. This always forces the else branch (Phi(mp,mp)) to execute, which calculates flux between the same node resulting in B=0. This violates magnetic flux density calculation requirements."
+	},
+	{
+		"original_line": "parameter real ms=1.6M from (0:inf);", 
+		"bug_line": "parameter real ms=1.6m from (0:inf);",
+		"error_description": "Changed saturation magnetization from 1.6 mega (1.6e6) to 1.6 milli (1.6e-3), reducing magnetic strength by 9 orders of magnitude and violating core saturation requirements."
+	},
+	{
+		"original_line": "input x;", 
+		"bug_line": "output x;",
+		"error_description": "Changed input direction to output, making the function expect a variable for output instead of accepting an input argument. This causes a functional error when calling sign(MMF(Hdot)) since MMF(Hdot) is an expression value, not a writable variable required for output."
+	},
+	{
+		"original_line": "`define pi      3.14159265358979323846264338327950288419716939937511", 
+		"bug_line": "`define pi      0.0",
+		"error_description": "Setting pi to 0.0 causes the permeability constant u0 to become 0.0 (since u0 = pi*4e-7). This leads to division by zero when calculating magnetization (M = B/u0 - H) and nullifies the magnetic flux calculation (Phi <+ area*u0*(H+M)), breaking core functionality."
+	},
+	{
+		"original_line": "parameter real alpha=1.6m from (0:inf);", 
+		"bug_line": "parameter real alpha=1.6 from (0:inf);",
+		"error_description": "Removed 'm' suffix, changing alpha from 1.6 milli (0.0016) to 1.6. This 1000x larger value causes incorrect effective field calculation in the magnetic model, distorting core behavior."
+	},
+	{
+		"original_line": "`else", 
+		"bug_line": "`ifdef __VAMS_DISABLE__",
+		"error_description": "Replacing 'else' with 'ifdef __VAMS_DISABLE__' causes the standard branch (B = Phi(mp,mn)/area) to never execute when __VAMS_ENABLE__ is undefined. This leaves B uninitialized in non-VAMS mode, resulting in incorrect flux density calculations and core behavior."
+	},
+	{
+		"original_line": "input x;", 
+		"bug_line": "output x;",
+		"error_description": "Changed input direction to output, making the function require a writable argument. The function call sign(MMF(Hdot)) passes a read-only value, causing compilation/simulation failure due to direction mismatch."
+	},
+	{
+		"original_line": "parameter real len=0.1 from (0:1000);", 
+		"bug_line": "parameter real len=0 from [0:1000];",
+		"error_description": "Changed default length to 0 and range to include 0, causing division by zero in H = MMF(mp,mn)/len calculation during simulation."
+	},
+	{
+		"original_line": "   analog function real sign;", 
+		"bug_line": "   analog function real signature;",
+		"error_description": "Renamed function 'sign' to 'signature', causing undefined reference in delta calculation. The call to sign(MMF(Hdot)) now fails, breaking the directional logic for pinning site migration and hysteresis behavior."
+	},
+	{
+		"original_line": "parameter real c=0.2 from [0:1];", 
+		"bug_line": "parameter real d=0.2 from [0:1];",
+		"error_description": "Renaming parameter 'c' to 'd' breaks the magnetization calculation. The analog block references 'c' (line 81), which becomes undefined. This causes the model to use 0 for 'c' (implicit net default), eliminating reversible magnetization and violating the Jiles-Atherton equations."
+	}
+]

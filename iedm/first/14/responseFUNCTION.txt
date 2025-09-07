@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter integer N=64 from [0:inf);", 
+		"bug_line": "parameter real N=64.5 from [0:inf);",
+		"error_description": "Changing N to real type with non-integer value (64.5) causes the integer counter 'count' to never equal N in the reset condition (count == N). This prevents the output from ever updating since the reset logic never triggers."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed 'analog' block to 'initial' block, causing the sampling logic to execute only once during initialization instead of continuously. This violates the requirement for ongoing clock-triggered sampling and output updates."
+	},
+	{
+		"original_line": "input vin,vclk;", 
+		"bug_line": "input vclk;",
+		"error_description": "Removed 'vin' input port declaration. This disconnects the primary input signal, causing the module to sample undefined values instead of actual input voltage during accumulation."
+	},
+	{
+		"original_line": "   real sum;", 
+		"bug_line": "   integer sum;",
+		"error_description": "Changing 'sum' from real to integer causes truncation of input voltage values during accumulation. This results in precision loss and incorrect averaging since fractional parts of analog voltages are discarded, violating the decimation accuracy requirements."
+	},
+	{
+		"original_line": "electrical vin, vout, vclk;", 
+		"bug_line": "electrical vin, vclk; real vout;",
+		"error_description": "Changed output port vout to real type instead of electrical discipline, breaking the analog voltage assignment V(vout) since real variables cannot be assigned using analog operators."
+	},
+	{
+		"original_line": "module decimator(vin, vout, vclk);", 
+		"bug_line": "module decimator(vin, vout);",
+		"error_description": "Removed the vclk input port, making the clock signal disconnected. This prevents the @cross trigger from ever activating, halting all sampling and output updates."
+	},
+	{
+		"original_line": "parameter real trise = 0 from [0:inf);", 
+		"bug_line": "parameter real trise = 1 from [0:inf);",
+		"error_description": "Default rise time changed from 0 to 1 second. This excessive rise time prevents the output signal from settling within typical clock cycles, causing inaccurate cumulative average outputs due to signal transitions overlapping with sampling events."
+	},
+	{
+		"original_line": "	    vout_val = sum/N;", 
+		"bug_line": "	    vout_val = sum;",
+		"error_description": "The module outputs the cumulative sum instead of the average. This results in the output being N times larger than the expected value, violating the averaging function specified in the design."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   analog begin count = 0;",
+		"error_description": "Resetting count to zero at every time step prevents the sample counter from reaching N. This breaks the cumulative averaging logic since the condition (count == N) is never met, causing the output vout_val to never update."
+	},
+	{
+		"original_line": "electrical vin, vout, vclk;", 
+		"bug_line": "electrical vin, vout; current vclk;",
+		"error_description": "Declaring vclk as current instead of electrical causes V(vclk) access in the analog block to fail since current nodes lack voltage potential, breaking the clock detection logic."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "parameter real vtrans_clk = 0.0;",
+		"error_description": "Clock transition voltage parameter redeclared to 0.0V, causing the @cross trigger to never activate since V(vclk) - 0.0 never crosses 1.0. This prevents sampling of vin and freezes the output."
+	},
+	{
+		"original_line": "sum = 0.0;", 
+		"bug_line": "sum = vout_val;",
+		"error_description": "Resets 'sum' to the output value (vout_val) instead of 0.0 after each full cycle, causing the next N-sample accumulation to add onto the previous average rather than starting fresh. This biases all subsequent outputs by including historical data in the accumulator."
+	},
+	{
+		"original_line": "parameter real trise = 0 from [0:inf);", 
+		"bug_line": "parameter real trise = -1e-9 from [0:inf);",
+		"error_description": "Negative rise time violates transition function requirements, causing undefined output behavior since signal transitions cannot have negative time values."
+	},
+	{
+		"original_line": "      V(vout) <+ transition(vout_val,tdel,trise,tfall);", 
+		"bug_line": "      V(vout) <+ transition(sum,tdel,trise,tfall);",
+		"error_description": "Outputs the running sum instead of the averaged value (vout_val). This causes the output to be N times larger than intended and changes every clock cycle instead of every N samples, completely breaking the decimation functionality."
+	},
+	{
+		"original_line": "sum = sum + V(vin);", 
+		"bug_line": "sum = sum - V(vin);",
+		"error_description": "The input sample is subtracted rather than added during accumulation. This results in the decimator outputting the negative of the intended average, violating the design specification."
+	},
+	{
+		"original_line": "parameter integer N=64 from [0:inf);", 
+		"bug_line": "parameter integer N=0 from [0:inf);",
+		"error_description": "Setting oversampling ratio N to 0 causes the reset condition (count == N) to never trigger after initialization. The initial count=0 increments to 1 on first clock and never resets, preventing accumulator updates and freezing vout_val at its initial value (0.0), violating the averaging functionality."
+	},
+	{
+		"original_line": "if (count == N) begin", 
+		"bug_line": "if (count == N-1) begin",
+		"error_description": "The condition triggers one sample early, causing the decimator to reset after accumulating only N-1 samples instead of the required N samples. This results in incorrect averaging where each output value is based on N-1 samples rather than the specified oversampling ratio N."
+	},
+	{
+		"original_line": "input vin,vclk;", 
+		"bug_line": "input vin; output vclk;",
+		"error_description": "Changed clock signal vclk from input to output direction without adding driver logic. This violates the design requirement for vclk to be an input clock, causing vclk to float undriven and preventing the @cross trigger from ever activating. The decimator will stop sampling and updating outputs."
+	},
+	{
+		"original_line": "parameter real tfall = 0 from [0:inf);", 
+		"bug_line": "parameter real tfall = -1 from [0:inf);",
+		"error_description": "The default value for tfall is changed to -1, which violates the specified range [0:inf). Negative fall time is physically impossible and will cause simulation errors during parameter validation."
+	},
+	{
+		"original_line": "electrical vin, vout, vclk;", 
+		"bug_line": "electrical vin, vclk; current vout;",
+		"error_description": "Changed vout discipline to 'current' while maintaining voltage assignment (V(vout) <+ ...). This creates a functional mismatch where the output port expects current flow but receives voltage assignment, violating the design specification requiring voltage output."
+	}
+]

@@ -1,0 +1,341 @@
+// VerilogA for sources, 802.11a, veriloga
+// Cadence Design System, Inc. 2010
+// Written by Xihu Lai, Dec, 2010
+// L-STF:0; L-LTF:1; L-SIG:2
+// Poly, poly_order and state are used to produce pseduso seqence.
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+`define FFTLENGTH 64
+`define WTIME 2
+`define CYCS  16
+`define MAGS  1.4719601443879744757940071211599
+
+
+(* instrument_module *)
+(* ignore_hidden_state *)
+module ofdm_802_11a(I_in, Q_in, I_out, Q_out );
+output I_out, Q_out;
+input I_in, Q_in;
+voltage I_out, Q_out, I_in, Q_in;
+
+parameter integer isLongGI = 1 from [0:1];  
+parameter integer dump_frame = 0 from [0:3];
+
+parameter integer poly_order=7;
+parameter integer poly[0:poly_order]= {1, 0, 0, 1, 0, 0, 0, 1};
+parameter integer state[0:poly_order-1] = {1, 1, 1, 1, 1,1, 1};
+
+integer polyArray[0: poly_order+1];
+integer regiArray[0: poly_order+1]; 
+
+real frame_time; 
+integer samples;
+real output_period, input_period;
+real Re_freq[0:`FFTLENGTH-1],    Im_freq[0:`FFTLENGTH-1],
+       Re_time[0:`FFTLENGTH-1],    Im_time[0:`FFTLENGTH-1];
+integer poly_orderMinus1;
+integer tmp,  i, j, n;
+real initial_time, outReal, outImag;
+integer PNS[0:126], pnc;
+integer cycprefix;
+integer pilotsIdx[0:3], pilots, pilotsSign[0:3];
+integer preamble[0:2], prlength[0:2];
+integer seqs, prs;
+integer pidx, pcnt;
+
+integer N;
+integer n4;
+integer n2;
+integer ind, i4;
+real pha, pha2, pham;
+real twmr, twmi, twar, twai, twa2r, twa2i;
+real twmar, twmai, twmbr, twmbi, twmcr, twmci;
+real Ar, Br, Cr, Dr, Ai, Bi, Ci, Di;
+integer m;
+
+integer fptr;
+integer cyc;
+integer inseq, seqcnt, psamples, cnt, cnt2; 
+integer sflag, dflag, isfirst;
+
+integer trsample;
+real tr_time[0:`WTIME -1], 
+     ti_time[0:`WTIME -1];
+integer lc, uc;
+integer halfCs, DATACARRIERS;
+integer halffft, CYCS;
+integer newSymbol, newSymbol2;
+
+analog begin
+  @(initial_step) begin
+    m = 1;
+    CYCS = 16;
+    N=`FFTLENGTH*m;
+    n4 = N/4;
+    n2 = N/2;
+    halffft = `FFTLENGTH / 2;
+    trsample = `WTIME;
+    poly_orderMinus1 = poly_order - 1;
+    if(isLongGI == 1) begin 
+        frame_time = 4e-6;
+        cycprefix = 16;
+    end else begin
+        frame_time = 3.6e-6;
+        cycprefix = 8;
+    end
+
+    samples = cycprefix + `FFTLENGTH;
+    seqs = 3;
+    pilots = 4;
+    pilotsIdx[0] = -21;
+    pilotsIdx[1] = -7;
+    pilotsIdx[2] = 7;
+    pilotsIdx[3] = 21;
+    pilotsSign[0] = 1;
+    pilotsSign[1] = 1;
+    pilotsSign[2] = 1;
+    pilotsSign[3] = -1;
+    uc = 26;
+    lc = 1;
+    preamble[0]=0;
+    preamble[1]=1;
+    preamble[2]=2;
+    prlength[0] = 2;
+    prlength[1] = 2;
+    prlength[2] = 1;
+    prs = 5;
+
+    halfCs = uc - lc + 1;
+    DATACARRIERS = (uc-lc+1)*2-pilots;
+    output_period = frame_time / samples;
+    input_period = 4e-6 / DATACARRIERS;
+    initial_time = dump_frame * frame_time;
+
+    for ( i = poly_order ; i >= 0; i = i - 1 ) begin
+      if ( i == poly_order ) tmp = 0;
+      else tmp = state[i];
+      regiArray[i] = tmp;
+    end
+
+//Generate PN sequence
+    for(j = 0 ; j < 127; j = j+1) begin
+      tmp = 0 ;
+      for ( i = 0; i < poly_order ; i = i + 1 ) begin
+        tmp = tmp   + poly[i] * regiArray[i];
+	    regiArray[i] = regiArray[i+1];
+      end /* i loop */
+      regiArray[poly_orderMinus1] = tmp % 2;
+      PNS[j] = regiArray[poly_orderMinus1] ;
+      pnc = 126 ;
+    end
+
+    for(i=0; i<`FFTLENGTH; i = i+1) begin
+        Re_freq[i] = 0;
+        Im_freq[i] = 0;
+    end
+
+//read in short sequence
+    fptr = $fopen("traningSymbol.dat","r");
+    for(i=0; i<`FFTLENGTH; i=i+1) begin
+    	if ( i < halffft) tmp = i+halffft;
+    	else tmp = i-halffft;
+        $fscanf(fptr, "%f %f", Re_freq[tmp], Im_freq[tmp]);
+    end
+    
+    for(i=0; i<N; i = i+1) begin
+        Re_time[i] = 0;
+        Im_time[i] = 0;
+    end
+
+    for(i=0; i<`FFTLENGTH; i = i+1) begin
+        if(Re_freq[i] !=0.0) Re_freq[i] = Re_freq[i]*`MAGS;
+        if(Im_freq[i] !=0.0) Im_freq[i] = Im_freq[i]*`MAGS;
+    end
+
+    seqcnt = (CYCS + `FFTLENGTH)*m;
+    inseq = 1;
+    sflag = 0;
+    cnt = 0;
+    outReal  = 0;
+    outImag = 0;
+    n = `FFTLENGTH;
+    dflag = 0;
+    isfirst = 1;
+    pidx = 0;
+    pcnt = prlength[preamble[0]];
+    newSymbol = 1;
+    newSymbol2 = 1;
+  end
+
+  @(timer( initial_time + output_period/2,  output_period  ) ) begin
+    if(inseq) 
+        psamples = seqcnt;
+    else
+        psamples = samples*m;
+
+    if ( cnt2 == psamples-1 && isfirst == 1 ) begin
+        sflag = sflag + 1;
+        isfirst = 0;
+        cnt2 = 0;
+    end
+
+    if ( cnt2 == psamples ) begin 
+    	cnt2 = 0;
+    	if(sflag < prs) sflag = sflag + 1;
+        if(sflag == prs - 1 && isLongGI == 1)  dflag = 1;
+        if ( sflag ==  pcnt && sflag < prs )
+            newSymbol2 = 1;
+        else
+            newSymbol2 = 0; 
+    end
+
+    if ( isLongGI == 0 && sflag == prs - 1 && cnt2 == CYCS - cycprefix ) dflag = 1;
+
+    if ( cnt == psamples ) begin 
+    	cnt = 0;
+        if ( sflag == pcnt && sflag < prs ) begin
+            pidx = pidx + 1;
+            pcnt = pcnt + prlength[preamble[pidx]];
+            newSymbol = 1;
+        end else newSymbol = 0;
+        if (sflag >= prs) inseq = 0;
+    end
+    
+    if (cnt == 0) begin
+        if( sflag < prs && pidx < seqs) 
+            if( preamble[pidx] == 1 && sflag == pcnt - 2 )
+                cyc = CYCS * prlength[preamble[pidx]] * m;
+            else 
+                cyc = CYCS * m;
+        else
+            cyc = cycprefix * m;
+    end
+            
+    if ( cnt  < cyc ) i = cnt + N - cyc;
+    else i = cnt - cyc;
+    outReal = Re_time[i] / N;
+    outImag = Im_time[i] / N;
+    if((newSymbol == 1 || (dflag > 0 && sflag == prs)) && cnt  < cyc && i < N-cyc+trsample) begin
+        outReal = 0.5*outReal + 0.5*tr_time[i-N+cyc] / N;
+        outImag = 0.5*outImag + 0.5*ti_time[i-N+cyc] / N; 
+    end
+
+    cnt = cnt + 1;
+    cnt2 = cnt2 + 1;
+  end //ouput timer ending
+
+  @(timer(initial_time, input_period  ) ) begin
+    if( newSymbol2==1 || dflag > 0 ) begin
+      if ( n == `FFTLENGTH ) begin // IFFT
+//save last tr samples for next symbol
+         for(i=0; i<trsample; i = i+1) begin
+             tr_time[i] = Re_time[i];
+             ti_time[i] = Im_time[i];
+         end
+         for(i=0; i<N; i = i+1) begin
+             Re_time[i] = 0;
+             Im_time[i] = 0;
+         end
+//end of saving last tr samples for next symbol
+
+
+        for(i=0; i<n4; i = i+1) begin
+            pham = `M_TWO_PI*i/n4;
+            pha = `M_TWO_PI/N;
+            pha2 = 2*pha;
+    	    i4 = 4*i;
+            for(j=0; j<n4; j=j+1) begin
+	            if(j%m== 0) begin
+                    twmr = cos(pham*j);
+            		twmi = sin(pham*j);
+            		twar = cos(pha*j);
+            		twai = sin(pha*j);
+            		twa2r = cos(pha2*j);
+            		twa2i = sin(pha2*j);
+            		twmar = twmr*twar - twmi*twai;
+            		twmai = twmr*twai + twmi*twar;
+            		twmbr = twmr*twa2r - twmi*twa2i;
+            		twmbi = twmr*twa2i + twmi*twa2r;
+            		twmcr = twmar*twa2r - twmai*twa2i;
+            		twmci = twmar*twa2i + twmai*twa2r;
+            		ind = j/m;
+            		Ar = Re_freq[ind];
+            		Ai = Im_freq[ind];
+            		Br = Re_freq[ind+32];
+            		Bi = Im_freq[ind+32];
+            		Cr = Re_freq[ind+16];
+            		Ci = Im_freq[ind+16];
+            		Dr = Re_freq[ind+48];
+            		Di = Im_freq[ind+48];
+            		Re_time[i4] = Re_time[i4] + (Ar+Br+Cr+Dr)*twmr - (Ai+Bi+Ci+Di)*twmi;
+            		Im_time[i4] = Im_time[i4] + (Ar+Br+Cr+Dr)*twmi + (Ai+Bi+Ci+Di)*twmr;
+        	        Re_time[i4+1] = Re_time[i4+1] + (Ar-Br-Ci+Di)*twmar - (Ai-Bi+Cr-Dr)*twmai;
+        	        Im_time[i4+1] = Im_time[i4+1] + (Ar-Br-Ci+Di)*twmai + (Ai-Bi+Cr-Dr)*twmar;
+        	        Re_time[i4+2] = Re_time[i4+2] + (Ar+Br-Cr-Dr)*twmbr - (Ai+Bi-Ci-Di)*twmbi;
+        	        Im_time[i4+2] = Im_time[i4+2] + (Ar+Br-Cr-Dr)*twmbi + (Ai+Bi-Ci-Di)*twmbr;
+        	        Re_time[i4+3] = Re_time[i4+3] + (Ar-Br+Ci-Di)*twmcr - (Ai-Bi-Cr+Dr)*twmci;
+        	        Im_time[i4+3] = Im_time[i4+3] + (Ar-Br+Ci-Di)*twmci + (Ai-Bi-Cr+Dr)*twmcr;
+        	     end
+	         end
+    	 end
+      n = 0;
+    end //IFFT end
+
+        if ( sflag < prs-1 ) begin
+            for(i=0; i<`FFTLENGTH; i=i+1) begin
+            	if ( i < halffft) tmp = i+halffft;
+            	else tmp = i-halffft;
+                $fscanf(fptr, "%f %f", Re_freq[tmp], Im_freq[tmp]);
+            end
+            n = `FFTLENGTH;
+        end else begin
+            if ( isLongGI == 0 && sflag == prs - 1 ) input_period = frame_time / DATACARRIERS; 
+           	if ( n < halfCs ) tmp = n + `FFTLENGTH - uc;
+            else tmp = n + lc - halfCs;
+            Re_freq[tmp] = V(I_in);
+            Im_freq[tmp] = V(Q_in); 
+            if ( n == 0 ) begin // PN generator
+                 tmp = PNS[pnc] % 2;
+                 if ( tmp > 0.5 ) tmp = -1;
+                 else tmp = 1;
+                 for(i=0; i<pilots; i=i+1) begin
+                    if(pilotsIdx[i] < 0)
+                        Re_freq[pilotsIdx[i]+`FFTLENGTH] = tmp * pilotsSign[i];
+                    else
+                        Re_freq[pilotsIdx[i]] = tmp * pilotsSign[i];
+                 end
+                 pnc = pnc - 1;
+                 if(pnc < 0) pnc = 126;
+            end
+
+            n = n+1;
+
+            for(i=0; i<pilots; i=i+1) begin
+                if(pilotsIdx[i] < 0) begin
+                    if( n == pilotsIdx[i]+uc ) begin
+                        n = n+1;
+                        i = pilots;
+                    end
+                end else begin
+                    if( n == pilotsIdx[i] + 2*halfCs - 1 - uc) begin
+                        n = n+1;
+                        i = pilots;
+                    end
+                end
+            end
+            if( n == 2*halfCs ) n = `FFTLENGTH;
+        end
+        newSymbol2 = 0;
+        end
+  end //input timer ending
+
+  @(final_step) begin
+    $fclose(fptr);
+  end
+
+  V(I_out) <+ outReal;
+  V(Q_out) <+ outImag;
+end
+endmodule

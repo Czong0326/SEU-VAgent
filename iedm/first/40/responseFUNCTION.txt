@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "module rbtWaveguide(p,n,vss);", 
+		"bug_line": "module rbtWaveguide(p,n);",
+		"error_description": "Removed the vss ground reference port. This breaks the transmission line model which requires a ground connection (mtlineInst uses vss twice), causing floating node errors and incorrect waveguide behavior since the reference potential is undefined."
+	},
+	{
+		"original_line": "localparam real mtline_l = rhoeff/rbt_wgLtoRho; // mtline inductance per unit length", 
+		"bug_line": "localparam real mtline_l = rhoeff * rbt_wgLtoRho; // mtline inductance per unit length",
+		"error_description": "Changed division to multiplication, fundamentally altering the inductance calculation. The correct relationship requires division to convert density to inductance per unit length. Multiplication inverts the physical relationship, making inductance proportional to density instead of inversely proportional."
+	},
+	{
+		"original_line": "parameter real rbt_Qother = `RBT_QOTHER from (0:inf); // Other losses", 
+		"bug_line": "parameter real rbt_Qother = `RBT_QOTHER from (-inf:inf); // Other losses",
+		"error_description": "Changed parameter range from (0:inf) to (-inf:inf), allowing negative quality factors which cause unphysical negative loss in the model."
+	},
+	{
+		"original_line": "parameter real rbt_wgLtoRho = `RBT_WGLTORHO from (0:inf);   // scaling parameter from inductance to density", 
+		"bug_line": "parameter real rbt_wgLtoRho = -`RBT_WGLTORHO from (0:inf);   // scaling parameter from inductance to density",
+		"error_description": "The negative sign inverts the scaling parameter, causing non-physical negative values in transmission line parameters (mtline_l, mtline_c), violating the waveguide's physical model requirements."
+	},
+	{
+		"original_line": "localparam real rhoeff = rho * ( 1 + rhoTC * dT );", 
+		"bug_line": "localparam real rhoeff = rho * ( 1 - rhoTC * dT );",
+		"error_description": "Subtraction replaces addition in the temperature coefficient term, inverting the temperature effect on density. This causes incorrect density calculations during thermal variation, violating the material property adjustment requirements."
+	},
+	{
+		"original_line": "`define __RBT_WAVE_GUIDE_VA__", 
+		"bug_line": "`define RBT_LTC 0",
+		"error_description": "Redefines RBT_LTC (thermal expansion coefficient) to 0 instead of setting the include guard. This forces the waveguide length to remain constant across temperature changes (Leff = l * (1 + 0*dT), violating the thermal expansion design specification while also disabling the include guard."
+	},
+	{
+		"original_line": "parameter real rbt_wgLtoRho = `RBT_WGLTORHO from (0:inf);   // scaling parameter from inductance to density", 
+		"bug_line": "parameter real rbt_wgLtoRho = `RBT_WGLTORHO from [0:inf);   // scaling parameter from inductance to density",
+		"error_description": "Changed range from (0:inf) to [0:inf), allowing zero value. This permits invalid rbt_wgLtoRho=0, causing division by zero in mtline_l = rhoeff/rbt_wgLtoRho calculation."
+	},
+	{
+		"original_line": "mtline #(.l(mtline_l), .c(mtline_c), .g(mtline_g), .r(mtline_r), .len(Leff), .fmax(`RBT_FMAX)) mtlineInst (p,n,vss,vss);", 
+		"bug_line": "mtline #(.l(mtline_l), .c(mtline_c), .g(mtline_g), .r(mtline_r), .len(Leff), .fmax(`RBT_FMAX)) mtlineInst (p,n,vss,p);",
+		"error_description": "The last connection should be vss (ground) but was changed to p. This incorrectly connects the transmission line's negative output port to the positive input signal instead of ground, creating an unintended feedback path and disrupting the waveguide termination."
+	},
+	{
+		"original_line": "mtline #(.l(mtline_l), .c(mtline_c), .g(mtline_g), .r(mtline_r), .len(Leff), .fmax(`RBT_FMAX)) mtlineInst (p,n,vss,vss);", 
+		"bug_line": "mtline #(.l(mtline_l), .c(mtline_c), .g(mtline_g), .r(mtline_r), .len(Leff), .fmax(`RBT_FMAX)) mtlineInst (p,vss,n,vss);",
+		"error_description": "Swapped the second and third ports, incorrectly connecting the negative terminal (n) to ground and ground (vss) to signal path, creating a short circuit that disrupts signal propagation."
+	},
+	{
+		"original_line": "localparam real mtline_c = rbt_wgLtoRho/c11; // mtline capacitance per unit length", 
+		"bug_line": "localparam real mtline_c = rbt_wgLtoRho * c11; // mtline capacitance per unit length",
+		"error_description": "Changed division to multiplication, making capacitance directly proportional to stiffness (c11) instead of inversely proportional. This breaks the physical relation where capacitance should decrease with increasing material stiffness."
+	},
+	{
+		"original_line": "parameter real l   = `RBT_L  from (0:inf);  // Waveguide length", 
+		"bug_line": "parameter real l   = `RBT_L  from [0:inf);  // Waveguide length",
+		"error_description": "Changed waveguide length range to include zero. This allows unphysical zero-length waveguides, causing division-by-zero in transmission line calculations when l=0."
+	},
+	{
+		"original_line": "parameter real LTC   = `RBT_LTC from [0:inf); // Expansion coefficient for material A", 
+		"bug_line": "parameter real LTC   = `RBT_LTC from [0:0]; // Expansion coefficient for material A",
+		"error_description": "Changed the range from [0:inf) to [0:0], forcing LTC to always be 0. This disables thermal expansion calculations (Leff = l * (1 + 0*dT)), violating the temperature-dependent length adjustment requirement."
+	},
+	{
+		"original_line": "localparam real Leff   = l * ( 1 + LTC   * dT );", 
+		"bug_line": "localparam real Leff   = l * ( 1 - LTC   * dT );",
+		"error_description": "Changed thermal expansion sign from positive to negative, causing waveguide length to contract with temperature increase instead of expanding. This violates the fundamental thermal expansion behavior described in the design parameters."
+	},
+	{
+		"original_line": "parameter real version = 1.00;", 
+		"bug_line": "parameter real l = 1.00;",
+		"error_description": "Changed parameter name to 'l', creating duplicate parameter declaration conflict with waveguide length parameter at line 67, causing compilation failure."
+	},
+	{
+		"original_line": "parameter real rbt_fQTC = `RBT_FQTC;          // rbt_fQ TC for material A", 
+		"bug_line": "parameter real rbt_fQTC = -`RBT_FQTC;          // rbt_fQ TC for material A",
+		"error_description": "The temperature coefficient sign is inverted, causing material losses to decrease with rising temperature instead of increasing. This violates the intended thermal behavior where fQ should reduce with temperature."
+	},
+	{
+		"original_line": "parameter real LTC   = `RBT_LTC from [0:inf); // Expansion coefficient for material A", 
+		"bug_line": "parameter real LTC   = `RBT_LTC from (-inf:0]; // Expansion coefficient for material A",
+		"error_description": "Changed valid range from [0,inf) to (-inf,0], allowing negative expansion coefficients which would incorrectly model contraction as expansion and violate the physical design constraints for waveguide thermal behavior."
+	},
+	{
+		"original_line": "inout p,n,vss;", 
+		"bug_line": "input p,n,vss;",
+		"error_description": "Changed port direction from bidirectional (inout) to input-only, preventing the module from driving output signals. This breaks the waveguide's functionality as it cannot propagate signals through the transmission line model."
+	},
+	{
+		"original_line": "parameter real rbt_fQTC = `RBT_FQTC;          // rbt_fQ TC for material A", 
+		"bug_line": "parameter real rbt_fQTC = -`RBT_FQTC;          // rbt_fQ TC for material A",
+		"error_description": "Added negative sign to temperature coefficient parameter. This inverts the temperature dependence of the material's fQ product, causing incorrect loss calculations under temperature variations."
+	},
+	{
+		"original_line": "localparam real Yeff   = Y   * ( 1 + YTC   * dT );", 
+		"bug_line": "localparam real Yeff   = Y   * ( 1 - YTC   * dT );",
+		"error_description": "Changed the temperature compensation formula from additive to subtractive, causing Young's modulus to decrease with rising temperature instead of increasing. This reverses the thermal dependency and violates material property relationships where Young's modulus typically increases with temperature."
+	},
+	{
+		"original_line": "`include "disciplines.vams"", 
+		"bug_line": "`include "constants.vams" // disciplines.vams intentionally omitted",
+		"error_description": "Replaced disciplines.vams with constants.vams, leaving electrical disciplines undefined. This causes compilation failures for 'electrical' port types and breaks the entire module interface."
+	}
+]

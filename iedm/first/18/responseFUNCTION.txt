@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "                       c1 (comm, ref) ;", 
+		"bug_line": "                       c1 (in, comm) ;",
+		"error_description": "The capacitor c1 is incorrectly connected between the input node 'in' and the common node 'comm' instead of between 'comm' and the reference node 'ref'. This creates a parallel connection with capacitor c2, fundamentally altering the filter topology and breaking the intended transfer function."
+	},
+	{
+		"original_line": "module dig_pll_lpf(in, ref);", 
+		"bug_line": "module dig_pll_lpf(in);",
+		"error_description": "Removed the reference port 'ref', disconnecting the RC network from ground. This causes the filter components to reference an undefined node, breaking the low-pass filter functionality."
+	},
+	{
+		"original_line": "parameter real r_nom = 10K;", 
+		"bug_line": "parameter real r_nom = 0;",
+		"error_description": "Setting r_nom to zero causes division by zero in capacitor calculations (c = 1/(r_nom*2*PI*freq)), resulting in infinite capacitance values and simulation failure."
+	},
+	{
+		"original_line": "@ (initial_step) begin", 
+		"bug_line": "@ (final_step) begin",
+		"error_description": "The condition check for unrealizable filter (pole_freq <= zero_freq) incorrectly uses final_step instead of initial_step. This delays the parameter validation until simulation end, allowing invalid configurations (pole_freq ≤ zero_freq) to run instead of terminating immediately at startup."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed analog block to initial block. The frequency check @(initial_step) is now in a digital block where initial_step event is undefined, causing compilation failure. Even if compiled, the critical filter stability check would never execute since initial blocks run once at time zero before analog initialization."
+	},
+	{
+		"original_line": "        capacitor #(.c(1/(r_nom*2 * `PI * pole_freq)) )", 
+		"bug_line": "        capacitor #(.c(1/(r_nom*2 * `PI * zero_freq)) )",
+		"error_description": "The capacitance value incorrectly uses zero_freq instead of pole_freq, disrupting the pole location in the transfer function and causing incorrect filter behavior."
+	},
+	{
+		"original_line": "parameter real r_nom = 10K;", 
+		"bug_line": "parameter real r_nom = 0;",
+		"error_description": "Setting r_nom to zero causes division by zero in capacitor calculations (c = 1/(r_nom*2*PI*zero_freq) - ...), resulting in infinite capacitance values and simulation failure."
+	},
+	{
+		"original_line": "            $finish;", 
+		"bug_line": "            ;",
+		"error_description": "Removed simulation termination when pole_freq <= zero_freq. This allows invalid filter configurations to proceed silently, potentially causing unstable behavior in the PLL system without alerting the designer."
+	},
+	{
+		"original_line": "parameter real r_nom = 10K;", 
+		"bug_line": "parameter real r_nom = 0;",
+		"error_description": "Setting r_nom to zero causes division by zero in capacitor value calculations (c1 and c2), leading to undefined filter behavior and simulation failure."
+	},
+	{
+		"original_line": "electrical comm;", 
+		"bug_line": "electrical ref;",
+		"error_description": "Redeclares 'ref' as an internal node conflicting with the input port 'ref', causing compilation failure due to duplicate node names."
+	},
+	{
+		"original_line": "            $finish;", 
+		"bug_line": "            ;",
+		"error_description": "Removed simulation termination when unrealizable filter condition is detected, allowing simulation to proceed with invalid pole/zero configuration."
+	},
+	{
+		"original_line": "        capacitor #(.c(1/(r_nom*2 * `PI * zero_freq) -", 
+		"bug_line": "        capacitor #(.c(1/(r_nom*2 * `PI * pole_freq) -",
+		"error_description": "Swapped zero_freq for pole_freq in the first term, making the capacitor value calculation 1/(r_nom*2*PI*pole_freq) - 1/(r_nom*2*PI*pole_freq) = 0 when combined with the unchanged second term. This shorts nodes 'in' and 'comm', destroying the intended filter transfer function by eliminating the zero and altering loop dynamics."
+	},
+	{
+		"original_line": "parameter real pole_freq = 3M;", 
+		"bug_line": "parameter real pole_freq = -3M;",
+		"error_description": "Assigning negative frequency (-3 MHz) violates physical constraints since frequencies must be positive, causing unrealizable capacitor values and triggering the filter's error check during initialization."
+	},
+	{
+		"original_line": "parameter real r_nom = 10K;", 
+		"bug_line": "parameter real r_nom = -10K;",
+		"error_description": "Assigning a negative value to r_nom creates negative resistance and capacitance values, violating physical component constraints and causing unstable filter behavior."
+	},
+	{
+		"original_line": "capacitor #(.c(1/(r_nom*2 * `PI * pole_freq)) )", 
+		"bug_line": "capacitor #(.c(1/(r_nom*2 * `PI * zero_freq)) )",
+		"error_description": "The capacitor c1 incorrectly uses zero_freq instead of pole_freq. This swaps the pole and zero frequencies in the filter's transfer function, violating the design specification where c1 must set the pole frequency while c2 handles the zero frequency."
+	},
+	{
+		"original_line": "$display("Unrealisable filter:  pole's frequency = (%E) less than zero's frequency = (%E).\n", pole_freq, zero_freq );", 
+		"bug_line": "$display("Unrealisable filter:  pole's frequency = (%E) less than zero's frequency = (%E).\n", zero_freq, pole_freq );",
+		"error_description": "Swapped pole_freq and zero_freq arguments in error message. When the filter is unrealizable (pole_freq <= zero_freq), the displayed values will be reversed, misreporting actual pole/zero frequencies and misleading debug efforts."
+	},
+	{
+		"original_line": "parameter real r_nom = 10K;", 
+		"bug_line": "parameter real r_nom = 0;",
+		"error_description": "Setting r_nom to 0 causes division by zero in capacitor value calculations (c = 1/(r_nom*2*PI*...)), resulting in infinite capacitance values and simulation failure."
+	},
+	{
+		"original_line": "        capacitor #(.c(1/(r_nom*2 * `PI * pole_freq)) )", 
+		"bug_line": "        capacitor #(.c(1/(r_nom*2 * `PI * zero_freq)) )",
+		"error_description": "Replaced pole_freq with zero_freq in c1 capacitance calculation. This incorrectly sets the pole frequency to the intended zero frequency value, disrupting the filter's transfer function by misplacing the pole position relative to the zero."
+	},
+	{
+		"original_line": "                       c2 (in, comm);", 
+		"bug_line": "                       c2 (in, ref);",
+		"error_description": "Capacitor c2 is incorrectly connected between 'in' and 'ref' instead of 'in' and 'comm', creating a direct capacitive path to the reference node and altering the filter topology."
+	},
+	{
+		"original_line": "resistor  #(.r(r_nom)) r1 (comm, ref);", 
+		"bug_line": "resistor  #(.r(0)) r1 (comm, ref);",
+		"error_description": "The resistor value is set to 0 Ohms instead of r_nom, creating a direct short between comm and ref nodes. This collapses the RC network, destroys the filter's pole/zero characteristics, and causes incorrect loop dynamics in the PLL."
+	}
+]

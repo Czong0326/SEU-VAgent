@@ -1,0 +1,59 @@
+// VerilogA for sources_modules, wcdma_ovsf, veriloga
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+(* instrument_module *)
+module wcdma_ovsf(out);
+output out;
+electrical out;
+
+parameter integer sf = 8 from [4:512];
+parameter integer code_index = 7;
+parameter real sample = 1/12000.0 from (0:inf);
+
+integer tmpIndex, tmpSF, i, j;
+integer ovsfCode[0:sf];
+
+analog begin
+  @(initial_step) begin
+    i = 4;
+    while ( i < sf ) begin
+      i = i *2;
+      if ( i > sf ) begin
+        $strobe( " Error: sf for the wcdma_ovsf block is out of range. It should be a power of 2. \n");
+        $finish(0);
+      end
+    end
+    if ( (code_index >= sf) || (code_index<0) ) begin
+      $strobe( " Error: code_index for the wcdma_ovsf block is out of range. It should be in the range of 0 ... sf-1. \n");
+      $finish(0);
+    end
+    ovsfCode[1] = 1;
+    tmpIndex = code_index;
+    tmpSF = sf;
+    i = 1;
+    while ( tmpSF > 1 ) begin
+      tmpSF = tmpSF / 2;
+      for (j = 1; j <=i; j = j + 1 ) begin
+        if ( tmpIndex < tmpSF ) ovsfCode[j+i] = ovsfCode[j];
+        else ovsfCode[j+i] = - ovsfCode[j];
+      end
+      i = i * 2;
+      if ( tmpIndex >= tmpSF )
+        tmpIndex = tmpIndex - tmpSF;
+    end /* end of While */
+    tmpIndex = 1;
+    tmpSF = 0;
+  end
+
+  @(timer(0, sample)) begin
+    tmpSF = ovsfCode[tmpIndex];
+    tmpIndex = tmpIndex +1;
+    if ( tmpIndex > sf )
+      tmpIndex = 1;
+  end
+
+  V(out) <+ tmpSF;
+end
+endmodule

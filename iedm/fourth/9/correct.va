@@ -1,0 +1,129 @@
+//  VerilogA for VerilogA, Chebyshev_lpf_d, veriloga
+//
+//  System level implementation of differential Chebyshev
+//  lowpass filter (order >= 2)based on laplace_zp() filter
+//   
+//  Copyright (c) 2005
+//  by Cadence Design Systems, Inc.  All rights reserved.
+//
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+// Define filter order N: must be >=2
+`define N 8
+
+//   Next filter parameters are implemented as parameters
+//   of this Verilog-A module: 
+//	fcorner:       corner frequency [Hz]
+//	ripple:	       in dB // must be >0
+//   	rin:           input resistance [Ohm]
+//   	rout:          output resistance [Ohm]
+//   	gain:          voltage gain [dB]; (or loss, if gain < 0). 
+
+/* System level implementation of differential Chebyshev HP filter:
+        --------              
+inp-    | H(s) |   ---rout----outp
+   |    --------   |
+  rin            VHout
+   |			   |
+  gnd             gnd 
+
+inn-               ---rout----outn
+   |    		  |
+  rin            VHout
+   |			  |
+  gnd			 gnd
+             
+Voltage source VHout = H(s)*Vin,
+where H(s) is the polynomial transfer function of Chebyshev HPF implemented
+as  laplace_np(V(inp)- V(inn), zeron, poles);
+*/
+
+module BB_chebyshev_hp_laplace(inp,inn, outp,outn);
+
+   inout inp,inn, outp,outn;
+   electrical inp,inn,  outp,outn;
+   
+   parameter real fcorner = 1e9 from (0:inf);
+   parameter real ripple= 0.1 from (0:inf);
+   parameter real rin = 50 from (0:inf);
+   parameter real rout = 50 from (0:inf);
+   parameter real gain = 0;
+   
+   // vector for all N denominator poles 
+   real  poles[0:`N*2 -1], zeron[0:`N];
+ 
+   // vectors for Re and Im of poles pairs:
+   real  ReP[0:`N/2], ImP[0:`N/2];
+    
+   real wb, real_gain, re_pole, im_pole, vout, wb2;
+   real eps, nu, sinh_nu, cosh_nu, teta;
+   integer i, Npair, Np1p, k;
+   real tmp;
+   
+analog begin
+
+ @(initial_step) begin
+        
+   if( `N < 2 ) begin
+        $strobe("Filter order is less then 2");
+        $stop(1);
+   end // if( `N < 2 )
+
+   wb = `M_TWO_PI * fcorner;
+   Npair = `N/2; Np1p = (`N+1)/2;
+   if (Npair*2==`N) real_gain = pow(10.0,(gain-ripple)/20.0);
+     else real_gain = pow(10.0,gain/20.0);
+   wb2 = wb * wb;
+   for (k=0; k<`N; k=k+1) zeron[k] = 0;
+   zeron[k] = 1;
+  
+// Initialization of vectors ReP and ImP
+// using normalized Chebyshev pole locations
+// where f=1 at the ripple attenuation cutoff point
+
+   eps = sqrt(pow(10.0,ripple/10.0)-1.0);
+   nu =  asinh(1.0/eps)/`N;
+   sinh_nu = sinh(nu);
+   cosh_nu = cosh(nu);   
+          
+   for (k=1; k<=Np1p; k=k+1) begin
+   	teta = (2*k-1.0)*`M_PI/(2*`N);
+   	ReP[k-1] = - sinh_nu * sin(teta);
+   	ImP[k-1] =   cosh_nu * cos(teta);
+   	if (abs(ImP[k-1])< 1.0e-8) ImP[k-1] = 0.0;
+   end // for (k=1; k<=Np1p; k=k+1)
+  
+// Poles of denormalized filter
+   for (i=0; i<Npair; i=i+1) begin
+        tmp = wb * (ReP[i] * ReP[i] + ImP[i] * ImP[i]);
+	zeron[`N] = zeron[`N] / wb2;
+        re_pole = tmp * ReP[i];
+        im_pole = tmp * ImP[i];
+        poles[4*i]   =  re_pole;
+        poles[4*i+1] =  im_pole;
+        poles[4*i+2] =  re_pole;
+        poles[4*i+3] = -im_pole;
+   end //for (i=0; i<Npair; i=i+1)
+  
+   if (Npair != Np1p) begin // odd `N
+        re_pole = wb / ReP[i];
+        poles[4*i]   = re_pole;
+        poles[4*i+1] = 0.0;
+	zeron[`N] = zeron[`N] / wb;
+   end //if (Npair != Np1p)
+ end // init step
+  
+ // input model: 
+ I(inp) <+ V(inp)/rin;
+ I(inn) <+ V(inn)/rin;
+
+//  output model:
+ vout = real_gain * laplace_np(V(inp)- V(inn), zeron, poles);
+ 
+ I(outp) <+ (V(outp) - vout)/rout;
+ I(outn) <+ (V(outn) + vout)/rout;
+
+end // analog begin
+endmodule // Chebyshev_lpf_d

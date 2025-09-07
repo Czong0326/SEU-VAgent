@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "   analog function real beta_function;", 
+		"bug_line": "   analog function real beta_function(input integer x, y);",
+		"error_description": "Added incorrect input arguments (x,y) to the beta_function declaration. This violates the function's usage in the initial block where it's called with no arguments (line 63: beta_function(p,q)). The mismatch causes compilation errors and prevents polarization calculation."
+	},
+	{
+		"original_line": "`include "disciplines.vams"", 
+		"bug_line": "`include "constants.vams"  // Error: disciplines replaced with constants",
+		"error_description": "Replacing 'disciplines.vams' with 'constants.vams' creates a fatal compilation error. The module relies on electrical port definitions from disciplines.vams for proper interface declaration. Without these, the 'electrical' data type in line 6 becomes undefined, breaking the entire analog behavior model."
+	},
+	{
+		"original_line": "electrical vtop, vbot;", 
+		"bug_line": "electrical vtop, vtop;",
+		"error_description": "Declared 'vtop' twice instead of 'vbot'. This leaves the bottom electrode (vbot) without a discipline, causing undefined behavior in voltage/current calculations and breaking the capacitor's functionality."
+	},
+	{
+		"original_line": "real vtb;", 
+		"bug_line": "real vtb = 0;",
+		"error_description": "Initializing vtb to 0 creates a constant 0V voltage reading. This prevents actual voltage measurement between vtop and vbot, breaking polarization calculations and charge dynamics since all domain switching decisions are based on incorrect fixed voltage."
+	},
+	{
+		"original_line": "pswi = 1 - exp(pow(hpre[i], beta) - pow(h[i], beta));", 
+		"bug_line": "pswi = 1 - exp(pow(hpre[i], beta) + pow(h[i], beta));",
+		"error_description": "Changed subtraction to addition in the exponent argument, causing positive exponent values. This results in negative pswi values when h[i] >= hpre[i], inhibiting domain switching due to the pswi > srand condition always failing."
+	},
+	{
+		"original_line": "vswitchlimit[i] = r_Ea[i]/pow(ln(TIMELIMIT/tauo), 1.0/alpha);", 
+		"bug_line": "vswitchlimit[i] = r_Ea[i]/pow(ln(TIMELIMIT/tauo), alpha);",
+		"error_description": "The exponent should be 1/alpha to model the activation field correctly. Using alpha instead inverts the exponent relationship, causing incorrect switching field calculations and domain behavior errors."
+	},
+	{
+		"original_line": "         if (pswi > srand) begin", 
+		"bug_line": "         if (pswi < srand) begin",
+		"error_description": "Inverted comparison operator causes domains to switch when switching probability is LOW rather than high. This reverses the polarization dynamics - domains switch at wrong voltage conditions, corrupting the hysteresis loop and charge accumulation behavior."
+	},
+	{
+		"original_line": "parameter integer seed = 20 from (0:inf);          // random seed to set initial state", 
+		"bug_line": "parameter real seed = 20 from (0:inf);          // random seed to set initial state",
+		"error_description": "Changed seed from integer to real type. The $rdist_normal and $rdist_uniform functions require integer seeds. This type mismatch will cause compilation/simulation failures when passing real values to integer-expecting system functions."
+	},
+	{
+		"original_line": "h[i] = 0;", 
+		"bug_line": "h[i] = 1.0;",
+		"error_description": "Setting switching progress to 1.0 instead of 0 during reversal causes domains to retain partial switching state, leading to premature polarization flips and incorrect charge accumulation."
+	},
+	{
+		"original_line": "f_distr[i] = f_distr[i - 1] + (l[i] + l[i - 1]) * 4.0 / 10000.0;", 
+		"bug_line": "f_distr[i] = f_distr[i - 1] + (l[i] + l[i - 1]) * 4.0 / 1000;",
+		"error_description": "Changed denominator from 10000.0 to 1000, reducing the step size by 10x. This miscalculation of the cumulative distribution function (CDF) for activation fields causes incorrect domain sampling, leading to inaccurate polarization switching behavior in the ferroelectric model."
+	},
+	{
+		"original_line": "parameter real tfe = 8n from (0:inf);              // thickness of ferroelectrics (m)", 
+		"bug_line": "parameter real tfe = 8u from (0:inf);              // thickness of ferroelectrics (m)",
+		"error_description": "Changed thickness from 8nm to 8um, making the capacitance 1000 times smaller than designed. This violates the physical specification in the model description where capacitance is inversely proportional to thickness (C ∝ 1/tfe), causing incorrect charge calculations in the MFM capacitor."
+	},
+	{
+		"original_line": "beta_function = gamma_function(x) * gamma_function(y) / gamma_function(x + y);", 
+		"bug_line": "beta_function = gamma_function(x) * gamma_function(y) * gamma_function(x + y);",
+		"error_description": "Replaced division with multiplication in beta function calculation. The correct beta function requires division by gamma(x+y), but multiplying instead violates the mathematical definition B(x,y)=Γ(x)Γ(y)/Γ(x+y), corrupting the activation field distribution computation."
+	},
+	{
+		"original_line": "h[i] = 0;", 
+		"bug_line": "h[i] = -1;",
+		"error_description": "Resetting h[i] to -1 causes perpetual triggering of the reset condition (h[i] < 0), preventing switching progress and trapping domains in a reset loop instead of properly initializing the switching state."
+	},
+	{
+		"original_line": "parameter real vfb = 0.5 from [0:inf);             // standard deviation of offset voltage (V)", 
+		"bug_line": "parameter real vfb = 1000 from [0:inf);             // standard deviation of offset voltage (V)",
+		"error_description": "The standard deviation of offset voltage is increased from 0.5V to 1000V. This unrealistically large value will cause extreme random offsets in each domain, disrupting the intended statistical behavior of the ferroelectric model and producing incorrect switching characteristics."
+	},
+	{
+		"original_line": "srand = $rdist_uniform(seed, 0, 1);", 
+		"bug_line": "srand = 1.1;",
+		"error_description": "Replaced the random threshold generation with a constant value of 1.1. This causes the switching condition (pswi > srand) to always fail since pswi ≤ 1, preventing all domain switching and freezing polarization states."
+	},
+	{
+		"original_line": "inout vtop, vbot;", 
+		"bug_line": "output vtop, vbot;",
+		"error_description": "Changing port direction from inout to output prevents external voltage application across the capacitor. The model requires bidirectional ports to sense voltage V(vtop,vbot), but output ports cannot receive voltage signals, breaking the core functionality."
+	},
+	{
+		"original_line": "parameter real length = 1u from (0:inf);           // MFM's length (m)", 
+		"bug_line": "parameter real length = 0 from [0:inf);           // MFM's length (m)",
+		"error_description": "Setting default length=0 and including 0 in the range causes zero capacitor area. This results in I(vtop,vbot)=0 regardless of voltage due to multiplication by length=0 in the current calculation (I <+ ddt(Pcurr/100*width*length)), violating the fundamental capacitor behavior."
+	},
+	{
+		"original_line": "      for (i = 0; i < ndom; i = i + 1) begin", 
+		"bug_line": "      for (i = 0; i < ndom-1; i = i + 1) begin",
+		"error_description": "Loop termination condition changed from 'i < ndom' to 'i < ndom-1', causing the last domain (index ndom-1) to be excluded from polarization calculations. This results in incomplete domain switching and incorrect charge summation."
+	},
+	{
+		"original_line": "sum = 0;", 
+		"bug_line": "sum = sum;",
+		"error_description": "The variable 'sum' is not reset to zero at the start of each analog iteration. This causes domain states to accumulate over time steps, leading to unbounded polarization growth and incorrect charge calculations."
+	},
+	{
+		"original_line": "parameter integer seed = 20 from (0:inf);          // random seed to set initial state", 
+		"bug_line": "parameter integer seed = -20 from (0:inf);          // random seed to set initial state",
+		"error_description": "Negative seed value violates requirement for non-negative seeds in random distribution functions ($rdist_normal/$rdist_uniform), causing simulation errors due to invalid seed input."
+	}
+]

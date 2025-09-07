@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "theta = theta+taps[k]*filter_states[k];", 
+		"bug_line": "theta = theta - taps[k]*filter_states[k];",
+		"error_description": "The phase integration incorrectly subtracts the filter contribution instead of adding it, causing reversed I/Q modulation rotation and corrupted signal generation."
+	},
+	{
+		"original_line": "integer bottom;", 
+		"bug_line": "real bottom;",
+		"error_description": "Changed 'bottom' from integer to real type. This causes type mismatch in array indexing (sgs[frame_count-bottom]) where frame_count is integer and bottom is real, leading to incorrect guard bit insertion due to fractional index calculations."
+	},
+	{
+		"original_line": "for (k=11.25*`OVERSAMPLE; k < `SGSBITS*`OVERSAMPLE; k=k+1) sgs[k] = -1;", 
+		"bug_line": "for (k=11.25*`OVERSAMPLE; k < `SGSBITS*`OVERSAMPLE; k=k+1) sgs[k] = 1;",
+		"error_description": "Guard bits are incorrectly set to 1 instead of -1, violating the GSM frame structure where guard bits must be negative. This corrupts the signal modulation by introducing invalid symbol transitions."
+	},
+	{
+		"original_line": "integer k;", 
+		"bug_line": "real k;",
+		"error_description": "Changing loop index variable 'k' from integer to real causes compilation errors since real types cannot be used as loop indices in VerilogA for-loops, breaking all filter state initialization and FIR operations."
+	},
+	{
+		"original_line": "period = 1.0/(`OVERSAMPLE*`FREQUENCY);", 
+		"bug_line": "period = 1.0/(`OVERSAMPLE*`FREQUENCY) * 0.5;",
+		"error_description": "Halved the period calculation by multiplying by 0.5. This doubles the timer frequency, causing signal generation events to occur twice as fast as required. The GSM baseband signals will be generated at incorrect timing intervals, violating the design specification."
+	},
+	{
+		"original_line": "pi2 = 2*`PI;", 
+		"bug_line": "pi2 = `PI;",
+		"error_description": "Sets pi2 to π instead of 2π. This halves the tap scaling factor in the FIR filter and causes premature phase wrapping at π radians instead of 2π, resulting in incorrect frequency modulation and distorted I/Q outputs."
+	},
+	{
+		"original_line": "                taps[22] = 0.00411654;", 
+		"bug_line": "                taps[22] = 0.0411654;",
+		"error_description": "Changed tap coefficient 22 from 0.00411654 to 0.0411654 (10x larger value), distorting the FIR filter response and causing improper Gaussian Minimum Shift Keying modulation in the GSM baseband signal."
+	},
+	{
+		"original_line": "`define OVERSAMPLE 4.0", 
+		"bug_line": "`define OVERSAMPLE 0.0",
+		"error_description": "Setting OVERSAMPLE to 0 causes division by zero in period calculation (1/(0*FREQUENCY)), halting timer events and freezing signal generation."
+	},
+	{
+		"original_line": "taps[22] = 0.00411654;", 
+		"bug_line": "taps[22] = -0.00411654;",
+		"error_description": "Incorrect sign for tap coefficient at index 22 alters the Gaussian filter response, causing signal distortion in the generated GSM baseband waveform."
+	},
+	{
+		"original_line": "taps[32] = 2.58321e-09;", 
+		"bug_line": "taps[32] = 0;",
+		"error_description": "Setting tap coefficient 32 to zero instead of 2.58321e-09 removes its contribution to the FIR filter, altering the filter's impulse response and causing distortion in the generated GSM baseband signal."
+	},
+	{
+		"original_line": "pi2 = 2*`PI;", 
+		"bug_line": "pi2 = `PI;",
+		"error_description": "Changed the angle wrapping period from 2π to π. This causes incorrect phase wrapping logic where angles between π and 2π won't reset properly, leading to distorted I/Q outputs and incorrect frequency modulation."
+	},
+	{
+		"original_line": "		for (k=0; k < 3*`OVERSAMPLE; k=k+1) sgs[k] = -1;", 
+		"bug_line": "		for (k=0; k < 3*`OVERSAMPLE; k=k+1) sgs[k] = 1;",
+		"error_description": "Stop samples are incorrectly set to 1 instead of -1. This violates the GSM frame structure where stop bits must differ from start bits, causing signal misinterpretation in downstream processing."
+	},
+	{
+		"original_line": "                taps[6] = 4.38565e-09;", 
+		"bug_line": "                taps[6] = -4.38565e-09;",
+		"error_description": "Changed tap coefficient sign from positive to negative. This inverts the contribution of this FIR filter tap, disrupting the Gaussian pulse shaping and causing signal distortion in the GSM output."
+	},
+	{
+		"original_line": "top = `OVERSAMPLE*`SGSBITS + bottom - 1;", 
+		"bug_line": "top = `OVERSAMPLE*`SGSBITS + bottom + 1;",
+		"error_description": "Changed the '-' to '+' causing an off-by-one error in the guard bits index. This makes the guard bits insertion run one sample beyond the allocated buffer, leading to potential memory corruption and incorrect GSM frame timing."
+	},
+	{
+		"original_line": "taps[22] = 0.00411654;", 
+		"bug_line": "taps[22] = 0.0;",
+		"error_description": "The tap coefficient at index 22 is set to zero instead of the required filter value, disrupting the FIR filter's frequency response and causing signal distortion in the GSM modulation output."
+	},
+	{
+		"original_line": "                count = 0;", 
+		"bug_line": "                count = 1;",
+		"error_description": "The counter is set to 1 instead of 0 after a sampling event, causing the next sample to occur one time step earlier than intended. This reduces the period between samples, increasing the effective sampling rate and violating the GSM timing specifications."
+	},
+	{
+		"original_line": "theta = 0;", 
+		"bug_line": "theta = `PI;",
+		"error_description": "Initial phase angle incorrectly set to π radians instead of 0, causing a 180-degree phase shift in the I/Q output signals throughout the simulation due to constant offset in the modulation angle."
+	},
+	{
+		"original_line": "taps[24] = 8.80883e-05;", 
+		"bug_line": "taps[24] = 8.80883e-03;",
+		"error_description": "The tap coefficient magnitude is increased by 100x (from 8.8e-5 to 8.8e-3), causing excessive gain in the Gaussian filter's impulse response and distorting the modulated GSM signal."
+	},
+	{
+		"original_line": "taps[17] = 0.225808;", 
+		"bug_line": "taps[17] = -0.225808;",
+		"error_description": "The coefficient for tap 17 is incorrectly set to a negative value instead of positive. This sign inversion violates the intended Gaussian filter response, distorting the output signal phase and amplitude."
+	},
+	{
+		"original_line": "output i_out_node,q_out_node,bin_node,angular_node;", 
+		"bug_line": "input i_out_node,q_out_node,bin_node,angular_node;",
+		"error_description": "Changed port direction from output to input. The module drives these ports internally, but driving input ports is illegal in VerilogA. This causes functional errors as outputs cannot be driven when declared as inputs."
+	}
+]

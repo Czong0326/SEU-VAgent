@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "qsb             =       Qinv * (4.0*(kq2+1.0)*sqrt(kq2+1.0)-(6.0*kq2+4.0))/(3.0*kq2*kq2);", 
+		"bug_line": "qsb             =       Qinv * (4.0*(kq2+1.0)*sqrt(kq2+1.0)+(6.0*kq2+4.0))/(3.0*kq2*kq2);",
+		"error_description": "Changed subtraction to addition in the numerator, making the ballistic source charge calculation physically incorrect by reversing the sign of the corrective term, which violates charge conservation principles."
+	},
+	{
+		"original_line": "parameter real rbt_wgVtoT   = `RBT_WGVTOT;     // Voltage to Stress conversion", 
+		"bug_line": "parameter real rbt_wgVtoT   = -`RBT_WGVTOT;     // Voltage to Stress conversion",
+		"error_description": "The negative sign inverts the voltage-to-stress conversion direction, causing the stress calculation to have the opposite polarity. This reverses the piezoresistive effect, making mobility increase when it should decrease (or vice versa) under applied voltage."
+	},
+	{
+		"original_line": "qsb             =       Qinv * (4.0*(kq2+1.0)*sqrt(kq2+1.0)-(6.0*kq2+4.0))/(3.0*kq2*kq2);", 
+		"bug_line": "qsb             =       Qinv * (4.0*(kq2+1.0)*sqrt(kq2+1.0)-(6.0*kq2+4.0))/(3.0*kq2);",
+		"error_description": "Removed one 'kq2' factor from the denominator, causing incorrect charge scaling by omitting the squared term in the divisor. This distorts the ballistic charge calculation at high Vds."
+	},
+	{
+		"original_line": "Vbscorr  = Vbsi + Vcorr;                                                        // Intrinsic Vgs corrected (to be used for charge and current computation)", 
+		"bug_line": "Vbscorr  = Vbsi + Vgsraw;                                                        // Intrinsic Vgs corrected (to be used for charge and current computation)",
+		"error_description": "Replaced correction voltage Vcorr with raw gate-source voltage Vgsraw, causing incorrect body voltage correction. This disrupts threshold voltage calculations and charge modeling by improperly coupling gate voltage to body bias."
+	},
+	{
+		"original_line": "Vdsats          = vx0 * Leff * limexp( - ln(rbt_mu) );", 
+		"bug_line": "Vdsats          = vx0 * Leff * limexp( ln(rbt_mu) );",
+		"error_description": "Changed sign of the ln argument from negative to positive, making Vdsats proportional to mobility instead of inversely proportional. This reverses the physical relationship where higher mobility should lower the saturation voltage."
+	},
+	{
+		"original_line": "parameter real      mvss_Cif    = 1e-12         from [0:inf);           // Inner fringing S or D capacitance [F/cm]", 
+		"bug_line": "parameter real      mvss_Cif    = -1e-12         from [0:inf);           // Inner fringing S or D capacitance [F/cm]",
+		"error_description": "Assigned negative value to mvss_Cif. Inner fringing capacitance must be non-negative per design, but negative capacitance causes unphysical charge calculations and violates the [0:inf) range constraint."
+	},
+	{
+		"original_line": "nphit   = n * phit;              // Product of n and phit [used as one variable]", 
+		"bug_line": "nphit   = n - phit;              // Product of n and phit [used as one variable]",
+		"error_description": "Changed multiplication to subtraction, altering the subthreshold slope calculation. This causes incorrect charge and current computations by distorting the thermal voltage scaling factor in weak inversion regions."
+	},
+	{
+		"original_line": "        FF       = 1.0/ ( 1.0 + eVg );", 
+		"bug_line": "        FF       = 1.0/ ( 1.0 - eVg );",
+		"error_description": "Changed addition to subtraction in the denominator, causing FF to become negative when eVg > 1. This reverses the gate voltage dependency and produces unphysical charge/current values in strong inversion."
+	},
+	{
+		"original_line": "parameter real      mvss_zeta   = 1.0   from (0:1];                     // Energy-transfer factor", 
+		"bug_line": "parameter real      mvss_zeta   = -0.5   from (0:1];                     // Energy-transfer factor",
+		"error_description": "Negative energy-transfer factor (-0.5) violates physical constraints and causes imaginary numbers in sqrt(2.0 * `P_Q/me * Vdsi * mvss_zeta) calculations, leading to simulation failures."
+	},
+	{
+		"original_line": "Vdbetabeta      = pow( 1.0 + Vdbeta, 1.0/ mvss_beta);", 
+		"bug_line": "Vdbetabeta      = pow( 1.0 + Vdbeta, 1.0) / mvss_beta;",
+		"error_description": "The exponent term 1.0/mvss_beta was mistakenly replaced by 1.0 and the entire pow result is divided by mvss_beta. This causes Vdbetabeta to be (1+Vdbeta)/mvss_beta instead of (1+Vdbeta)^(1/mvss_beta), leading to incorrect saturation behavior and overestimation of drain current."
+	},
+	{
+		"original_line": "        Rd      = Rs;                                                  // d-terminal resistance [ohms] For symmetric source and drain Rd = Rs. ", 
+		"bug_line": "        Rd      = 0;                                                  // d-terminal resistance [ohms] For symmetric source and drain Rd = Rs. ",
+		"error_description": "Sets drain resistance Rd to 0 ohms, creating an unrealistic short circuit between drain and internal nodes. This violates the physical design requirement of non-zero resistance for terminal connections, causing incorrect voltage drops and current calculations."
+	},
+	{
+		"original_line": "Vbscorr  = Vbsi + Vcorr;                                                        // Intrinsic Vgs corrected (to be used for charge and current computation)", 
+		"bug_line": "Vbscorr  = Vgsi + Vcorr;                                                        // Intrinsic Vgs corrected (to be used for charge and current computation)",
+		"error_description": "Used gate-source voltage (Vgsi) instead of body-source voltage (Vbsi) for intrinsic body voltage correction. This swaps body-bias effect with gate-bias effect, disrupting threshold voltage calculations and inversion charge modeling."
+	},
+	{
+		"original_line": "parameter real      mvss_W       = `MVSS_WFET   from (0:inf);           // Transistor width [cm]", 
+		"bug_line": "parameter real      mvss_W       = `MVSS_WFET   from [0:inf);           // Transistor width [cm]",
+		"error_description": "Changing the range from (0:inf) to [0:inf) allows zero transistor width. This causes division-by-zero errors in resistance calculations (Rs/Rd = 1e-4/mvss_W) since physical devices require positive width."
+	},
+	{
+		"original_line": "parameter real      mvss_Cof    = 2e-13         from [0:inf);           // Outer fringing S or D capacitance [F/cm] ", 
+		"bug_line": "parameter real      mvss_Cof    = 2e-13         from (0:inf);           // Outer fringing S or D capacitance [F/cm] ",
+		"error_description": "Changed range from [0:inf) to (0:inf), excluding zero. This prevents mvss_Cof=0 which is physically valid for negligible fringing capacitance, violating design specifications."
+	},
+	{
+		"original_line": "electrical d, g, s, b;", 
+		"bug_line": "electrical d, g, s;",
+		"error_description": "Removed the 'b' pin declaration, causing the body terminal to be undefined. This breaks all body voltage (Vbs) calculations and threshold voltage dependencies on body bias, rendering the model non-functional."
+	},
+	{
+		"original_line": "        else begin", 
+		"bug_line": "        else if (0) begin",
+		"error_description": "The condition '0' is always false, preventing execution of the else block. This leaves qsb and qdb unassigned when Vdsi > tol, causing incorrect charge calculations and potential convergence issues."
+	},
+	{
+		"original_line": "real qsc, qdc, qi, kq, kq2, kq4, tol, qsb, qdb, qs, qd, Qs, Qd;", 
+		"bug_line": "real qsc, qdc, qi, kq, kq2, kq4, tol, qsb, qdb, qs, qd, Qd;",
+		"error_description": "Removed variable 'Qs' from the declaration. This causes an undeclared variable error when 'Qs' is later assigned in the charge calculation (Qs = -mvss_W * ( Qinvs + Qsov + Qsif )), breaking the terminal charge computation."
+	},
+	{
+		"original_line": "Qsif                    =       ( mvss_type * mvss_Cif + mvss_CC * Vgsraw ) * FFx;", 
+		"bug_line": "Qsif                    =       ( mvss_type * mvss_Cif + mvss_CC * Vgsraw ) * FFy;",
+		"error_description": "Replaced source potential factor FFx with drain factor FFy for source inner fringing charge calculation, causing incorrect cross-coupling between source/drain potentials in charge computation."
+	},
+	{
+		"original_line": "parameter real      mvss_Rs0     = 100          from (0:inf);           // Access resistance on s-terminal [Ohms-micron]", 
+		"bug_line": "parameter real      mvss_Rs0     = -100          from (0:inf);           // Access resistance on s-terminal [Ohms-micron]",
+		"error_description": "Changed source resistance value from positive 100 to negative -100. Negative resistance is unphysical and violates the parameter range constraint (0:inf), causing instability in resistance calculations and potential simulation divergence."
+	},
+	{
+		"original_line": "real dmu;", 
+		"bug_line": "real dmu = 1.0;",
+		"error_description": "Initializing dmu to 1.0 instead of declaring it without initialization causes the mobility modification factor to always include a fixed offset. This corrupts the piezoresistive effect calculation by adding a constant error to the stress-dependent mobility change, making the sensing response inaccurate and non-physical."
+	}
+]

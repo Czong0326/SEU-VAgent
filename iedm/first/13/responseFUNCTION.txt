@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "sum = 0;", 
+		"bug_line": "sum = sum;",
+		"error_description": "The modified line fails to reset the 'sum' counter to zero at the start of each decision period. This causes residual counts from previous periods to accumulate, biasing future decisions and potentially producing incorrect output values based on stale data."
+	},
+	{
+		"original_line": "vout_val = vlogic_mid;", 
+		"bug_line": "vout_val = vlogic_high + vlogic_low;",
+		"error_description": "Initial output value set to sum of logic levels instead of their midpoint. This causes incorrect initial output voltage (twice the intended midpoint) and violates the design requirement to start at the average logic level before first decision."
+	},
+	{
+		"original_line": "parameter real trise=1n;", 
+		"bug_line": "parameter real trise=1e-9;",
+		"error_description": "Replaced '1n' (nanosecond) with equivalent value '1e-9' which breaks Verilog-A unit handling. Simulators treat unitless values differently, causing incorrect rise time interpretation and transition function errors."
+	},
+	{
+		"original_line": "   real rsum;", 
+		"bug_line": "   real rsum = 0;",
+		"error_description": "Initializing rsum to 0 causes incorrect averaging. The unused rsum variable now holds a fixed value instead of dynamically tracking the sum, violating the design intent of debugging/tracking purposes without affecting functionality. This creates a misleading debug artifact."
+	},
+	{
+		"original_line": "         if (V(vin) > vlogic_mid) begin", 
+		"bug_line": "         if (V(vin) > vlogic_low) begin",
+		"error_description": "Changed threshold from vlogic_mid to vlogic_low. This error causes nearly all input values to be counted as 'high' since even small voltages above the low threshold increment the counter. This destroys the comparator functionality by eliminating the proper midpoint decision boundary."
+	},
+	{
+		"original_line": "tnext_decision = tstart + tperiod;", 
+		"bug_line": "tnext_decision = tstart;",
+		"error_description": "Sets initial decision time to tstart instead of tstart + tperiod, causing immediate decision at simulation start with zero samples. This violates the sampling period requirement and forces incorrect output (vlogic_mid) due to uninitialized sum."
+	},
+	{
+		"original_line": "parameter real trise=1n;", 
+		"bug_line": "parameter real trise=1n, trise2=1n;",
+		"error_description": "Added a duplicate parameter 'trise2' which shadows the original 'trise'. This causes the transition function to use the uninitialized 'trise' value (default 0.0) instead of the intended rise time, eliminating signal transitions."
+	},
+	{
+		"original_line": "end else if (sum < 0) begin", 
+		"bug_line": "end else if (sum <= 0) begin",
+		"error_description": "The condition incorrectly includes zero (sum=0) in the low-output branch. When the sample count is balanced, the model should output the midpoint voltage (vlogic_mid) but now outputs vlogic_low instead."
+	},
+	{
+		"original_line": "   real vout_val;", 
+		"bug_line": "   integer vout_val;",
+		"error_description": "Changing vout_val to integer causes truncation of real voltage values (vlogic_high/vlogic_low/vlogic_mid) during assignment. For example, mid-level 2.5V becomes 2V, violating analog voltage specifications and output accuracy."
+	},
+	{
+		"original_line": "parameter real tperiod = 1 from (0:inf);", 
+		"bug_line": "parameter real tperiod = 0 from [0:inf);",
+		"error_description": "Setting tperiod to 0 causes repeated decision events at the same simulation time since tnext_decision = tstart + 0. This creates an infinite event loop during simulation, crashing the simulator."
+	},
+	{
+		"original_line": "analog begin", 
+		"bug_line": "analog begin sum = 0;",
+		"error_description": "Resets the 'sum' variable to zero at every analog iteration. This destroys the accumulated sample count between decision events, causing the output to always default to vlogic_mid since the sum is never non-zero at decision points."
+	},
+	{
+		"original_line": "parameter real tdel=0 from [0:inf);", 
+		"bug_line": "parameter real tdel=1e9 from [0:inf);",
+		"error_description": "Excessively large delay value (1e9 seconds) causes output transitions to be delayed beyond typical simulation times, effectively freezing the output at initial values and preventing proper data decoding."
+	},
+	{
+		"original_line": "         end else begin", 
+		"bug_line": "         end else if (sum == 1) begin",
+		"error_description": "Replaced the unconditional 'else' with a conditional 'else if (sum == 1)', causing the tie-case handler (mid-voltage output) to only trigger when sum equals 1 instead of 0. This violates the design specification where mid-voltage should be output when sample counts are equal (sum=0)."
+	},
+	{
+		"original_line": "parameter real tfall=1n;", 
+		"bug_line": "parameter real tfall=1n from (0:inf);",
+		"error_description": "Adding a range constraint '(0:inf)' causes tfall to be treated as a model parameter instead of an instance parameter. This violates the design specification where tfall should be user-configurable per instance, not constrained by model-wide ranges. Simulation will fail during parameter checking when tfall values are passed from instances."
+	},
+	{
+		"original_line": "parameter real vlogic_high = 5;", 
+		"bug_line": "parameter real vlogic_high = -5;",
+		"error_description": "The output voltage for logic high is set to -5V, which is lower than the logic low voltage (0V). This inverts the output voltage levels: a logic high decision results in a negative voltage while a logic low decision outputs 0V, violating the intended behavior where logic high should be a higher voltage than logic low."
+	},
+	{
+		"original_line": "parameter real tstart = 0 from [0:inf);", 
+		"bug_line": "parameter real tstart = tperiod from [0:inf);",
+		"error_description": "Sets tstart default value to tperiod instead of 0. This delays initial sampling by one full period, causing the first data window (0-tperiod) to be completely missed. The module will output invalid data during the first decision interval."
+	},
+	{
+		"original_line": "parameter real vlogic_high = 5;", 
+		"bug_line": "parameter real vlogic_high = 0;",
+		"error_description": "Setting vlogic_high to 0V (same as vlogic_low) causes the output to always be 0V regardless of input. This violates the decider's function to output distinct logic levels (high=5V, low=0V), making the sampling logic irrelevant since all decisions map to the same voltage."
+	},
+	{
+		"original_line": "   real vout_val;", 
+		"bug_line": "   integer vout_val;",
+		"error_description": "Changing vout_val from real to integer causes truncation of non-integer voltage values (like vlogic_mid = 2.5V) to integers (2V), corrupting analog output levels when mid-range decisions occur."
+	},
+	{
+		"original_line": "parameter real tsample = 1 from (0:inf);", 
+		"bug_line": "parameter real tsample = -1 from (-inf:inf);",
+		"error_description": "A negative sampling period causes the next sample time calculation (tnext_sample + tsample) to schedule events in the past. This prevents future sampling events after the initial sample, corrupting the decision logic by halting input data collection."
+	},
+	{
+		"original_line": "rsum = sum;", 
+		"bug_line": "vout_val = sum;",
+		"error_description": "The output voltage variable 'vout_val' is incorrectly overwritten with the integer sample counter 'sum' at every analog iteration, replacing the decision value set during timer events. This causes the output to fluctuate with the sample count instead of holding the steady decoded logic level."
+	}
+]

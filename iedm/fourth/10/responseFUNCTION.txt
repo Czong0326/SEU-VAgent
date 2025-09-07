@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "   end // for (k=1; k<=Np1p; k=k+1)", 
+		"bug_line": "   end // for (k=1; k<=Np1p; k=k+2)",
+		"error_description": "Changed loop increment from k=k+1 to k=k+2, causing only half the required poles to be calculated. This results in an incomplete pole initialization vector, making the filter transfer function incorrect and violating the Chebyshev polynomial requirements."
+	},
+	{
+		"original_line": "   sinh_nu = sinh(nu);", 
+		"bug_line": "   sinh_nu = cosh(nu);",
+		"error_description": "Hyperbolic sine function incorrectly replaced with hyperbolic cosine, altering the real pole component calculation. This distorts pole placement, causing incorrect cutoff frequency and ripple characteristics that violate the Chebyshev filter design specifications."
+	},
+	{
+		"original_line": "inn-               ---rout----outn", 
+		"bug_line": "inn-               ---rin----outn",
+		"error_description": "Changed output resistance from rout to rin, causing incorrect output impedance on the negative path (should match parameter rout, not input resistance rin). This creates impedance mismatch and signal reflection issues."
+	},
+	{
+		"original_line": "   parameter real fcorner = 1e9 from (0:inf);", 
+		"bug_line": "   parameter real fcorner = -1e9 from (-inf:inf);",
+		"error_description": "Negative corner frequency causes unstable filter poles. The calculation wb = `M_TWO_PI * fcorner yields a negative value, resulting in positive real parts for poles during ReP[i] scaling. This moves poles to the right-half plane, creating an unstable filter that violates stable lowpass behavior."
+	},
+	{
+		"original_line": "           if (abs(ImP[k-1])< 1.0e-8) ImP[k-1] = 0.0;", 
+		"bug_line": "           if (abs(ImP[k-1])< 1.0e-8) ReP[k-1] = 0.0;",
+		"error_description": "Assigns zero to the real part (ReP) instead of the imaginary part (ImP) when the imaginary part is near zero. This corrupts pole locations by mistakenly zeroing real components, causing incorrect filter behavior while leaving small imaginary values intact."
+	},
+	{
+		"original_line": "poles[4*i+3] = -im_pole;", 
+		"bug_line": "poles[4*i+3] = im_pole;",
+		"error_description": "The conjugate pole's imaginary part is assigned a positive value (+im_pole) instead of negative, breaking complex conjugate symmetry. This creates unstable poles in the right half-plane, causing filter instability and non-physical oscillatory behavior."
+	},
+	{
+		"original_line": "end // for (k=1; k<=Np1p; k=k+1)", 
+		"bug_line": "end // for (k=1; k<=Np1p; k=k+2)",
+		"error_description": "Changed loop increment from k=k+1 to k=k+2, causing only half the required poles to be calculated. This results in an incomplete pole vector and incorrect filter frequency response due to missing pole pairs."
+	},
+	{
+		"original_line": "I(outp) <+ (V(outp) - vout)/rout;", 
+		"bug_line": "I(outp) <+ (V(outp) - vout)/rin;",
+		"error_description": "Output resistance incorrectly uses input resistance (rin) instead of specified output resistance (rout), causing impedance mismatch and signal distortion."
+	},
+	{
+		"original_line": "   inout inp,inn, outp,outn;", 
+		"bug_line": "   input inp,inn, outp,outn;",
+		"error_description": "All ports are incorrectly declared as input-only, making it impossible to drive output currents through outp/outn, violating the filter's output stage design where these ports must be bidirectional to source current."
+	},
+	{
+		"original_line": "   for (k=1; k<=Np1p; k=k+1) begin", 
+		"bug_line": "   for (k=0; k<=Np1p; k=k+1) begin",
+		"error_description": "Changed loop start from k=1 to k=0. This introduces a negative index in teta calculation (2*0-1) and causes right-half-plane poles, making the filter unstable due to poles with positive real parts."
+	},
+	{
+		"original_line": "im_pole = wb * ImP[i];", 
+		"bug_line": "im_pole = wb * ReP[i];",
+		"error_description": "Assigned real part value to imaginary pole variable, corrupting pole location calculations by mixing real/imaginary components, resulting in incorrect filter frequency response."
+	},
+	{
+		"original_line": "        poles[4*i+3] = -im_pole;", 
+		"bug_line": "        poles[4*i+3] = im_pole;",
+		"error_description": "The conjugate pole's imaginary part is incorrectly set to positive instead of negative, breaking the complex conjugate symmetry required for real-valued systems. This results in an unstable filter with non-real impulse response and incorrect frequency characteristics."
+	},
+	{
+		"original_line": "   cosh_nu = cosh(nu);   ", 
+		"bug_line": "   cosh_nu = sinh(nu);   ",
+		"error_description": "Assigns hyperbolic sine instead of hyperbolic cosine to the variable used for the imaginary part of pole locations, corrupting filter pole calculations and frequency response."
+	},
+	{
+		"original_line": "        poles[4*i+3] = -im_pole;", 
+		"bug_line": "        poles[4*i+3] = im_pole;",
+		"error_description": "The conjugate pole's imaginary part is incorrectly set to positive instead of negative, breaking complex conjugate symmetry and resulting in an unstable filter transfer function."
+	},
+	{
+		"original_line": "        $stop(1);", 
+		"bug_line": "        ;",
+		"error_description": "Replaced $stop(1) with a null statement, preventing simulation termination when filter order < 2. This allows invalid filter configurations to proceed silently, causing potential runtime errors from dimension mismatches in pole arrays."
+	},
+	{
+		"original_line": "   eps = sqrt(pow(10.0,ripple/10.0)-1.0);", 
+		"bug_line": "   eps = sqrt(pow(10.0,ripple/10.0)+1.0);",
+		"error_description": "Changed subtraction to addition in epsilon calculation. This overestimates epsilon since 10^(ripple/10) > 1, leading to incorrect pole locations, distorted frequency response, and failure to meet ripple specifications."
+	},
+	{
+		"original_line": "real  ReP[0:`N/2], ImP[0:`N/2];", 
+		"bug_line": "real  ReP[0:0], ImP[0:0];",
+		"error_description": "The arrays ReP and ImP are declared with a fixed size of 1 (index 0 only), but the initialization loop requires ceil(`N/2) elements. For filter orders >=3, this causes out-of-bounds array accesses during pole calculation, leading to undefined behavior and incorrect filter coefficients."
+	},
+	{
+		"original_line": "$stop(1);", 
+		"bug_line": ";",
+		"error_description": "Removed simulation termination when filter order < 2, allowing invalid configurations to proceed silently. This permits the filter to run with unsupported orders (<2), causing undefined behavior in pole calculations and incorrect frequency response."
+	},
+	{
+		"original_line": " I(inp) <+ V(inp)/rin;", 
+		"bug_line": " I(inp) <+ V(inp)/rout;",
+		"error_description": "Uses output resistance 'rout' instead of input resistance 'rin' for the input current calculation, causing incorrect input impedance and violating the specified input resistance parameter."
+	},
+	{
+		"original_line": "        poles[4*i]   =  re_pole;", 
+		"bug_line": "        poles[4*i]   =  im_pole;",
+		"error_description": "Assigns imaginary part value to real pole location, corrupting the filter's pole structure by swapping real/imaginary components, which distorts frequency response and stability."
+	}
+]

@@ -1,0 +1,116 @@
+//  VerilogA for VerilogA, Butterworth_lpf_d, veriloga
+//
+//  Butterworth lowpass filter (order >= 2) in Verilog-A.
+//  Differential system level implementation based on
+//  laplace_zp() filter
+//   
+//  Copyright (c) 2005
+//  by Cadence Design Systems, Inc.  All rights reserved.
+//
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+// Define filter order N: must be >=2
+`define N 8
+
+//   Next filter parameters are implemented as parameters
+//   of this Verilog-A module: 
+//	fcorner:       corner frequency [Hz]
+//   	rin:           input resistance [Ohm]
+//   	rout:          output resistance [Ohm]
+//   	gain:          voltage gain [dB]; (or loss, if gain < 0). 
+
+/* System level implementation of Butterworth LP filter:
+        --------              
+inp-    | H(s) |   ---rout----outp
+   |    --------   |
+  rin            VHout
+   |		   |
+  gnd             gnd
+
+inn-               ---rout----outn
+   |    	  |
+  rin            VHout
+   |		  |
+  gnd		 gnd
+             
+Voltage source VHout = H(s)*Vin, where H(s) is the polynomial transfer function
+of LPF implemented as laplace_zp(V(inp)- V(inp), {}, poles)).
+*/
+
+module BB_butterworth_lp_laplace(inp,inn,outp,outn);
+
+   inout inp,inn, outp,outn;
+   electrical inp,inn, gnd,  outp,outn;
+   ground gnd;
+   
+   parameter real fcorner = 1e9 from (0:inf);
+   parameter real gain = 0;
+   parameter real rin = 50 from (0:inf);
+   parameter real rout = 50 from (0:inf);
+   
+   // vector for all N denominatoe poles 
+   real  poles[0:`N*2 -1];
+
+   // vectors for Re and Im of poles pairs:
+   real  ReP[0:`N/2], ImP[0:`N/2];
+    
+   real real_gain, wb, re_pole, im_pole, vout, teta;
+   integer i, Npair, Np1p, k, IntegTmp;
+   real tmp;
+   
+analog begin
+
+ @(initial_step) begin
+   if( `N < 2 ) begin
+        $strobe("Filter order is less then 2");
+        $stop(1);
+   end // if( `N < 2 )
+
+   real_gain = pow(10.0,gain/20.0);
+
+   wb = `M_TWO_PI * fcorner;
+   Npair = `N/2; Np1p = (`N+1)/2;
+  
+// Initialization of vectors ReP and ImP
+// using normalized Butterworth pole locations
+// where `M_TWO_PI*f=1
+
+   tmp = `M_PI/(2*`N);
+   for (k=0; k< Np1p; k=k+1) begin
+   	teta   = (2*k+1.0)*tmp;
+   	ReP[k] = - sin(teta);
+   	ImP[k] = cos(teta);
+   end // for (k=1; k<=Np1p; k=k+1)
+  
+// Poles of denormalized filter
+   for (i=0; i<Npair; i=i+1) begin
+        re_pole  = wb * ReP[i];
+        im_pole  = wb * ImP[i];
+	IntegTmp = 4*i;
+        poles[IntegTmp]   = re_pole;
+        poles[IntegTmp+1] = im_pole;
+        poles[IntegTmp+2] = re_pole;
+        poles[IntegTmp+3] = -im_pole;
+   end //for (i=0; i<Npair; i=i+1)
+
+   if (Npair != Np1p) begin // odd `N
+        re_pole = wb * ReP[i];
+        poles[4*i] = re_pole;
+        poles[4*i+1] = 0.0;
+   end //if (Npair != Np1p)
+ end // init step
+  
+ // input model:
+ I(inp) <+ V(inp)/rin;
+ I(inn) <+ V(inn)/rin;
+  
+//  output model: 
+ vout = real_gain * laplace_zp(V(inp)- V(inn), , poles);
+ 
+ I(outp) <+ (V(outp) - vout)/rout;
+ I(outn) <+ (V(outn) + vout)/rout;
+
+end // analog begin
+endmodule // Butterworth_lpf_d

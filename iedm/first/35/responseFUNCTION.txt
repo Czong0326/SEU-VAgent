@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "+ white_noise(4*`P_K*$temperature*rbt_rind, "Rin");", 
+		"bug_line": "+ white_noise(4*`P_K*$temperature*rbt_rind, "Rin") * 0;",
+		"error_description": "Multiplied the thermal noise source by zero, completely eliminating the input resistor's Johnson-Nyquist noise which violates the design requirement for accurate noise modeling."
+	},
+	{
+		"original_line": "localparam mtline_c = rbt_wgLtoRho/c11; // mtline capacitance per unit length", 
+		"bug_line": "localparam mtline_c = rbt_wgLtoRho * c11; // mtline capacitance per unit length",
+		"error_description": "Replaced division with multiplication, causing incorrect transmission line capacitance calculation. This distorts resonator dynamics by overestimating capacitance per unit length."
+	},
+	{
+		"original_line": "localparam tanhSmooth = `RBT_GAP_SMOOTHTANH;", 
+		"bug_line": "localparam tanhSmooth = 0;",
+		"error_description": "Setting tanhSmooth to zero causes division by zero in the strain calculation (1/tanhSmooth), forcing strain to zero and eliminating gap modulation. This breaks the capacitive transduction functionality by disabling the voltage-dependent gap change."
+	},
+	{
+		"original_line": "parameter real rbt_LTC   = `RBT_LTC  from [0:inf); // Expansion coefficient", 
+		"bug_line": "parameter real rbt_LTC   = `RBT_LTC  from [-inf:0]; // Expansion coefficient",
+		"error_description": "Changed valid range from [0:inf) to [-inf:0], allowing negative expansion coefficients which violate physical constraints (thermal expansion coefficients must be non-negative). This causes unphysical negative dimensions in subsequent calculations like Leff and geff."
+	},
+	{
+		"original_line": "parameter real rbt_rind  = `RBT_RIND from [0:inf); // Input resistance for the capacitive drive module", 
+		"bug_line": "parameter real rbt_rind  = `RBT_RIND from (-inf:0]; // Input resistance for the capacitive drive module",
+		"error_description": "The range for input resistance rbt_rind was changed to allow only negative values (-inf:0]. This violates physical laws as resistance cannot be negative, causing simulation instability and non-physical circuit behavior."
+	},
+	{
+		"original_line": "`include "constants.vams"", 
+		"bug_line": "`include "constant.vams"",
+		"error_description": "Changed include filename to 'constant.vams' (missing 's'). This prevents loading the standard constants file, causing undefined values for critical constants like `P_EPS0` and `P_K`, resulting in incorrect capacitance and noise calculations."
+	},
+	{
+		"original_line": "real gapt;   // Time dependent gap", 
+		"bug_line": "real gap;   // Time dependent gap",
+		"error_description": "Changed variable name from 'gapt' to 'gap'. This breaks all subsequent calculations that reference 'gapt' (dielectric gap), including capacitance (Cin) and charge (Qin) computations, since 'gapt' becomes undeclared."
+	},
+	{
+		"original_line": "localparam real nueff  = rbt_nu  * ( 1 + rbt_nuTC  * rbt_dT );", 
+		"bug_line": "localparam real nueff  = rbt_nu  * ( 1 - rbt_nuTC  * rbt_dT );",
+		"error_description": "Changed temperature coefficient calculation from addition to subtraction, reversing the thermal effect on Poisson's ratio. This causes incorrect stress/strain calculations and capacitance values since nueff directly affects material stiffness (c11) and dielectric gap computations."
+	},
+	{
+		"original_line": "parameter real rbt_g     = `RBT_G    from (0:inf); // Drive dielectric thickness", 
+		"bug_line": "parameter real rbt_g     = `RBT_G    from [0:inf); // Drive dielectric thickness",
+		"error_description": "Changed parameter range to include zero. This allows dielectric thickness (rbt_g) to be set to 0, causing division-by-zero errors in gap-dependent calculations like Cin = `P_EPS0 * rbt_epsd * A/gapt when strain is zero."
+	},
+	{
+		"original_line": "localparam real	Weff = rbt_W * ( 1 + rbt_LTC * rbt_dT);", 
+		"bug_line": "localparam real	Weff = rbt_W * ( 1 - rbt_LTC * rbt_dT);",
+		"error_description": "Changed thermal expansion sign error: subtracts thermal expansion instead of adding it. This incorrectly models material contraction when temperature increases, violating thermal expansion physics and causing wrong capacitance calculations."
+	},
+	{
+		"original_line": "localparam real Yeff   = rbt_Y   * ( 1 + rbt_YTC   * rbt_dT );", 
+		"bug_line": "localparam real Yeff   = rbt_Y   * ( 1 + rbt_YTC   / rbt_dT );",
+		"error_description": "Division operator replaces multiplication for temperature coefficient term, causing division-by-zero when rbt_dT=0 and incorrect scaling otherwise, fundamentally breaking Young's modulus temperature compensation."
+	},
+	{
+		"original_line": "real gapt;   // Time dependent gap", 
+		"bug_line": "integer gapt;   // Time dependent gap",
+		"error_description": "Changed gapt from real to integer type, causing truncation of fractional gap values. This introduces severe numerical errors in capacitance calculations (Cin) and exponential terms (limexp), as nanometer-scale gap variations require fractional precision."
+	},
+	{
+		"original_line": "real Qin;    // Input charge", 
+		"bug_line": "real Qout;    // Input charge",
+		"error_description": "Changed variable name from Qin to Qout, causing undefined reference errors in subsequent charge calculations since the variable 'Qin' is still used in the analog block."
+	},
+	{
+		"original_line": "inout x;", 
+		"bug_line": "input x;",
+		"error_description": "Changing port x from bidirectional (inout) to input-only prevents the module from driving current I(x,vss), violating the design requirement to output mechanical force signals through this port."
+	},
+	{
+		"original_line": "I(pi,n) <+ iin;", 
+		"bug_line": "I(pi,n) <+ -iin;",
+		"error_description": "Inverted the sign of the capacitor current, causing the current to flow in the opposite direction. This violates Kirchhoff's Current Law and breaks the capacitive transduction behavior by reversing charge flow direction."
+	},
+	{
+		"original_line": "I(x,vss) <+ -fdo * pow(V(pi,n),2) * limexp( -2 * ln (gapt));", 
+		"bug_line": "I(x,vss) <+ +fdo * pow(V(pi,n),2) * limexp( -2 * ln (gapt));",
+		"error_description": "Flipped the sign of the force contribution from negative to positive, reversing the direction of electrostatic force acting on the mechanical node (x). This violates the intended compressive force behavior during capacitive actuation."
+	},
+	{
+		"original_line": "parameter real rbt_wgLtoRho = `RBT_WGLTORHO from (0:inf); // scaling parameter from inductance to density", 
+		"bug_line": "parameter real rbt_wgLtoRho = `RBT_WGLTORHO from [0:inf); // scaling parameter from inductance to density",
+		"error_description": "Changed parameter range to include zero. This allows rbt_wgLtoRho=0, causing division by zero in mtline_l = rhoeff/rbt_wgLtoRho calculation during simulation."
+	},
+	{
+		"original_line": "localparam Zl = sqrt(mtline_l/mtline_c);", 
+		"bug_line": "localparam Zl = sqrt(mtline_l * mtline_c);",
+		"error_description": "Changed characteristic impedance formula from division to multiplication. Incorrectly calculates geometric mean (sqrt(L*C)) instead of characteristic impedance (sqrt(L/C)), disrupting transmission line modeling and stress calculations."
+	},
+	{
+		"original_line": "localparam real	Weff = rbt_W * ( 1 + rbt_LTC * rbt_dT);", 
+		"bug_line": "localparam real	Weff = rbt_W * ( 1 - rbt_LTC * rbt_dT);",
+		"error_description": "Changed thermal expansion formula from additive to subtractive. Width now contracts with temperature increase instead of expanding, violating physical material behavior and causing incorrect capacitance calculations."
+	},
+	{
+		"original_line": "electrical vss;", 
+		"bug_line": "electrical vdd;",
+		"error_description": "Changed the ground reference node from 'vss' to 'vdd'. This alters the voltage reference point for the capacitive transduction equations, causing incorrect voltage calculations (e.g., V(x,vss) becomes V(x,vdd)) and fundamentally breaks the device's electrostatic behavior since vdd is typically a supply voltage, not ground."
+	}
+]

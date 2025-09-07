@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "end else if (sigth_low <= V(cntrlp, cntrlm) && V(cntrlp, cntrlm) <= sigth_high) begin", 
+		"bug_line": "end else if (sigth_low <= V(sigin2) && V(sigin2) <= sigth_high) begin",
+		"error_description": "The condition incorrectly checks sigin2's voltage instead of the control signal (cntrlp/cntrlm). This causes the middle band selection to depend on input signal sigin2 rather than the control voltage, violating the multiplexer's control logic."
+	},
+	{
+		"original_line": "	    $finish;", 
+		"bug_line": "	    ;",
+		"error_description": "Replaced $finish with empty statement, allowing simulation to continue with invalid thresholds (sigth_high <= sigth_low). This violates the design requirement for ordered thresholds and causes undefined behavior in the analog multiplexing logic."
+	},
+	{
+		"original_line": "	 if (sigth_high <= sigth_low) begin", 
+		"bug_line": "	 if (sigth_high > sigth_low) begin",
+		"error_description": "Reversed the threshold error check condition. Now incorrectly triggers an error when thresholds are valid (high > low), while failing to detect invalid cases where high ≤ low. This allows simulation to proceed with invalid threshold parameters."
+	},
+	{
+		"original_line": "electrical sigin1, sigin2, sigin3, cntrlp, cntrlm, sigout;", 
+		"bug_line": "electrical sigin1, sigin2, sigin3, cntrlp, cntrlm;",
+		"error_description": "The output pin 'sigout' is not declared with any discipline, causing a compilation error when assigning voltage to it in the analog block (V(sigout) and preventing the multiplexer from functioning."
+	},
+	{
+		"original_line": "input sigin1, sigin2, sigin3, cntrlp, cntrlm;", 
+		"bug_line": "input sigin1, sigin3, sigin2, cntrlp, cntrlm;",
+		"error_description": "Swapped sigin2 and sigin3 ports, causing the multiplexer to incorrectly route sigin2 when control signal is between thresholds and sigin3 when above high threshold, violating the design specification."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed 'analog' block to 'initial' block, causing the multiplexer logic to execute only once during initialization instead of continuously during simulation. This violates the continuous-time behavior required for analog signal multiplexing."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( timer(0, 1s) ) begin",
+		"error_description": "Changed initial_step event to timer event. This delays threshold validation until 1s simulation time, allowing invalid thresholds (sigth_high <= sigth_low) to be used during initial simulation phase, potentially causing incorrect multiplexer behavior before validation occurs."
+	},
+	{
+		"original_line": "	    $display("Range specification error.  sigth_high = (%E) <= sigth_low = (%E).\n", sigth_high, sigth_low );", 
+		"bug_line": "	    $display("Range specification error.  sigth_high = (%E) <= sigth_low = (%E).\n", sigth_low, sigth_high );",
+		"error_description": "Swapped sigth_high and sigth_low in $display arguments causes reversed parameter values in error message, misleading debug efforts by showing incorrect threshold relationship."
+	},
+	{
+		"original_line": "   real sigout_val;", 
+		"bug_line": "   integer sigout_val;",
+		"error_description": "Changed sigout_val from real to integer type, causing truncation of fractional voltage values during assignments. This results in incorrect discrete output voltages instead of continuous analog values, violating the multiplexer's analog behavior requirements."
+	},
+	{
+		"original_line": "input sigin1, sigin2, sigin3, cntrlp, cntrlm;", 
+		"bug_line": "input sigin1, sigin2, sigin3, cntrlp; output cntrlm;",
+		"error_description": "Changed cntrlm from input to output. This incorrectly makes the negative control terminal an output, causing signal contention when externally driven and violating the differential input requirement for control signals. The analog block reads V(cntrlp, cntrlm) but now drives cntrlm, leading to undefined behavior in threshold detection."
+	},
+	{
+		"original_line": "   real sigout_val;", 
+		"bug_line": "   real sigout_val = 0.0;",
+		"error_description": "Initializing sigout_val to 0.0 causes incorrect output when control voltage is between thresholds. At time zero before the first analog block evaluation, sigout is forced to 0V instead of following sigin2, violating the multiplexer's selection behavior during startup/transient conditions."
+	},
+	{
+		"original_line": "	 if (sigth_high <= sigth_low) begin", 
+		"bug_line": "	 if (sigth_high >= sigth_low) begin",
+		"error_description": "The condition now incorrectly triggers an error when thresholds are properly ordered (sigth_high > sigth_low). This inverts the error check - valid threshold settings cause simulation abort, while invalid settings (sigth_high < sigth_low) pass undetected."
+	},
+	{
+		"original_line": "   real sigout_val;", 
+		"bug_line": "   real sigout_val = 0.0;",
+		"error_description": "Initializing sigout_val to 0.0 creates a constant offset error. The output voltage incorrectly defaults to 0V during transitions between thresholds instead of properly tracking sigin2, violating the multiplexer's analog behavior requirements."
+	},
+	{
+		"original_line": "V(sigout) <+ slew( sigout_val );", 
+		"bug_line": "V(sigin1) <+ slew( sigout_val );",
+		"error_description": "Assignment direction error: Output 'sigout' is not driven. Instead, input 'sigin1' is incorrectly driven, violating signal direction rules and breaking multiplexer functionality."
+	},
+	{
+		"original_line": "module multiplexer(sigin1, sigin2, sigin3, cntrlp, cntrlm, sigout);", 
+		"bug_line": "module multiplexer(sigin1, sigin2, sigin3, cntrlp, cntrlm);",
+		"error_description": "Removed 'sigout' output port. This violates the design specification requiring an output signal and causes compilation errors since the output port is referenced internally but not declared."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed 'analog' block to 'initial' block, causing the multiplexer logic to execute only once at time zero instead of continuously. This prevents dynamic response to control signal changes after initialization, violating the requirement for real-time signal multiplexing."
+	},
+	{
+		"original_line": "real sigout_val;", 
+		"bug_line": "integer sigout_val;",
+		"error_description": "Changed 'sigout_val' from real to integer type, causing truncation of analog voltage values during assignments. This violates continuous signal representation requirements and introduces quantization errors in the multiplexer output."
+	},
+	{
+		"original_line": "input sigin1, sigin2, sigin3, cntrlp, cntrlm;", 
+		"bug_line": "input sigin1, sigin2, cntrlp, cntrlm;",
+		"error_description": "Removed sigin3 input port. This breaks the multiplexer's high-threshold path (V(cntrlp,cntrlm)>sigth_high) by leaving sigin3 internally unconnected, causing undefined voltage readings and incorrect sigout behavior when selecting the third input signal."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* instrument_module, disable *)",
+		"error_description": "Added 'disable' attribute which incorrectly instructs simulation tools to deactivate this module, preventing any signal multiplexing functionality from being executed."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   analog fork begin",
+		"error_description": "Replacing 'begin' with 'fork begin' converts the sequential block into an unclosed parallel block, causing structural errors and preventing the multiplexer logic from executing properly. The missing 'join' statement and parallel execution disrupt the intended sequential threshold checks."
+	}
+]

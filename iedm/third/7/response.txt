@@ -1,0 +1,152 @@
+[
+	{
+		"original_line": "  parameter real beta = 0.02;", 
+		"bug_line": "  parameter real beta = -0.02;",
+		"error_description": "Negative beta inverts the capacitance voltage dependence, causing C_gd to decrease with gate bias instead of increasing. This violates the gate-drain capacitance modulation mechanism where C_gd should grow with V_gs due to channel charge accumulation."
+	},
+	{
+		"original_line": "      vgta = -vgs-vth;", 
+		"bug_line": "      vgta = -vgs+vth;",
+		"error_description": "Sign error in ambipolar threshold voltage calculation. The correct ambipolar gate voltage should be (-vgs - vth) to maintain symmetry with the main current's (vgs - vth). Adding vth instead of subtracting causes improper activation of ambipolar conduction."
+	},
+	{
+		"original_line": "`define EPS0 8.85418782e-12", 
+		"bug_line": "`define EPS0 8.85418782e-9",
+		"error_description": "Changed vacuum permittivity constant EPS0 from 8.85e-12 to 8.85e-9 F/m, introducing 1000x error in capacitance calculations (C_gs/C_gd/C_i). This violates capacitance validation requirements by making gate capacitance values physically unrealistic and breaking C_gd/C_i ratio constraints."
+	},
+	{
+		"original_line": " `define PGIVEN(p)		p", 
+		"bug_line": " `define PGIVEN(p)		1",
+		"error_description": "Forces all parameter checks to return true (1) regardless of actual input, bypassing critical parameter validation. This allows invalid physical values (e.g. negative EOT or MR) to pass undetected, leading to unphysical capacitance calculations and potential convergence failures."
+	},
+	{
+		"original_line": "e = e0*(1+r1*vdse+r2*vgoe);", 
+		"bug_line": "e = e0*(1+r2*vdse+r1*vgoe);",
+		"error_description": "Swapped r1 and r2 coefficients, misapplying gate voltage modulation factor (r2) to drain-source component and drain modulation (r1) to gate component. This inverts the electric field dependence, corrupting tunneling current calculation in Q1 region."
+	},
+	{
+		"original_line": "cgdmax = 0.9*ci;", 
+		"bug_line": "cgdmax = 0.13*ci;",
+		"error_description": "Swaps C_gd maximum and minimum values, fixing gate-drain capacitance at minimum (0.13*C_i) instead of allowing voltage-dependent 0.13-0.9*C_i range. This eliminates C_gd modulation effect critical for modeling Miller capacitance variations."
+	},
+	{
+		"original_line": "  parameter real mc = 2;", 
+		"bug_line": "  parameter real mc = -2;",
+		"error_description": "Negative exponent in capacitance calculation flips gate voltage dependency, corrupting C_gd modulation. The mc parameter should positively correlate with gate bias effect but now creates inverse relationship, violating the self-consistent gate capacitance model requirements."
+	},
+	{
+		"original_line": "  parameter real rdw = 0;", 
+		"bug_line": "  parameter real rdw = -0.5;",
+		"error_description": "Negative rdw value creates non-physical negative drain resistance (rd = rdw/w) during instance parameter calculation, violating semiconductor device physics requirements for positive resistance values."
+	},
+	{
+		"original_line": "if(rd > 0)", 
+		"bug_line": "if(rd < 0)",
+		"error_description": "Inverted drain resistance activation condition. The original rd > 0 check ensures drain series resistance is only added when physically meaningful (rd positive). This modification would incorrectly activate the resistor branch when resistance is negative (non-physical) while disabling it for normal positive values, eliminating series resistance effects even when RDW parameter is properly set."
+	},
+	{
+		"original_line": "      vgd = type*V(gateprime,drainprime);", 
+		"bug_line": "      vgd = type*V(drainprime,gateprime);",
+		"error_description": "Reversed voltage polarity for Vgd calculation. Correct operation requires V(gateprime,drainprime) to maintain proper gate-drain potential orientation. This inversion disrupts capacitance modeling (Cgd) and ambipolar current components that depend on accurate Vgd polarity."
+	},
+	{
+		"original_line": "I(gateprime,drainprime) <+ type*cgd*ddt(vgd);", 
+		"bug_line": "I(gateprime,drainprime) <+ type*cgs*ddt(vgd);",
+		"error_description": "Incorrectly uses C_gs instead of C_gd for gate-drain capacitance current, violating the voltage-dependent C_gd behavior specified in the design. This forces fixed gate-drain capacitance instead of bias-dependent modulation between C_gdmin/C_gdmax."
+	},
+	{
+		"original_line": "gg = 1/rg;", 
+		"bug_line": "gg = rg;",
+		"error_description": "Incorrectly sets gate conductance equal to resistance value instead of reciprocal, inverting the gate resistance relationship. This causes gate current miscalculations by using resistance directly as conductance (Siemens), leading to erroneous current scaling through RG component."
+	},
+	{
+		"original_line": "      if(rg > 0)", 
+		"bug_line": "      if(rg < 0)",
+		"error_description": "Changed gate resistance check to invalid negative condition. Since rg = rgwl*w/l and all parameters are non-negative, this always bypasses gate resistance calculation, making RGWL parameter ineffective and creating unphysical gate terminal behavior with zero resistance path."
+	},
+	{
+		"original_line": "`define CHARGE 1.6021918e-19", 
+		"bug_line": "`define CHARGE -1.6021918e-19",
+		"error_description": "Negative elementary charge constant inverts tunnel current direction, violating operational quadrant definitions by reversing carrier transport physics in all current components (I_dt, I_da, I_de). This causes n-type devices to exhibit p-type conduction characteristics."
+	},
+	{
+		"original_line": "vgoea = `VMIN*(1+0.5*vgoa/`VMIN+sqrt(deltas+(0.5*vgoa/`VMIN-1)*(0.5*vgoa/`VMIN-1)));", 
+		"bug_line": "vgoea = `VMIN*(1+0.5*vgo/`VMIN+sqrt(deltas+(0.5*vgoa/`VMIN-1)*(0.5*vgoa/`VMIN-1)));",
+		"error_description": "Mixed vgo and vgoa variables in ambipolar voltage calculation - uses vgo in the linear term while keeping vgoa in the sqrt term. Creates contradictory voltage references that disrupt ambipolar current symmetry."
+	},
+	{
+		"original_line": "`include "discipline.h"", 
+		"bug_line": "`include "disciplin.h"",
+		"error_description": "Misspelled include file name prevents inclusion of discipline.h, causing electrical node types to be undefined and module compilation failure."
+	},
+	{
+		"original_line": "`define PI 3.141592653", 
+		"bug_line": "`define PI 2.141592653",
+		"error_description": "Incorrect π value disrupts tunnel current calculation. The wrong PI constant affects parameter 'a' in Kane-Sze formula (line 102), leading to erroneous tunneling probability and invalidating current-voltage characteristics validation requirements."
+	},
+	{
+		"original_line": "      vgo  = vgs;", 
+		"bug_line": "      vgo  = vgd;",
+		"error_description": "Directional error: vgo should track gate-source voltage (vgs) for proper tunneling current calculation in forward operation. Using gate-drain voltage (vgd) incorrectly couples drain potential into the main tunneling current's gate control, disrupting Q1 quadrant operation and creating unphysical negative transconductance in saturation region."
+	},
+	{
+		"original_line": "  parameter real tch = 5e-9;", 
+		"bug_line": "  parameter real tch = -5e-9;",
+		"error_description": "Negative channel thickness inverts the tunneling current calculation direction, causing reversed current flow in all operation quadrants. This violates the fundamental physical implementation where TCH represents physical thickness and must be positive."
+	},
+	{
+		"original_line": "  parameter real eg = 0.35;", 
+		"bug_line": "  parameter real eg = -0.35;",
+		"error_description": "Negative bandgap energy (-0.35 eV) violates physical reality, causing sqrt(negative) in carrier tunneling calculations and simulation failures. The bandgap (eg) must be positive as it represents semiconductor material property."
+	},
+	{
+		"original_line": "          ru = r0*u0;", 
+		"bug_line": "          ru = r1*u0;",
+		"error_description": "Incorrect parameter substitution: r1 (0.01) replaces r0 (0.5) in resistance calculation, reducing series resistance term by 50x. This violates the channel resistance model (r0 parameter governs linear V_gs dependence) and causes underestimation of u parameter in tunneling current calculation."
+	},
+	{
+		"original_line": "`define AMIN 0.0001", 
+		"bug_line": "`define AMIN -0.0001",
+		"error_description": "Negative AMIN value allows negative capacitance clamping, violating C_gd physical constraints (0.13-0.9*Ci range). This causes invalid capacitance values when a_ce calculation drops below zero, corrupting gate charge modeling."
+	},
+	{
+		"original_line": " `define PGIVEN(p)		p", 
+		"bug_line": " `define PGIVEN(p)		0",
+		"error_description": "Forces all parameter existence checks to return false (0), causing the model to ignore user-defined parameter values and use defaults regardless of actual input. This breaks parameter customization capability critical for technology scaling validation."
+	},
+	{
+		"original_line": "`define DELTA 5", 
+		"bug_line": "`define DELTA 0.5",
+		"error_description": "Reduced DELTA constant from 5 to 0.5 degrades voltage smoothing function, causing numerical instability in vdse/vsde calculations during transition regions. This violates the model's requirement for smooth tanh-based interpolation between operation quadrants, leading to convergence failures and abrupt current discontinuities."
+	},
+	{
+		"original_line": "`define DELTA 5", 
+		"bug_line": "`define DELTA 0",
+		"error_description": "Setting DELTA to 0 removes voltage smoothing, creating abrupt transitions in vdse/vgoe calculations. This eliminates the model's hyperbolic smoothing function, causing numerical discontinuities during operation region transitions and violating the requirement for smooth IV characteristics in all quadrants."
+	},
+	{
+		"original_line": "vgs = type*V(gateprime,sourceprime);", 
+		"bug_line": "vgs = type*V(gateprime,drainprime);",
+		"error_description": "Directional error: Measures gate-drain voltage instead of gate-source voltage, corrupting core current calculations (I_dt/I_da depend on correct V_gs). This disrupts threshold voltage application and ambipolar conduction modeling."
+	},
+	{
+		"original_line": "      vsd = -vds;", 
+		"bug_line": "      vsd = vds;",
+		"error_description": "Directional inversion in RTD current calculation. Using vds instead of -vds incorrectly maintains same voltage polarity for Esaki diode current, disrupting negative differential resistance (NDR) behavior in reverse bias quadrant (Q4)."
+	},
+	{
+		"original_line": "parameter real rdw = 0;", 
+		"bug_line": "parameter real rdw = -0.5;",
+		"error_description": "Assigns a negative default value to rdw (drain resistance per width), leading to invalid negative resistance calculation. Since the code checks if rd > 0, this results in zero conductance even when resistance is intended, disrupting terminal behavior."
+	},
+	{
+		"original_line": "a = w*tch*q*q*q/(8*`PI*`PI*`HBAR*`HBAR)*sqrt(2*mrvalue/egvalue);", 
+		"bug_line": "a = w*tch*q*q*q/(8*`PI*`PI*`HBAR*`HBAR)*sqrt(2*mrvalue * egvalue);",
+		"error_description": "Replaced division with multiplication in sqrt(2*mrvalue/egvalue), inverting the dependence on bandgap energy and causing exponential overestimation of tunneling current due to incorrect field strength calculation."
+	},
+	{
+		"original_line": "  parameter real eta = 0.1;", 
+		"bug_line": "  parameter real eta = -0.1;",
+		"error_description": "Negative eta inverts gate voltage modulation in Esaki tunneling current (I_de), causing reversed gate control of RTD characteristics. Design requires positive η to properly model V_gs enhancement of resonant tunneling."
+	}
+]

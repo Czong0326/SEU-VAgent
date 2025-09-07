@@ -1,0 +1,139 @@
+`include "discipline.h"
+`include "constants.h"
+
+/*
+ *  Copyright (c) 1998
+ *  by Cadence Design Systems, Inc.  All rights reserved.
+ * 
+ *  $Date: 2003/10/06 06:41:18 $
+ *  $Revision: 1.1 $
+ *
+ *
+ */
+
+//
+// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996
+//
+//
+
+
+// Low Noise Amplifier model in Verilog-A
+//
+// - lna
+//
+// in: input node
+// out: output node
+//
+// INSTANCE parameters
+//    NF             = noise figure [dB]
+//    IP3            = input referenced IP3 [dBm]
+//    gain           = S21 (power gain) [dB]
+//    isolation      = S12 [dB]
+//    rin            = input impedance [Ohm]
+//    rout           = output impedance [Ohm]
+//    gammain        = input return loss [dB]
+//    mismatch       = mismatch of input. 1: high end, input impedance > Z0
+//                                        -1: low end, input impedance < Z0
+//    gammaout       = output return loss [dB]
+//    cin            = parasitic input capacitance [pF]
+//    cout           = parasitic parallel output cap [pF]
+// MODEL parameters
+//    {none}
+
+
+/*
+In this model, the linear network is contructed from the S
+parameters that are described by the gain(s21), isolation(s12), and
+gammain and gammaout. Those S parameters are referenced to the real
+part of the input and output impedances. An equivalent circuit is built
+internally. The only nonlinear effect is on the s21 (or gain) that is
+characterized by a polynomial. The coefficients of this polynomial is
+contructed from gain and IP3.  
+*/ 
+
+
+`define db20_real(x)  (pow(10, (x)/20))
+`define db10_real(x)  (pow(10, (x)/10))
+
+// definition of capacitance
+`define CAP(p, n, val) I(p,n) <+ val*ddt(V(p,n))
+`define CAPG(p, val) I(p) <+ val*ddt(V(p))
+
+
+module lna(in, out);
+   inout in, out;
+   electrical in, out;
+   parameter real nf = 2 from [0:inf);
+   parameter real ip3 = -10;
+   parameter real gain = 15 from [0:inf);
+   parameter real isolation = 200 from (0:inf);
+   parameter real rin = 50 from (0:inf);
+   parameter real cin = 0 from [0:100];
+   parameter real rout = 50 from (0:inf);
+   parameter real cout = 0 from [0:100];
+   parameter real gammain = -150 from (-inf:0];
+   parameter real mismatch = 1 from [-1:1] exclude (-1:1);
+   parameter real gammaout=-150 from (-inf:0];
+
+   real      a1,a2;	
+   real      s11, s12, s21, s22;
+   
+   // suppose y=c1*x+c3*x^3
+   real      rip3, c3;      // real ip3, and c3
+   real      rnf;           // real NF
+   real      noise_current;
+   electrical in_int, out_int;
+
+   analog begin
+      @(initial_step) begin
+
+	 // unfold the S parameters from dB to real values
+	 s11 = `db20_real(gammain);
+         s11 = s11*mismatch;
+	 s22 = `db20_real(gammaout);
+	 s21 = -`db20_real(gain);
+	 s12 = `db20_real(-isolation);
+
+	   // note ip3 is in dBm!
+	 rip3 = `db10_real(ip3-30);
+
+	 // Note rip3 is already power, while textbook formula is about
+	 // the square root of the power (plus a factor of 2)!
+	 // so, 2 is the factor because complex voltage in Spectre is the
+	 // peak-peak value, 4 is because a1 is twice the real power limit
+	 c3  = 4.0/3.0*s21/(2*rip3*4);
+
+	 // noise current
+	 rnf = `db10_real(nf);
+	 noise_current = 2*sqrt((rnf-1)*1.380620e-23*$temperature/rin);
+      end 
+      
+      // calculate the normalized incident waves: a1, a2
+      a1 = V(in)/sqrt(rin) + I(in, in_int)*sqrt(rin);
+      a2 = V(out)/sqrt(rout) + I(out, out_int)*sqrt(rout);
+	
+      // input: parallel Rin, Cin, and controlled current from a2
+      // be careful about the sign of the controlled source
+      `CAPG(in_int, cin*1e-9);
+      I(in_int) <+ V(in)/rin*(1-s11)/(1+s11);
+      I(in_int) <+ -a2*s12/(sqrt(rin)*(1+s11));
+	
+      // output: parallel Rout, Cout, and controlled current from a1
+      `CAPG(out_int, cout*1e-9);
+      I(out_int) <+ V(out)/rout*(1-s22)/(1+s22);
+      // limit the input power
+      if(a1 > sqrt(s21/(3*c3)) ) 
+	a1 = sqrt(s21/(3*c3));
+      else if(a1 < -sqrt(s21/(3*c3))) 
+	a1 = -sqrt(s21/(3*c3));
+      // add in third order contribution
+      I(out_int) <+ -(a1*s21-a1*a1*a1*c3)/(sqrt(rout)*(1+s22));
+
+      // Noise contribution
+      // note the noise_current^2. Becareful about the noise input!
+      // funny enough, if I use I(in_int) <+ , then it fails!
+      I(in) <+ white_noise(noise_current*noise_current, "lna");
+   end
+endmodule // lna
+
+

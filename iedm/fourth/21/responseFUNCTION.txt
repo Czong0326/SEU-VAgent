@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "cout = cout + 1;", 
+		"bug_line": "cout = (cout + 1) % Samples;",
+		"error_description": "The modulo operation prevents cout from reaching the Samples value needed to trigger new symbol processing. This causes the modulator to reuse initial symbols indefinitely, ignoring input bits after the first symbol period."
+	},
+	{
+		"original_line": "        if(tsl < 0 )", 
+		"bug_line": "        if(tsl > 0 )",
+		"error_description": "Reversed the condition for Qasl adjustment. Now incorrectly applies 1 - Qasl when tsl is positive instead of negative, disrupting the Q-function symmetry and causing erroneous phase calculations in GMSK modulation."
+	},
+	{
+		"original_line": "parameter integer Samples = 16 from [1:inf];", 
+		"bug_line": "parameter integer Samples = 0 from [1:inf];",
+		"error_description": "Setting Samples to 0 violates the range constraint [1:inf], causing division by zero in 'sample_period = Period / Samples' and invalid array indexing in G initialization."
+	},
+	{
+		"original_line": "b3 = 1.781477937 ;", 
+		"bug_line": "b3 = -1.781477937 ;",
+		"error_description": "Sign inversion of the Q-function approximation constant b3 distorts Gaussian filter calculations, corrupting phase modulation accuracy in GMSK encoding."
+	},
+	{
+		"original_line": "G[i] = G[i] - (0.5 - Bpeak  + i/sample)*Qasr + (-0.5 - Bpeak  + i/sample)*Qasl ;", 
+		"bug_line": "G[i] = G[i] - (0.5 - Bpeak  + i/sample)*Qasr - (-0.5 - Bpeak  + i/sample)*Qasl ;",
+		"error_description": "Changed the '+' operator to '-' for the Qasl term, reversing the sign of the second integral term in the Gaussian filter calculation and corrupting the pulse shape."
+	},
+	{
+		"original_line": "Qasl = Qasl/exp(zl*zl/2) ;", 
+		"bug_line": "Qasl = Qasl/exp(zr*zr/2) ;",
+		"error_description": "Replaced 'zl' with 'zr' in the exponential term, causing incorrect scaling of Qasl using the right-point variable instead of the left-point variable. This disrupts the Gaussian pulse shaping symmetry for the left interval."
+	},
+	{
+		"original_line": "        zr = abs(tsr) ;", 
+		"bug_line": "        zr = -abs(tsr) ;",
+		"error_description": "Negating the absolute value incorrectly inverts the Q-function input. This reverses the tail probability calculation direction, corrupting Gaussian pulse shaping for negative tsr values and distorting the modulated signal phase."
+	},
+	{
+		"original_line": "integer  i, inputbit;", 
+		"bug_line": "integer i; real inputbit;",
+		"error_description": "Changed inputbit from integer to real type. This causes truncation when assigning to integer array B, resulting in incorrect symbol values (always 0) since input voltages are fractional, breaking the modulation logic."
+	},
+	{
+		"original_line": "G[i] = G[i] - (0.5 - Bpeak  + i/sample)*Qasr + (-0.5 - Bpeak  + i/sample)*Qasl ;", 
+		"bug_line": "G[i] = G[i] - (0.5 - Bpeak  + i/sample)*Qasr - (-0.5 - Bpeak  + i/sample)*Qasl ;",
+		"error_description": "Changed the '+' operator to '-' for the Qasl term, incorrectly flipping the sign of the phase contribution from previous symbols in the Gaussian filter calculation."
+	},
+	{
+		"original_line": "  analog begin", 
+		"bug_line": "  initial begin",
+		"error_description": "Changed 'analog' block to 'initial' block. This converts the continuous-time modulation behavior to a one-time initialization at t=0, eliminating all real-time signal generation. Outputs freeze after initial calculation."
+	},
+	{
+		"original_line": "  real sample ;", 
+		"bug_line": "  real sample_period ;",
+		"error_description": "Declaring a duplicate 'sample_period' variable instead of 'sample' causes the critical 'sample' variable to be undefined, breaking Gaussian filter coefficient calculations that depend on samples-per-symbol."
+	},
+	{
+		"original_line": "        if ( G[i] > 0.5 )", 
+		"bug_line": "        if ( G[i] < 0.5 )",
+		"error_description": "Changed condition from upper-bound check to lower-bound check. Now incorrectly caps values BELOW 0.5 instead of ABOVE 0.5, allowing values exceeding 0.5 to pass uncapped. This violates pulse shaping requirements by permitting excessive phase modulation."
+	},
+	{
+		"original_line": "G[i] = G[i] - (0.5 - Bpeak  + i/sample)*Qasr + (-0.5 - Bpeak  + i/sample)*Qasl ;", 
+		"bug_line": "G[i] = G[i] - (0.5 - Bpeak  + i/sample)*Qasr - (-0.5 - Bpeak  + i/sample)*Qasl ;",
+		"error_description": "Changed the addition of the second Q-function term to subtraction. This inverts the correction term for the Gaussian integral, resulting in incorrect pulse shaping filter coefficients that distort the GMSK modulation waveform."
+	},
+	{
+		"original_line": "Qasr = Qasr/exp(zr*zr/2) ;", 
+		"bug_line": "Qasr = Qasr/exp(zr*zr) ;",
+		"error_description": "Removed the division by 2 in the exponent term, incorrectly squaring the exponential denominator. This corrupts the Gaussian pulse shape calculation by underestimating the Q-function value."
+	},
+	{
+		"original_line": "`include "constants.vams"", 
+		"bug_line": "`include "wrong_constants.vams"",
+		"error_description": "Modified include directive references a non-existent file, causing critical constants like `M_TWO_PI and `M_PI to be undefined during simulation, which breaks all mathematical calculations dependent on these fundamental values."
+	},
+	{
+		"original_line": "        sample = Samples ;", 
+		"bug_line": "        sample = 1.0 ;",
+		"error_description": "The variable 'sample' is incorrectly set to a fixed value of 1.0 instead of the parameter 'Samples'. This miscalculates the time scaling in the pulse shape generation, distorting the Gaussian filter characteristics and causing incorrect modulation phase calculations."
+	},
+	{
+		"original_line": "tsr = (0.5 - Bpeak  + i/sample)/delta ;", 
+		"bug_line": "tsr = (0.5 - Bpeak  + i/samples)/delta ;",
+		"error_description": "Changed 'sample' to 'samples' (incorrect variable name). 'samples' is the integer parameter, while 'sample' is the real-valued local variable holding the same value. This typo causes type mismatch errors during compilation since integer division behaves differently than real division, leading to incorrect Gaussian pulse calculations."
+	},
+	{
+		"original_line": "sumPhase = Phase_offset*2 ;", 
+		"bug_line": "sumPhase = Phase_offset / 2 ;",
+		"error_description": "Changed multiplication to division, causing the initial phase offset to be quartered instead of doubled. Since Phase_offset is normalized by π, this results in incorrect phase initialization where the actual offset becomes (Phase_offset * π)/4 instead of the intended (Phase_offset * π)."
+	},
+	{
+		"original_line": "else begin", 
+		"bug_line": "if (1) begin",
+		"error_description": "Replaced 'else' with 'if (1)', causing the random input generation block to execute unconditionally. This overrides the valid input from 'inbit' when enable_input=1, ignoring the actual input signal and always using random data instead."
+	},
+	{
+		"original_line": "        Qasr = Qasr/sqrt(`M_TWO_PI);", 
+		"bug_line": "        Qasr = Qasr*sqrt(`M_TWO_PI);",
+		"error_description": "Changed division to multiplication, fundamentally altering the Q-function approximation. This causes incorrect pulse shaping in the Gaussian filter, distorting the phase trajectory and corrupting the GMSK modulation output."
+	}
+]

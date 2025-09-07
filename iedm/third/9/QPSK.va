@@ -1,0 +1,84 @@
+// VerilogA for sources_modules, QPSK, veriloga
+// 3 modes in ouput constellation: "Gray", "Binary" and "user_defined"
+// When specifing "user_defined", Usr_mappig_vec need to be specified as [0 1 ... M-1].
+// Phase is decided by phase_offset * pi. 
+// Write on 9/20/2010 
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+(* instrument_module *)
+module QPSK(I_in, Q_in, outi, outq);
+input I_in, Q_in;
+output outi, outq;
+electrical I_in, Q_in, outi, outq;
+
+parameter real Symbol_Period = 1e-6 from (0:inf);
+parameter string Constellation_ordering = "Gray";
+parameter integer Usr_mappig_vec[0:3] = {0, 3, 1, 2};
+parameter real phase_offset = 0.25;
+parameter integer Disable_input = 0 from [0:1];
+parameter integer Seed = 12345;
+
+integer InBit_i, InBit_q, integerOut, tmpInteger;
+integer mappingArray[0:3];
+integer i, use_seed;
+real PhaseImag[0:3], PhaseReal[0:3];
+real tmpI, tmpQ;
+integer symbol_set_size;
+
+analog begin
+  @(initial_step) begin
+    symbol_set_size = 4;
+
+    if ( Constellation_ordering == "Binary" ) begin
+      for (i = 0; i < symbol_set_size; i = i + 1)
+        mappingArray[i] = i ;
+    end else if ( Constellation_ordering == "Gray" ) begin
+      for (i = 0; i < symbol_set_size; i = i + 1) 
+        mappingArray[i] = i ^ (i>>1);
+    end 
+
+    for (i = 0; i < symbol_set_size; i = i + 1) begin
+        PhaseReal[i] = cos(phase_offset * `M_PI + i * `M_PI_2);
+        PhaseImag[i] = sin(phase_offset * `M_PI + i * `M_PI_2);
+    end
+
+    integerOut = 0;
+    use_seed  = Seed;
+    tmpInteger = 1;
+  end
+
+  @(timer( 0, Symbol_Period, Symbol_Period/100000)) begin
+
+    if ( Disable_input ) begin
+      tmpI = $rdist_uniform(use_seed, 0, 1);
+      tmpQ = $rdist_uniform(use_seed, 0, 1);
+    end else begin
+      tmpI = V(I_in);
+      tmpQ = V(Q_in);
+    end
+
+    if ( tmpI > 0.5 ) InBit_i = 1;
+    else InBit_i = 0;
+    if ( tmpQ > 0.5 ) InBit_q = 1;
+    else InBit_q = 0;
+
+    if (InBit_i ) integerOut = 2;
+    else integerOut = 0;
+    if ( InBit_q ) integerOut = integerOut + 1;
+    
+
+    if ( Constellation_ordering == "user_defined" ) 
+        tmpInteger = Usr_mappig_vec[integerOut];
+    else 
+        tmpInteger = mappingArray[integerOut];
+  end 
+
+
+  V(outi) <+ PhaseReal[tmpInteger];
+  V(outq) <+ PhaseImag[tmpInteger];
+
+end
+
+endmodule

@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "output sigout;", 
+		"bug_line": "input sigout;",
+		"error_description": "Changing the port direction from output to input violates the design specification, as the module attempts to drive a value into an input port. This causes a simulation error since inputs cannot be driven internally."
+	},
+	{
+		"original_line": "      @ ( initial_step ) begin", 
+		"bug_line": "      @ ( initial_step or above(sigin_val) ) begin",
+		"error_description": "Added 'or above(sigin_val)' which introduces a non-existent event. The 'above()' function requires a threshold argument, making this a syntax error that prevents simulation. Additionally, even if syntactically valid, it would incorrectly trigger the parameter check during normal operation."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( final_step ) begin",
+		"error_description": "The deadband parameter validity check is incorrectly moved to the final simulation step. This delays error detection for invalid parameters (sigin_dead_high <= sigin_dead_low) until after simulation completes, allowing invalid operation throughout the simulation instead of failing immediately at startup."
+	},
+	{
+		"original_line": "sigout_val = gain_low * (sigin_val - sigin_dead_low) + sigout_leak;", 
+		"bug_line": "sigout_val = gain_low * (sigin_val + sigin_dead_low) + sigout_leak;",
+		"error_description": "Changed subtraction to addition in the lower region calculation. This causes incorrect positive amplification of the lower deadband offset instead of compensating for it, fundamentally altering the amplifier's transfer function for inputs below the deadband threshold."
+	},
+	{
+		"original_line": "electrical sigin_p, sigin_n, sigout;", 
+		"bug_line": "electrical sigin_p, sigout;",
+		"error_description": "The terminal 'sigin_n' is missing from the discipline declaration, making its voltage reference undefined in the differential input calculation V(sigin_p, sigin_n). This breaks the core functionality of the differential amplifier."
+	},
+	{
+		"original_line": "output sigout;", 
+		"bug_line": "input sigout;",
+		"error_description": "The output port 'sigout' is incorrectly declared as an input. This violates port direction requirements and will cause a compilation/simulation error since the module attempts to drive voltage on an input port."
+	},
+	{
+		"original_line": "parameter real gain_low = 1;", 
+		"bug_line": "parameter real gain_low = -1;",
+		"error_description": "Setting gain_low to a negative value inverts the amplification in the lower region. This violates the design requirement for positive amplification outside the deadband, causing inverted output signals when sigin_val ≤ sigin_dead_low."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( final_step ) begin",
+		"error_description": "Changed event trigger from initial_step to final_step. The parameter validity check now occurs at simulation end instead of start. Invalid parameters (sigin_dead_high <= sigin_dead_low) won't be caught until after simulation completes, allowing invalid operation during runtime."
+	},
+	{
+		"original_line": "sigin_val = V(sigin_p, sigin_n);", 
+		"bug_line": "sigin_val = V(sigin_p, sigin_n) + sigout_leak;",
+		"error_description": "Added sigout_leak to the differential input calculation, incorrectly shifting the input signal by the output offset parameter. This distorts the deadband boundaries and amplification behavior since sigout_leak is intended only for output compensation."
+	},
+	{
+		"original_line": "	 if (sigin_dead_high <= sigin_dead_low) begin", 
+		"bug_line": "	 if (sigin_dead_high < sigin_dead_low) begin",
+		"error_description": "Changed the condition from <= to <, so the error check does not trigger when deadband thresholds are equal. This allows invalid configurations where sigin_dead_high equals sigin_dead_low, violating the design requirement for a positive deadband range."
+	},
+	{
+		"original_line": "sigin_val = V(sigin_p, sigin_n);", 
+		"bug_line": "sigin_val = V(sigin_p, sigin_p);",
+		"error_description": "Changed differential voltage measurement to short-circuit measurement (sigin_p to itself) instead of across inputs. This sets sigin_val to 0 regardless of actual input, causing constant sigout_leak output and disabling amplification."
+	},
+	{
+		"original_line": "	    $finish;", 
+		"bug_line": "	    ;",
+		"error_description": "Removing $finish prevents simulation termination when deadband parameters are invalid (sigin_dead_high <= sigin_dead_low). This allows the module to operate with inconsistent deadband boundaries, causing incorrect gain application and output signal corruption."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed 'analog' block to 'initial' block, causing the amplifier logic to execute only once during initialization instead of continuously. This violates the requirement for continuous signal processing as the output won't update with input changes after t=0."
+	},
+	{
+		"original_line": "sigin_val = V(sigin_p, sigin_n);", 
+		"bug_line": "sigin_val = V(sigin_n, sigin_p);",
+		"error_description": "The differential voltage calculation is inverted by swapping sigin_p and sigin_n. This causes the deadband logic to operate on the negative of the actual input difference, reversing the amplification behavior in lower/upper regions and corrupting output values."
+	},
+	{
+		"original_line": "sigout_val = gain_low * (sigin_val - sigin_dead_low) + sigout_leak;", 
+		"bug_line": "sigout_val = gain_low * (sigin_val - sigin_dead_high) + sigout_leak;",
+		"error_description": "In the low region calculation, incorrectly subtracts sigin_dead_high instead of sigin_dead_low, creating wrong offset behavior when input is below deadband threshold."
+	},
+	{
+		"original_line": "parameter real sigout_leak = 0;", 
+		"bug_line": "parameter real sigout_leak_typo = 0;",
+		"error_description": "Parameter name misspelled as 'sigout_leak_typo'. This causes references to 'sigout_leak' in the code to become undefined variables (defaulting to 0.0), making the leak offset parameter ineffective and permanently disabling any user-configured offset."
+	},
+	{
+		"original_line": "sigout_val = gain_low * (sigin_val - sigin_dead_low) + sigout_leak;", 
+		"bug_line": "sigout_val = gain_low * (sigin_val - sigin_dead_high) + sigout_leak;",
+		"error_description": "In the lower region calculation, sigin_dead_high is incorrectly used instead of sigin_dead_low. This swaps the deadband thresholds, causing improper amplification when the input is below the deadband region."
+	},
+	{
+		"original_line": "sigout_val = gain_high * (sigin_val - sigin_dead_high) + sigout_leak;", 
+		"bug_line": "sigout_val = gain_high * (sigin_val - sigin_dead_low) + sigout_leak;",
+		"error_description": "In the upper region calculation, sigin_dead_low is incorrectly used instead of sigin_dead_high. This causes the amplifier to subtract the wrong deadband threshold, resulting in incorrect gain application and output discontinuity at the upper boundary."
+	},
+	{
+		"original_line": "sigout_val = gain_low * (sigin_val - sigin_dead_low) + sigout_leak;", 
+		"bug_line": "sigout_val = gain_low * (sigin_val - sigin_dead_high) + sigout_leak;",
+		"error_description": "Uses high deadband threshold instead of low threshold for lower region calculation, causing incorrect offset and potential signal inversion when input is below deadband."
+	},
+	{
+		"original_line": "if (sigin_val >= sigin_dead_high) begin", 
+		"bug_line": "if (sigin_val >= sigin_dead_low) begin",
+		"error_description": "Changed condition from sigin_dead_high to sigin_dead_low, causing the upper gain region to activate for any input above the lower deadband threshold instead of above the upper deadband threshold. This incorrectly processes mid-deadband values as amplified outputs."
+	}
+]

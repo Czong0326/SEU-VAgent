@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "Ibe = Ibe + ddt( tf*(Ifwd/Qb)*(1 + x) );", 
+		"bug_line": "Ibe = Ibe + ddt( tf*(Ifwd/Q1)*(1 + x) );",
+		"error_description": "Replaced base charge factor Qb with Early voltage factor Q1, disrupting the diffusion capacitance calculation by using incorrect charge modeling. This violates the Gummel-Poon model where Qb models base charge nonlinearity, while Q1 only handles Early effect."
+	},
+	{
+		"original_line": "parameter real tr=1n;", 
+		"bug_line": "parameter real tr=0;",
+		"error_description": "Setting reverse transit time (tr) to zero eliminates the reverse diffusion capacitance current term (ddt(tr*(IsExpVbc - is))), removing essential charge storage dynamics during reverse operation and violating BJT transient response requirements."
+	},
+	{
+		"original_line": "Ics = ddt_expr5;", 
+		"bug_line": "Ics = ddt_expr3;",
+		"error_description": "The C-S junction capacitor current in the low-voltage region incorrectly uses the B-E junction expression (ddt_expr3) instead of the correct C-S expression (ddt_expr5). This causes the substrate current to be calculated with base-emitter junction parameters (vje, mje) rather than collector-substrate parameters (vjs, mjs), resulting in incorrect capacitance modeling."
+	},
+	{
+		"original_line": "      I(vbase,vemit) <+ area*Ibe;", 
+		"bug_line": "      I(vbase,vcoll) <+ area*Ibe;",
+		"error_description": "Base-emitter current incorrectly routed to base-collector branch, creating wrong current paths and violating BJT physics by merging base currents"
+	},
+	{
+		"original_line": "parameter real nr=1.0 exclude 0;", 
+		"bug_line": "parameter real nr=0.0 exclude 0;",
+		"error_description": "Set reverse emission coefficient (nr) to 0.0, violating 'exclude 0' constraint. This causes division-by-zero in IsExpVbc = is*exp(Vbc/(nr*$vt)) calculation during simulation."
+	},
+	{
+		"original_line": "      if (vtf != 1M) x = x*xtf*exp(Vbc/(sqrt(2)*vtf));", 
+		"bug_line": "      if (vtf != 1M) x = x*xtf*exp(Vbe/(sqrt(2)*vtf));",
+		"error_description": "Replaced Vbc (base-collector voltage) with Vbe (base-emitter voltage) in the exponent term, incorrectly tying the transit time effect to the wrong junction voltage and violating the physical model."
+	},
+	{
+		"original_line": "   real fbe1, fbe2, fbe3;", 
+		"bug_line": "   real fbe1, fbe2;",
+		"error_description": "The variable fbe3 is removed, causing undefined reference errors in the base-emitter junction capacitance calculation where fbe3 is used in the analog block, breaking the capacitance model."
+	},
+	{
+		"original_line": "	 fpcs = fc*mjs;", 
+		"bug_line": "	 fpcs = fc*mje;",
+		"error_description": "Uses mje (emitter grading factor) instead of mjs (substrate grading factor) for collector-substrate junction calculation. This incorrectly applies the B-E junction characteristics to the C-S junction capacitance model, causing inaccurate substrate capacitance behavior."
+	},
+	{
+		"original_line": "ddt_expr3 = ddt( cje*vje*(1 - pow_expr2)/(1 - mje));", 
+		"bug_line": "ddt_expr3 = ddt( cje*vje*(1 - pow_expr2)/(1 - mjc));",
+		"error_description": "Replaced base-emitter grading factor 'mje' with base-collector factor 'mjc'. This incorrectly uses collector junction parameters for emitter capacitance calculation, causing erroneous charge storage modeling in the B-E junction."
+	},
+	{
+		"original_line": "real Vbe, Vbc, Vcs;", 
+		"bug_line": "real Vbe, Vbc;",
+		"error_description": "Removed Vcs declaration, causing undefined reference in Vcs calculations and assignment, leading to incorrect substrate current modeling."
+	},
+	{
+		"original_line": "parameter real itf=0;", 
+		"bug_line": "parameter real itf=-1e-3;",
+		"error_description": "The high current factor (itf) is set to a negative value, violating physical constraints. This causes division-by-zero errors when Ifwd = -itf during simulation, as the term (Ifwd/(Ifwd + itf)) becomes undefined."
+	},
+	{
+		"original_line": "parameter real tr=1n;", 
+		"bug_line": "parameter real tr=1p;",
+		"error_description": "Changed reverse transit time from 1 nanosecond to 1 picosecond, reducing the reverse diffusion capacitance by a factor of 1000 and violating the design specification for charge storage dynamics."
+	},
+	{
+		"original_line": "   real ddt_expr2;", 
+		"bug_line": "   integer ddt_expr2;",
+		"error_description": "Changed ddt_expr2 type from real to integer. The derivative expression assigned to ddt_expr2 (a real-valued result from ddt operator) will be truncated to integer when stored, causing precision loss in base-collector junction capacitor calculations and incorrect current values."
+	},
+	{
+		"original_line": "parameter real vjc=0.75 exclude 0;", 
+		"bug_line": "parameter real vjc=0.0 exclude 0;",
+		"error_description": "Setting vjc to 0.0 violates the exclusion constraint and causes division-by-zero in the base-collector junction capacitance calculation when Vbc is non-zero, as the term (1 - Vbc/vjc) becomes undefined."
+	},
+	{
+		"original_line": "   real fbe1, fbe2, fbe3;", 
+		"bug_line": "   real fbe1, fbe2;",
+		"error_description": "Removed fbe3 declaration, causing the base-emitter junction capacitor calculation to use an undeclared variable (defaults to 0) in forward bias conditions, corrupting the capacitance model when Vbe > fpbe."
+	},
+	{
+		"original_line": "   real fbe1, fbe2, fbe3;", 
+		"bug_line": "   real fbe1, fbe3;",
+		"error_description": "Removed variable fbe2 declaration. This causes unassigned variable usage in base-emitter junction capacitance calculation (ddt_expr4), where fbe2 is used without declaration, leading to incorrect capacitance values and potential simulation failures."
+	},
+	{
+		"original_line": "   real fbc1, fbc2, fbc3;", 
+		"bug_line": "   real fbc1, fbc2;",
+		"error_description": "Missing declaration of fbc3 causes compilation errors and breaks base-collector junction capacitor calculations since fbc3 remains uninitialized and is used in the analog block for the base-collector junction capacitor equations."
+	},
+	{
+		"original_line": "         fpbe = fc*mje;", 
+		"bug_line": "         fpbe = fc*mjc;",
+		"error_description": "The base-emitter junction calculation incorrectly uses the base-collector junction grading factor (mjc) instead of the base-emitter grading factor (mje). This swaps the junction characteristics, causing incorrect capacitance calculations in the base-emitter region."
+	},
+	{
+		"original_line": "      if (Vcs <= fpcs)", 
+		"bug_line": "      if (Vcs <= vjs)",
+		"error_description": "Changed condition variable from critical voltage point (fpcs) to built-in potential (vjs), causing incorrect capacitance model selection. This violates the design where fpcs (=fc*vjs) defines the transition point between depletion and diffusion capacitance regions."
+	},
+	{
+		"original_line": "IscExpVbc = isc*(exp(Vbc/(nc*$vt)) - 1);", 
+		"bug_line": "IscExpVbc = isc*(exp(Vbc/(ne*$vt)) - 1);",
+		"error_description": "The base-collector leakage current incorrectly uses the base-emitter leakage emission coefficient 'ne' instead of the correct base-collector coefficient 'nc', causing inaccurate leakage current calculations."
+	}
+]

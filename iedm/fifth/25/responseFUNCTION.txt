@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "gain = 1 / pow (10, (attenuation/20) );", 
+		"bug_line": "gain = pow (10, (attenuation/20) );",
+		"error_description": "Removed the reciprocal operation, causing positive attenuation values to amplify the signal instead of attenuating it by incorrectly calculating gain as 10^(attenuation/20) instead of 10^(-attenuation/20)."
+	},
+	{
+		"original_line": "   real gain;", 
+		"bug_line": "   real attenuation;",
+		"error_description": "Declares 'attenuation' instead of 'gain', causing the initial_step calculation to reference an undefined 'gain' variable. The V(vout) assignment incorrectly uses the attenuation parameter as a gain multiplier, fundamentally breaking the attenuation functionality."
+	},
+	{
+		"original_line": "module attenuator(vin, vout);", 
+		"bug_line": "module attenuator(vin, vout_wrong);",
+		"error_description": "Changed output port name to 'vout_wrong', causing the internal signal 'vout' to become undeclared. This breaks the output connection and creates a compilation error since 'vout' is referenced internally but not defined in ports."
+	},
+	{
+		"original_line": "gain = 1 / pow (10, (attenuation/20) );", 
+		"bug_line": "gain = 1 / pow (10, (attenuation*20) );",
+		"error_description": "Changed division to multiplication in the exponent calculation. Instead of dividing attenuation by 20, it now multiplies by 20, causing excessive signal attenuation. For example, 6 dB attenuation would incorrectly become 120 dB attenuation."
+	},
+	{
+		"original_line": "V(vout) <+ gain * V(vin);", 
+		"bug_line": "V(vout) <+ attenuation * V(vin);",
+		"error_description": "Parameter error: Uses 'attenuation' (dB value) instead of computed 'gain' (linear scale), resulting in incorrect amplification instead of attenuation since dB values are logarithmic while the operation requires linear scaling."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( initial_step("dc") ) begin",
+		"error_description": "Changed initial_step event to trigger only during DC analysis. This causes the gain calculation to be skipped during transient or AC analyses, resulting in uninitialized gain (0.0) and zero output in non-DC simulations."
+	},
+	{
+		"original_line": "module attenuator(vin, vout);", 
+		"bug_line": "module attenuator(vin);",
+		"error_description": "Removed the output port vout, making the module lack an output connection. The internal assignment to vout becomes isolated with no external interface, rendering the attenuator non-functional as no signal can be observed."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed 'analog' block to 'initial' block. This converts the continuous analog behavior into a one-time digital initialization, causing the output voltage assignment (V(vout)) to execute only once at time zero. The attenuator loses its continuous functionality, violating the design requirement of real-time signal attenuation."
+	},
+	{
+		"original_line": "V(vout) <+ gain * V(vin);", 
+		"bug_line": "V(vout) <+ V(vin) / gain;",
+		"error_description": "The modified line incorrectly uses division instead of multiplication by the gain factor. Since gain = 1/(10^(attenuation/20)), division by gain effectively amplifies the signal by 10^(attenuation/20) times, transforming the attenuator into an amplifier and fundamentally violating the design specification."
+	},
+	{
+		"original_line": "parameter real attenuation = 0;", 
+		"bug_line": "parameter real attenuation = -10;",
+		"error_description": "Negative attenuation value (-10 dB) causes signal amplification (gain > 1) instead of attenuation, violating the module's design purpose of signal reduction."
+	},
+	{
+		"original_line": "electrical vin, vout;", 
+		"bug_line": "voltage vin, vout;",
+		"error_description": "Changing discipline from electrical to voltage removes automatic unit scaling and implicit ground reference, breaking the attenuator's signal processing since voltage disciplines don't support automatic unit conversion like electrical nodes."
+	},
+	{
+		"original_line": "   real gain;", 
+		"bug_line": "   integer gain;",
+		"error_description": "Declaring 'gain' as integer instead of real causes truncation of fractional values during attenuation calculation. For non-integer gain values (e.g., 0.5 for 6dB attenuation), this results in incorrect output voltage (0 instead of attenuated signal) due to integer conversion."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed 'analog' to 'initial', converting the continuous-time analog block into a one-time initial block. This prevents continuous attenuation of the input signal, causing the output to freeze at its initial calculated value instead of dynamically responding to input changes."
+	},
+	{
+		"original_line": "V(vout) <+ gain * V(vin);", 
+		"bug_line": "V(vout) <+ attenuation * V(vin);",
+		"error_description": "Uses the 'attenuation' parameter (in dB) directly as a linear multiplier instead of the computed 'gain' variable, causing incorrect amplification instead of attenuation since dB values are logarithmic."
+	},
+	{
+		"original_line": "gain = 1 / pow (10, (attenuation/20) );", 
+		"bug_line": "gain = 1 * pow (10, (attenuation/20) );",
+		"error_description": "Division operator replaced with multiplication, causing signal amplification instead of attenuation. The gain becomes 10^(attenuation/20) instead of 10^(-attenuation/20), inverting the intended functionality."
+	},
+	{
+		"original_line": "parameter real attenuation = 0;", 
+		"bug_line": "parameter real attenuation = -10;",
+		"error_description": "The default attenuation value is changed to -10 dB, which incorrectly amplifies the signal (gain > 1) instead of attenuating it, violating the module's intended function as an attenuator."
+	},
+	{
+		"original_line": "              @ ( initial_step ) begin", 
+		"bug_line": "              @ ( final_step ) begin",
+		"error_description": "The gain calculation incorrectly triggers at simulation end (final_step) instead of initialization (initial_step). This leaves gain uninitialized (0.0) during operation, causing zero output instead of attenuated input."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   analog begin V(vout) <+ 0;",
+		"error_description": "Added incorrect continuous assignment setting output to zero. This overrides the intended attenuation calculation, forcing the output to zero regardless of input or attenuation parameter."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed 'analog' block to 'initial' block, causing continuous assignment V(vout) <+ to execute only once at time zero instead of continuously. This violates attenuator functionality where output must track attenuated input at all times."
+	},
+	{
+		"original_line": "output  vout;", 
+		"bug_line": "input  vout;",
+		"error_description": "Changing output port to input direction causes illegal driver conflict - analog block attempts to drive an input port, violating port direction rules and breaking functionality."
+	}
+]

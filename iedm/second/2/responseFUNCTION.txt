@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "   integer trigger;", 
+		"bug_line": "   integer trigger = 1;",
+		"error_description": "Initializing 'trigger' to 1 causes the state update logic to execute at simulation start (before any clock edges). This violates flip-flop behavior by forcing an immediate state change based on uninitialized J/K inputs instead of waiting for actual trigger events."
+	},
+	{
+		"original_line": "          else if (J) begin", 
+		"bug_line": "          else if (K) begin",
+		"error_description": "Changed condition from J to K. Now sets q=1 when K is true instead of when J is true, violating the JK flip-flop truth table where J=1 and K=0 should set output high. This causes incorrect set/reset behavior."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* no_instrument_module *)",
+		"error_description": "Changing 'instrument_module' to 'no_instrument_module' disables critical instrumentation. This prevents proper event triggering during simulation, causing incorrect state transitions in the JK flip-flop when J and K inputs change."
+	},
+	{
+		"original_line": "          trigger=1;", 
+		"bug_line": "          trigger=0;",
+		"error_description": "The falling edge of J input sets trigger=0 instead of 1, preventing state updates when only J falls. This violates JK flip-flop functionality where state changes must occur on all input edges."
+	},
+	{
+		"original_line": "          trigger=1;", 
+		"bug_line": "          trigger=0;",
+		"error_description": "Setting trigger=0 on J's falling edge prevents state update when only J changes, violating edge-triggered behavior by skipping output transitions during isolated J input changes."
+	},
+	{
+		"original_line": "J = V(vin_j) > vtrans;", 
+		"bug_line": "J = V(vin_j) < vtrans;",
+		"error_description": "Reversed the comparison operator, causing J to be set high when vin_j is below the threshold voltage and low when above, inverting the initial state logic for the J input."
+	},
+	{
+		"original_line": "       if (J && K) begin", 
+		"bug_line": "       if (J || K) begin",
+		"error_description": "Changed condition from AND (&&) to OR (||), causing incorrect toggling when either input is high. This violates the JK flip-flop truth table where toggling should occur ONLY when both inputs are high (J=K=1). Now toggling occurs for J=1/K=0 (should set), J=0/K=1 (should reset), and J=K=1 cases."
+	},
+	{
+		"original_line": "  J = V(vin_j) > vtrans;", 
+		"bug_line": "  J = V(vin_k) > vtrans;",
+		"error_description": "Initial condition for J incorrectly samples the K input (vin_k) instead of the J input (vin_j), causing erroneous flip-flop initialization where J inherits K's state at startup."
+	},
+	{
+		"original_line": "parameter real vtrans = 2.5;", 
+		"bug_line": "parameter real vtrans = 0;",
+		"error_description": "Setting vtrans to 0V causes all positive input voltages to register as logic high. This violates the design specification where vtrans should distinguish between logic levels (typically midway between vlogic_low and vlogic_high). As a result, the flip-flop fails to detect low input signals, leading to incorrect state transitions and output behavior."
+	},
+	{
+		"original_line": "          trigger=1;", 
+		"bug_line": "          trigger=0;",
+		"error_description": "This change prevents the flip-flop state update on falling edges of J input, violating the asynchronous edge-triggered design specification that requires updates on both rising and falling edges of J and K signals."
+	},
+	{
+		"original_line": "          trigger=1;", 
+		"bug_line": "          trigger=0;",
+		"error_description": "The falling edge of K input does not set the trigger flag, causing the state update to be skipped. This violates flip-flop functionality where K=0 transitions should update the output state according to the J input."
+	},
+	{
+		"original_line": "parameter real vlogic_low = 0;", 
+		"bug_line": "parameter real vlogic_low = vlogic_high;",
+		"error_description": "Sets vlogic_low equal to vlogic_high (5V), causing the flip-flop to output 5V for both HIGH and LOW states. This violates the design requirement for distinct logic voltage levels (0V/5V), making state transitions undetectable at outputs."
+	},
+	{
+		"original_line": "@ (cross( V(vin_k) - vtrans, 1, 1.0, vin_k.potential.abstol))begin", 
+		"bug_line": "@ (cross( V(vin_k) - 0, 1, 1.0, vin_k.potential.abstol))begin",
+		"error_description": "Changed threshold voltage from vtrans (2.5V) to 0V for K-input rising edge detection. This causes premature triggering at 0V instead of the specified logic threshold, violating voltage-level specifications and potentially causing metastability when K-input is between 0V and vtrans."
+	},
+	{
+		"original_line": "V(vout_qbar) <+ transition( vlogic_high*!q + vlogic_low*q,", 
+		"bug_line": "V(vout_qbar) <+ transition( vlogic_high*q + vlogic_low*!q,",
+		"error_description": "The expression incorrectly uses the same logic as vout_q instead of the complement. This makes vout_qbar identical to vout_q rather than its inverse, violating the flip-flop's complementary output requirement."
+	},
+	{
+		"original_line": "    tdel, trise, tfall );", 
+		"bug_line": "    tdel, tfall, trise );",
+		"error_description": "Swapped rise and fall time parameters for Qbar output transition. This causes incorrect timing behavior where the rise time is applied during falling edges and fall time during rising edges of Qbar, violating the specified timing characteristics for the output signal."
+	},
+	{
+		"original_line": "          trigger=1;", 
+		"bug_line": "          trigger=0;",
+		"error_description": "Setting trigger=0 for rising edge of J prevents state update when J rises. This violates JK flip-flop functionality where rising edges should trigger state transitions based on J/K inputs."
+	},
+	{
+		"original_line": "parameter real tfall = 1u from (0:inf);", 
+		"bug_line": "parameter real tfall = -1u from (0:inf);",
+		"error_description": "Negative fall time (-1u) violates physical realizability and causes undefined behavior in transition functions requiring non-negative time constants."
+	},
+	{
+		"original_line": "          trigger=1;", 
+		"bug_line": "          trigger=0;",
+		"error_description": "Changed trigger assignment from 1 to 0 during K-input falling edge detection. This prevents state updates when K transitions from high to low, violating the JK flip-flop's edge-triggered behavior where both edges of J and K should trigger state evaluation."
+	},
+	{
+		"original_line": "parameter real tdel = 3u from [0:inf);", 
+		"bug_line": "parameter real tdel = 0 from [0:inf);",
+		"error_description": "Setting tdel=0 removes the propagation delay required for sequential logic synchronization, causing immediate output transitions that violate flip-flop timing constraints and risk race conditions in digital systems."
+	},
+	{
+		"original_line": "parameter real vtrans = 2.5;", 
+		"bug_line": "parameter real vtrans = 0.1;",
+		"error_description": "Reducing vtrans from 2.5V to 0.1V lowers the logic threshold voltage excessively. This causes noise/interference above 0.1V to be misinterpreted as valid high inputs, violating the intended 0-5V logic levels and making the flip-flop susceptible to false triggering."
+	}
+]

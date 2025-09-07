@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "    tmp_power_ccpch = pow(10.0, power_ccpch/10.0);", 
+		"bug_line": "    tmp_power_ccpch = pow(10.0, power_ccpch - 10.0);",
+		"error_description": "Uses subtraction instead of division in dB-to-linear conversion, resulting in incorrect power scaling for CCPCH channel due to exponent miscalculation."
+	},
+	{
+		"original_line": "tmp_out_I  = tmp_out_I   + tmp_power_pich * V(I_in_pich);", 
+		"bug_line": "tmp_out_I  = tmp_out_I   + tmp_power_dpch * V(I_in_pich);",
+		"error_description": "Uses DPCH power scaling factor (tmp_power_dpch) instead of PICH factor (tmp_power_pich) for the PICH input channel, causing incorrect power adjustment for the PICH component."
+	},
+	{
+		"original_line": "output I_out, Q_out;", 
+		"bug_line": "output I_out; input Q_out;",
+		"error_description": "Q_out is incorrectly declared as an input port instead of an output. This violates the design specification where Q_out must be driven internally, causing a functional error as the module attempts to drive an input port."
+	},
+	{
+		"original_line": "tmp_out_Q = tmp_power_dpch * V(Q_in_dpch);", 
+		"bug_line": "tmp_out_Q = tmp_power_dpch * V(I_in_dpch);",
+		"error_description": "The Q component incorrectly uses the I_in_dpch input instead of Q_in_dpch, causing I/Q cross-coupling in the DPCH signal path."
+	},
+	{
+		"original_line": "parameter integer numChipsOut = 256;", 
+		"bug_line": "parameter integer numChipsOut_wrong = 256;",
+		"error_description": "Renaming the parameter to 'numChipsOut_wrong' makes the variable 'numChipsOut' in the initial_step block undefined, causing a compilation error since 'numChipsOut' is used in the local_sample calculation but no longer declared."
+	},
+	{
+		"original_line": "tmp_out_Q = tmp_out_Q + tmp_power_cpich * V(Q_in_p_cpich);", 
+		"bug_line": "tmp_out_Q = tmp_out_Q + tmp_power_pich * V(Q_in_p_cpich);",
+		"error_description": "Uses PICH scaling factor (tmp_power_pich) instead of CPICH scaling factor (tmp_power_cpich) for the CPICH Q-channel input, causing incorrect power adjustment for the CPICH component."
+	},
+	{
+		"original_line": "real local_sample;", 
+		"bug_line": "real local_sample = 0;",
+		"error_description": "Initializing local_sample to 0 causes the timer interval to be zero. This makes the timer event trigger continuously at every time step instead of at the intended chip rate interval (frame_time/numChipsOut), leading to incorrect signal summation timing and excessive simulation load."
+	},
+	{
+		"original_line": "module wcdma_power_adjust(I_in_dpch, I_in_p_cpich, I_in_pich, I_in_p_ccpch, I_in_ocns,", 
+		"bug_line": "module wcdma_power_adjust(I_in_ocns, I_in_p_cpich, I_in_pich, I_in_p_ccpch, I_in_dpch,",
+		"error_description": "Swapped I_in_dpch and I_in_ocns ports. Causes DPCH and OCNS signals to be misrouted - DPCH I channel gets scaled by OCNS gain (sqrt(1-total)) while OCNS I channel gets scaled by DPCH gain (tmp_power_dpch), violating power allocation requirements."
+	},
+	{
+		"original_line": "tmp_out_Q = tmp_out_Q + tmp_power_pich * V(Q_in_pich);", 
+		"bug_line": "tmp_out_Q = tmp_out_Q + tmp_power_ccpch * V(Q_in_pich);",
+		"error_description": "Uses CCPCH scaling factor instead of PICH scaling factor for Q_in_pich, causing incorrect power adjustment for the PICH signal's quadrature component."
+	},
+	{
+		"original_line": "output I_out, Q_out;", 
+		"bug_line": "output I_out, Q_out_mod;",
+		"error_description": "Renamed 'Q_out' to 'Q_out_mod' in the output port list, causing the Q output channel to become undriven. The analog block still drives the original 'Q_out' net, but this is no longer connected to the output port, resulting in incorrect/missing Q-channel output."
+	},
+	{
+		"original_line": "$finish(0);", 
+		"bug_line": "total = 1.0;",
+		"error_description": "Replaced simulation termination with incorrect value assignment. When total power exceeds 1, it sets total=1.0 instead of halting. This causes sqrt(1 - total) to become 0 in subsequent calculations, completely suppressing the OCNS channel output while allowing invalid channel power combinations to proceed silently."
+	},
+	{
+		"original_line": "parameter real frame_time = 1.0/15000.0 from (0:inf);", 
+		"bug_line": "parameter real frame_time = 1.0/1500.0 from (0:inf);",
+		"error_description": "Changed frame_time calculation from 1/15000 to 1/1500, making it 10 times larger. This error slows down the timer event sampling rate, causing outdated signal values to be used in output calculations and violating timing requirements."
+	},
+	{
+		"original_line": "Q_in_dpch, Q_in_p_cpich, Q_in_pich, Q_in_p_ccpch, Q_in_ocns;", 
+		"bug_line": "Q_in_dpch, Q_in_p_cpich, Q_in_p_ccpch, Q_in_pich, Q_in_ocns;",
+		"error_description": "Swapped Q_in_pich and Q_in_p_ccpch signals, causing incorrect channel power assignment where PICH uses PCCPCH's Q-component and vice versa."
+	},
+	{
+		"original_line": "tmp_out_I  = tmp_power_dpch * V(I_in_dpch);", 
+		"bug_line": "tmp_out_I  = tmp_power_dpch * V(I_in_p_cpich);",
+		"error_description": "The DPCH I component incorrectly uses CPICH input instead of DPCH input, causing cross-channel interference and loss of DPCH data in the output."
+	},
+	{
+		"original_line": "parameter real power_cpich = -10;", 
+		"bug_line": "parameter real power_cpich = -5;",
+		"error_description": "The CPICH power is incorrectly set to -5 dB instead of -10 dB. This causes the CPICH channel to have 5 dB higher power than specified, distorting the power distribution across channels and violating the design's power allocation requirements."
+	},
+	{
+		"original_line": "total           = tmp_power_dpch + tmp_power_cpich;", 
+		"bug_line": "total           = tmp_power_dpch * tmp_power_cpich;",
+		"error_description": "Replaces addition with multiplication, incorrectly calculating total power as the product of DPCH and CPICH linear powers instead of their sum. This violates power combination rules, causing OCNS scaling factor miscalculation and output signal distortion."
+	},
+	{
+		"original_line": "V(Q_out) <+ tmp_out_Q;", 
+		"bug_line": "V(Q_out) <+ tmp_out_I;",
+		"error_description": "The Q output is incorrectly assigned the I channel's value (tmp_out_I) instead of the Q channel's value (tmp_out_Q), causing a signal swap between I and Q channels in the output."
+	},
+	{
+		"original_line": "module wcdma_power_adjust(I_in_dpch, I_in_p_cpich, I_in_pich, I_in_p_ccpch, I_in_ocns,", 
+		"bug_line": "module wcdma_power_adjust(I_in_dpch, I_in_p_cpich, I_in_pich, I_in_p_ccpch_missing, I_in_ocns,",
+		"error_description": "Renamed port I_in_p_ccpch to I_in_p_ccpch_missing, causing a name mismatch. This makes the Primary CCPCH I-input unconnected, defaulting to 0V. The calculation excludes the Primary CCPCH I-component, corrupting the output signal."
+	},
+	{
+		"original_line": "analog begin", 
+		"bug_line": "initial begin",
+		"error_description": "Changed 'analog' block to 'initial' block, converting continuous-time behavior to single-initialization event. This prevents periodic power calculations and output updates, freezing outputs at initial values."
+	},
+	{
+		"original_line": "        Q_in_dpch, Q_in_p_cpich, Q_in_pich, Q_in_p_ccpch, Q_in_ocns;", 
+		"bug_line": "        Q_in_dpch, Q_in_p_cpich, Q_in_pich, Q_in_p_ccpch, I_in_ocns;",
+		"error_description": "Changed Q_in_ocns to I_in_ocns, creating duplicate input port name. The I_in_ocns port is already declared, violating unique port naming rules and causing compilation failure due to port name duplication."
+	}
+]

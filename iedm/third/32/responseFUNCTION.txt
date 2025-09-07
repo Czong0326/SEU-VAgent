@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "nf      = noise figure [dB]", 
+		"bug_line": "nf      = noise figure [linear]",
+		"error_description": "The description incorrectly states that the noise figure parameter 'nf' is in linear units, while the code expects it in dB. This misleads the user to input linear noise factor values, which the code then incorrectly interprets as dB during conversion (pow(10,nf/10)), causing erroneous noise calculations."
+	},
+	{
+		"original_line": "flo     = Local oscillator frequency", 
+		"bug_line": "rflo     = Local oscillator frequency",
+		"error_description": "Changed parameter name 'flo' to undefined 'rflo', causing compilation failure since all references to 'flo' in the code (e.g., in the theta calculation) become unresolved identifiers."
+	},
+	{
+		"original_line": "rin     = input resistance", 
+		"bug_line": "rin     = output resistance",
+		"error_description": "Misdescribes 'rin' as output resistance instead of input resistance. This documentation error causes confusion where users might set incorrect resistance values, leading to miscalculations in gain, IP3, and noise formulas that depend on the input resistance."
+	},
+	{
+		"original_line": "ip = sqrt(pow(10,ip3/10)*2*rin*0.001);", 
+		"bug_line": "ip = sqrt(pow(10,ip3/20)*2*rin*0.001);",
+		"error_description": "Changed exponent from 10 to 20 in dBm-to-power conversion. IP3 is a power measurement (dBm) requiring division by 10 for linear power scaling. Using 20 incorrectly treats it as a voltage quantity, distorting the IP3 voltage calculation and compromising distortion modeling accuracy."
+	},
+	{
+		"original_line": "real a;", 
+		"bug_line": "real a = 0;",
+		"error_description": "Initializing 'a' to 0 overrides the intended gain calculation in the initial block, forcing all mixer operations to use zero gain. This eliminates signal amplification and distorts the output characteristics since subsequent calculations (b, rhoinmax, etc.) depend on the correct gain-derived 'a' value."
+	},
+	{
+		"original_line": "inout in ;", 
+		"bug_line": "input in ;",
+		"error_description": "Changed port direction from bidirectional (inout) to input-only, violating the design requirement for bidirectional current flow needed for input impedance modeling (I(in) <+ ... statements). This breaks the input resistance (rin) and noise current implementation."
+	},
+	{
+		"original_line": "module MIXER_PB(in ,out, phase_err);", 
+		"bug_line": "module MIXER_PB(in ,out, phase_error);",
+		"error_description": "Renamed port 'phase_err' to 'phase_error' causing a disconnect between the port and internal node. The module references 'phase_err' internally (e.g., V(phase_err)), but this identifier is no longer connected to any port, resulting in undefined behavior for phase error input."
+	},
+	{
+		"original_line": "electrical out;", 
+		"bug_line": "input out;",
+		"error_description": "Changed 'out' port direction from inout to input. This creates a functional error because the module drives current into the 'out' port (I(out) <+ ...) while also reading its voltage (V(out)). An input port cannot be driven, violating the mixer's output functionality."
+	},
+	{
+		"original_line": "theta = flo*($abstime);", 
+		"bug_line": "theta = flo*($realtime);",
+		"error_description": "Using $realtime instead of $abstime introduces simulation time rounding errors, causing phase inaccuracies in the local oscillator signal due to discrete event scheduling approximations."
+	},
+	{
+		"original_line": "real rhooutmax;", 
+		"bug_line": "real rhoout_max;",
+		"error_description": "Changed variable name 'rhooutmax' to 'rhoout_max', creating an undeclared variable error in the clamping logic. The original variable 'rhooutmax' becomes implicit (defaulting to 0.0), causing incorrect clamping at 0 instead of the calculated rhooutmax value during signal saturation."
+	},
+	{
+		"original_line": "electrical phase_err;", 
+		"bug_line": "output electrical phase_err;",
+		"error_description": "Changing the phase_err port direction from inout to output incorrectly makes the module drive the voltage on this port. The original design requires phase_err to be an input (reading external phase error voltage), but now the module attempts to drive it, causing conflict and preventing external phase control signals from being read correctly."
+	},
+	{
+		"original_line": "parameter real gain = 40;", 
+		"bug_line": "parameter real gains = 40;",
+		"error_description": "Misspelled parameter name 'gains' instead of 'gain'. This causes the initial block to reference an undefined variable 'gain', defaulting to 0 in calculations. The mixer's gain computation becomes sqrt(pow(10,0/10)*rout/rin) = sqrt(rout/rin) instead of the intended 40 dB gain, severely reducing signal amplification."
+	},
+	{
+		"original_line": "b = a/(ip*ip)*4/3;", 
+		"bug_line": "b = a/(ip*ip)*3/4;",
+		"error_description": "The coefficient calculation for third-order nonlinearity is inverted (4/3 replaced by 3/4). This reduces the b coefficient magnitude, causing incorrect IP3 point calculation where third-order distortion would be overestimated, making the mixer appear more linear than specified."
+	},
+	{
+		"original_line": "IP3     = input referenced IP3(dBm)", 
+		"bug_line": "IP3     = input referenced IP3(dB)",
+		"error_description": "Changed IP3 unit from dBm to dB. The code expects dBm for correct power calculation (relative to 1mW). Using dB (relative to 1W) causes 30 dB error in IP3 value, corrupting nonlinearity modeling and leading to incorrect gain compression behavior."
+	},
+	{
+		"original_line": "parameter real ip3 = -30;", 
+		"bug_line": "parameter real ip3 = 30;",
+		"error_description": "Changed IP3 from -30 dBm to 30 dBm. This unrealistically increases the linearity of the mixer by 60 dB, suppressing the intended third-order nonlinearity and distortion effects."
+	},
+	{
+		"original_line": "else if (rho >0) rhoout = rhooutmax;", 
+		"bug_line": "else if (rho <0) rhoout = rhooutmax;",
+		"error_description": "Condition for positive extreme clamping incorrectly checks rho<0 instead of rho>0, causing negative extremes to be clamped to positive maximum and positive extremes to fall through to negative clamping."
+	},
+	{
+		"original_line": "real theta;", 
+		"bug_line": "real theta = 0.0;",
+		"error_description": "Initializing theta to 0.0 freezes the LO phase at zero instead of dynamically calculating flo*$abstime. This prevents frequency translation as the mixer loses its time-varying phase component, breaking the downconversion functionality."
+	},
+	{
+		"original_line": "`include "constants.h"", 
+		"bug_line": "`include "nonexistent.h"",
+		"error_description": "Changing the include file to a non-existent header breaks compilation by preventing access to essential physical constants required for simulation, causing immediate build failure."
+	},
+	{
+		"original_line": "rnf = pow(10,nf/10);", 
+		"bug_line": "rnf = pow(10,nf/20);",
+		"error_description": "Incorrect conversion of noise figure from dB to linear ratio: used 20 (voltage ratio divisor) instead of 10 (power ratio divisor). This underestimates the noise factor by treating it as a voltage measurement, reducing generated noise current."
+	},
+	{
+		"original_line": "ip = sqrt(pow(10,ip3/10)*2*rin*0.001);", 
+		"bug_line": "ip = sqrt(pow(10,ip3/10)*rin*0.001);",
+		"error_description": "Removed the factor of 2 required for peak voltage conversion in IP3 calculation. The missing factor incorrectly computes IP3 voltage using RMS instead of peak amplitude, distorting the nonlinearity model by underestimating the intercept point voltage by √2."
+	}
+]

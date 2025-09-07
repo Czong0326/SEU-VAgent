@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "real psi0;", 
+		"bug_line": "real psi0 = 0;",
+		"error_description": "Initializing psi0 to 0 creates a constant output voltage (0V) regardless of pH input, breaking the pH-dependent surface potential calculation. This violates the core functionality of modeling pH-sensitive potential changes."
+	},
+	{
+		"original_line": "        ew       =        `RP_EPSw * `P_EPS0;", 
+		"bug_line": "        ew       =        `RP_EPSw * `P_EPS0 * 0.5;",
+		"error_description": "Arbitrary scaling factor (0.5) reduces water permittivity by 50%, incorrectly calculating double-layer capacitance and surface potential response to pH."
+	},
+	{
+		"original_line": "real n0;", 
+		"bug_line": "integer n0;",
+		"error_description": "Changed n0 from real to integer type. Ionic concentration n0 = i0 * `Navg (e.g., 0.1 * 6e26 = 6e25) exceeds maximum integer value (~2e9), causing overflow and truncation to invalid value. This corrupts capacitance (Cdl) and surface potential (psi0) calculations."
+	},
+	{
+		"original_line": "        if(sternmod == 0) begin", 
+		"bug_line": "        if(sternmod != 0) begin",
+		"error_description": "The condition is inverted, causing the non-Stern model (Cdl) to be used when sternmod=1 and the Stern model (Ceq) when sternmod=0. This swaps the intended capacitance calculation logic."
+	},
+	{
+		"original_line": "psi0     =         -`M_LN10*$vt*alpha*(pH-pzc); ", 
+		"bug_line": "psi0     =         `M_LN10*$vt*alpha*(pH-pzc); ",
+		"error_description": "Removed the negative sign, reversing the polarity of the surface potential. This causes the pH response to work in the opposite direction (e.g., increasing pH decreases potential when it should increase it), fundamentally violating the device physics."
+	},
+	{
+		"original_line": "`define Navg 6e26", 
+		"bug_line": "`define Navg 6e20",
+		"error_description": "The conversion constant from moles/liter to ions per cubic meter is reduced by 6 orders of magnitude, severely underestimating ionic concentration. This corrupts the double layer capacitance (Cdl) and surface potential calculations, violating the electrolyte physics model requirements."
+	},
+	{
+		"original_line": "parameter real pKa       = -2.0    from (-inf:inf);             // pKa of the acidic [A-OH2+] surface group", 
+		"bug_line": "parameter real pKa       = 6.0     from (-inf:inf);             // pKa of the acidic [A-OH2+] surface group",
+		"error_description": "Swapping pKa and pKb values violates the acid/base chemistry: pKa=6.0 is stronger than pKb=6.0, causing reversed dissociation behavior where acidic groups become more protonated at high pH instead of low pH."
+	},
+	{
+		"original_line": "real n0;", 
+		"bug_line": "real n0 = 0;",
+		"error_description": "Initializing n0 to 0 causes incorrect ionic concentration calculation. The assignment n0 = i0 * `Navg in the analog block gets overwritten by this initialization, leading to zero ionic concentration. This breaks the double-layer capacitance (Cdl) calculation and subsequent surface potential (psi0) computation."
+	},
+	{
+		"original_line": "if(sternmod == 0) begin", 
+		"bug_line": "if(sternmod != 0) begin",
+		"error_description": "Reverses Stern model logic. When sternmod=0 (model off), the model incorrectly uses Ceq (Stern capacitance) instead of Cdl (double layer). When sternmod=1 (model on), it incorrectly uses Cdl instead of Ceq."
+	},
+	{
+		"original_line": "deltapK  =        (pKb-pKa);", 
+		"bug_line": "deltapK  =        (pKa-pKb);",
+		"error_description": "Reversed the order of pKa and pKb in the deltapK calculation. This inverts the sign of deltapK, causing incorrect computation of delta (10^(-deltapK/2)) and subsequently corrupts the surface potential calculation by reversing its pH dependency."
+	},
+	{
+		"original_line": "`define Navg 6e26", 
+		"bug_line": "`define Navg 6e16",
+		"error_description": "The conversion constant from moles/liter to #/m³ is reduced by 10 orders of magnitude (from 6e26 to 6e16). This causes significant underestimation of ionic concentration (n0), leading to incorrect double-layer capacitance (Cdl) and surface potential (psi0) calculations."
+	},
+	{
+		"original_line": "ew       =        `RP_EPSw * `P_EPS0;", 
+		"bug_line": "ew       =        `RP_EPSw / `P_EPS0;",
+		"error_description": "Division replaces multiplication, causing permittivity calculation error. This makes 'ew' (water permittivity) 10¹² times larger than correct value (~9e12 vs ~7e-10), severely overestimating double-layer capacitance and corrupting surface potential calculations."
+	},
+	{
+		"original_line": "Ceq      =        1/ (1/ Cstern + 1/ Cdl );", 
+		"bug_line": "Ceq      =        1/ (1/ Cstern - 1/ Cdl );",
+		"error_description": "Replaced '+' with '-' in the capacitance series formula. This inverts the denominator calculation, making Ceq negative when Cstern < Cdl and causing unphysical capacitance values that corrupt surface potential calculations."
+	},
+	{
+		"original_line": "$strobe("Warning: The results might be inaccurate! Use robust model for accurate analysis."); //Refer Section 3.1 of the manual", 
+		"bug_line": "psi0 = 0; //Refer Section 3.1 of the manual",
+		"error_description": "Replaces the warning message with an assignment that forces the surface potential (psi0) to zero when the condition is met, overriding the calculated value. This eliminates the pH-dependent voltage output in the warning region, fundamentally breaking the sensor model."
+	},
+	{
+		"original_line": "Cdl      =        sqrt(8 * ew * $vt * `P_Q * n0)/ (2 * $vt);", 
+		"bug_line": "Cdl      =        sqrt(8 * ew * $vt * `P_Q * n0)/ 2;",
+		"error_description": "Removed $vt from the denominator, causing incorrect Debye capacitance calculation. The missing thermal voltage term disrupts unit consistency (C/m² instead of F/m²) and reduces capacitance by ~40x, propagating errors to beta and surface potential calculations."
+	},
+	{
+		"original_line": "real delta, beta, alpha;", 
+		"bug_line": "real delta, beta;",
+		"error_description": "The variable 'alpha' is not declared. This causes a functional error because 'alpha' is used in the calculation of psi0 (surface potential) and the warning condition check, leading to incorrect simulation results or compilation failure."
+	},
+	{
+		"original_line": "        if(sternmod == 0) begin", 
+		"bug_line": "        if(sternmod == 1) begin",
+		"error_description": "Inverted sternmod flag condition incorrectly swaps the beta calculation formulas. When sternmod=0 (disabled), the model incorrectly uses the stern capacitance formula (Ceq) instead of the Debye layer capacitance (Cdl), and vice versa when sternmod=1 (enabled)."
+	},
+	{
+		"original_line": "NOH_SI   =        NOH * 1e4; //NOH in #/m^2", 
+		"bug_line": "NOH_SI   =        NOH * 1e-4; //NOH in #/m^2",
+		"error_description": "Incorrect conversion factor: used 1e-4 instead of 1e4 for cm² to m² unit conversion. This reduces surface density by 100 million times, severely underestimating surface charge effects and breaking pH response calculations."
+	},
+	{
+		"original_line": "output fgate, interface;  // fgate is connected to the reference electrode, interface is in contact with the surface", 
+		"bug_line": "input fgate, output interface;  // fgate is connected to the reference electrode, interface is in contact with the surface",
+		"error_description": "Changed fgate from output to input direction. This creates a functional error because the module drives voltage (psi0) between interface and fgate, but fgate is now incorrectly declared as input. Output ports cannot drive input ports, breaking the electrode potential assignment."
+	},
+	{
+		"original_line": "parameter real version   = 1.00;                                // pHsensor surface potential model version = 1.0.1", 
+		"bug_line": "parameter real pKa   = 1.00;                                // pHsensor surface potential model version = 1.0.1",
+		"error_description": "Changed parameter 'version' to 'pKa' with incorrect value 1.00. This redefines the acidic dissociation constant (pKa) with a fixed value, overriding the actual pKa parameter (line 54) and disrupting the pH-dependent surface potential calculation. The model now uses constant pKa=1.00 instead of the intended -2.0, breaking pH sensitivity."
+	}
+]

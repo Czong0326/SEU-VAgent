@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real tau = 0 from [0:inf);", 
+		"bug_line": "parameter real tau = -1e-12 from (-inf:inf);",
+		"error_description": "The parameter tau (parasitic diode time constant) is set to a negative default value and allows negative values, which is non-physical. A negative tau would cause the diode charge to become negative when forward biased, leading to incorrect simulation results."
+	},
+	{
+		"original_line": "I(vbody, vdrain)   <+ dev_type_sign * (ibd + ddt(qbd));", 
+		"bug_line": "I(vbody, vdrain)   <+ dev_type_sign * (ibd + ddt(qbs));",
+		"error_description": "The capacitive current component for the body-drain junction incorrectly uses the body-source charge (qbs) instead of the body-drain charge (qbd). This results in the drain junction capacitance being modeled with source junction charge values, causing incorrect transient behavior and charge conservation violations."
+	},
+	{
+		"original_line": "      vgd = dev_type_sign*V(vgate, vdrain);", 
+		"bug_line": "      vgd = dev_type_sign*V(vgate, vsource);",
+		"error_description": "The voltage vgd is incorrectly calculated using the gate-to-source voltage (vgate, vsource) instead of the gate-to-drain voltage (vgate, vdrain). This causes the gate-drain capacitance charge (qgd) to be computed with the wrong voltage, corrupting the capacitance current calculation."
+	},
+	{
+		"original_line": "         qbs = tau*ibs + cj*(fc1 + (1/fc2)*(fc3*(vbs - fpb) +", 
+		"bug_line": "         qbs = tau*ibs + cj*(fc1 + (1/fc2)*(fc3*(vbd - fpb) +",
+		"error_description": "Replaced vbs (bulk-source voltage) with vbd (bulk-drain voltage) in bulk-source charge calculation. This directional error incorrectly uses drain voltage instead of source voltage for source-related charge computation."
+	},
+	{
+		"original_line": "parameter real is = 1e-14 from (0:inf);", 
+		"bug_line": "parameter real is_sat = 1e-14 from (0:inf);",
+		"error_description": "Renamed parameter 'is' to 'is_sat' breaks all references to the diode saturation current in the model. The variables ibd and ibs now reference an undefined 'is', causing incorrect diode current calculations."
+	},
+	{
+		"original_line": "end else begin", 
+		"bug_line": "end else if (vds < 0) begin",
+		"error_description": "Changed saturation region condition to check for negative Vds. This prevents saturation region calculation for positive drain-source voltages, fundamentally breaking MOSFET operation in normal bias conditions."
+	},
+	{
+		"original_line": "if( dev_type == `n_type )  dev_type_sign = 1;", 
+		"bug_line": "if( dev_type == `p_type )  dev_type_sign = 1;",
+		"error_description": "The condition incorrectly checks for p_type instead of n_type. This causes n-type devices to have uninitialized dev_type_sign (0) and p-type devices to get dev_type_sign=1 instead of -1, leading to sign errors in all voltage/current calculations for both device types."
+	},
+	{
+		"original_line": "I(vbody, vsource)  <+ dev_type_sign * (ibs + ddt(qbs));", 
+		"bug_line": "I(vbody, vsource)  <+ dev_type_sign * (ibs - ddt(qbs));",
+		"error_description": "Changed '+' to '-' for the capacitive current term, causing incorrect subtraction of the junction capacitance derivative (ddt(qbs)) instead of addition. This inverts the direction of the transient capacitive current between body and source."
+	},
+	{
+		"original_line": "qgs = cgso * vgs;", 
+		"bug_line": "qgs = cgso * vgd;",
+		"error_description": "Replaced gate-source voltage (vgs) with gate-drain voltage (vgd) for gate-source capacitance calculation, incorrectly coupling charge storage to the wrong terminal voltage."
+	},
+	{
+		"original_line": "vbd = dev_type_sign*V(vbody, vdrain);", 
+		"bug_line": "vbd = dev_type_sign*V(vdrain, vbody);",
+		"error_description": "The voltage polarity is reversed by swapping vbody and vdrain in the V() function. This incorrectly calculates vbd as drain-to-body voltage instead of body-to-drain voltage, corrupting parasitic diode current and capacitance calculations."
+	},
+	{
+		"original_line": "parameter real tox = 1e-7 from (0:inf);", 
+		"bug_line": "parameter real tox = 0 from [0:inf);",
+		"error_description": "Setting tox (oxide thickness) to zero causes division by zero in kp calculation (kp = u0*`EPS_OX/tox), resulting in simulation failure due to infinite transconductance parameter."
+	},
+	{
+		"original_line": "vbd = dev_type_sign*V(vbody, vdrain);", 
+		"bug_line": "vbd = dev_type_sign*V(vdrain, vbody);",
+		"error_description": "The voltage polarity for the body-drain diode is reversed. Swapping vbody and vdrain inverts the voltage measurement, causing incorrect diode current and charge calculations in parasitic diode equations."
+	},
+	{
+		"original_line": "I(vgate, vdrain)   <+ dev_type_sign *  ddt(qgd);", 
+		"bug_line": "I(vgate, vdrain)   <+ dev_type_sign *  ddt(qgs);",
+		"error_description": "Replaced qgd (gate-drain charge) with qgs (gate-source charge), causing incorrect gate-drain capacitance modeling. The derivative now incorrectly uses gate-source voltage instead of gate-drain voltage for current calculation."
+	},
+	{
+		"original_line": "parameter integer dev_type = `n_type;", 
+		"bug_line": "parameter real dev_type = `n_type;",
+		"error_description": "Changed dev_type from integer to real type. This causes type mismatch errors in comparisons (dev_type == `n_type) and improper dev_type_sign calculation, breaking voltage sign handling in the analog block."
+	},
+	{
+		"original_line": "           real beta;", 
+		"bug_line": "           real beta = 0;",
+		"error_description": "Initialized beta to 0, causing the transconductance factor to remain zero throughout simulation. This prevents any channel current (id) from flowing since all current calculations multiply by beta, violating fundamental MOSFET behavior."
+	},
+	{
+		"original_line": "qgs = cgso * vgs;", 
+		"bug_line": "qgs = cgdo * vgs;",
+		"error_description": "Uses gate-drain overlap capacitance (cgdo) instead of gate-source capacitance (cgso) for gate-source charge calculation. This swaps capacitive coupling effects between terminals, distorting transient behavior during switching."
+	},
+	{
+		"original_line": "qgd = cgdo * vgd;", 
+		"bug_line": "qgd = cgdo * vgs;",
+		"error_description": "Replaced gate-drain voltage (vgd) with gate-source voltage (vgs) for gate-drain capacitance calculation. This incorrectly computes the charge based on the wrong voltage differential, creating a directional error in the charge storage model."
+	},
+	{
+		"original_line": "parameter real cgbo = 0 from [0:inf);", 
+		"bug_line": "parameter real cgbo = 0 from (0:inf);",
+		"error_description": "Changed range from inclusive [0 to exclusive (0, making default value 0 invalid. This causes simulation failure when cgbo isn't explicitly set since 0 is no longer allowed."
+	},
+	{
+		"original_line": "id = beta*(vgs - vth - vds/2)*vds*(1 + lambda*vds);", 
+		"bug_line": "id = beta*(vgs - vth - vds/2)*vds*(1 - lambda*vds);",
+		"error_description": "Sign error in channel length modulation term: '+' changed to '-' incorrectly modeling channel length modulation effect in linear region, causing current calculation errors."
+	},
+	{
+		"original_line": "parameter real xj = 0 from [0:inf);", 
+		"bug_line": "parameter real xj = 1e9 from [0:inf);",
+		"error_description": "The default junction depth (xj) is set to 1e9 meters (physically impossible). This causes negative effective channel length (leff = length - 2*xj) during beta calculation, resulting in inverted drain current polarity and invalid transistor behavior."
+	}
+]

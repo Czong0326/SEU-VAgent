@@ -1,0 +1,466 @@
+//======================================================================
+//Copyright @ 2016 Massachusetts Institute of Technology (MIT)
+// 
+// The terms under which the software and associated documentation
+// (the Software) is provided are as the following:
+// 
+// The Software is provided "as is", without warranty of any kind,
+// express or implied, including but not limited to the warranties of
+// merchantability, fitness for a particular purpose and noninfringement.
+// In no event shall the authors or copyright holders be liable for any claim,
+// damages or other liability, whether in an action of contract,
+// tort or otherwise, arising from, out of or in connection with the Software
+// or the use or other dealings in the Software.
+// 
+// MIT grants, free of charge, to any users the right to modify, copy,
+// and redistribute the Software, both within the user's organization and
+// externally, subject to the following restrictions:
+// 
+// 1. The users agree not to charge for the MIT code itself but may charge
+//      for additions, extensions, or support.
+// 
+// 2. In any product based on the Software, the users agree to acknowledge
+//      the MIT Computational Prototyping Research Group that developed
+//      the software. This acknowledgment shall appear in the product
+//      documentation.
+// 
+// 3. The users agree to obey all U.S. Government restrictions governing
+//      redistribution or export of the software.
+// 
+// 4. The users agree to reproduce any copyright notice which appears on
+//      the software on any copy or modification of such made available to others.
+// 
+// Agreed to by 
+// Luca Daniel, MIT
+// March 1st, 2016
+//======================================================================
+// rbtMVSSense.va
+//======================================================================
+// Modified MVS model for piezoresistive FET sensing
+// to be used with the RBT-MVS compact model
+//
+// Version: 1.0.0
+// Tested on: Cadence Spectre 15.1.0.284.isr1
+//
+// Author: Bichoy Bahr [bichoy at mit dot edu]
+// Last Modified: March 31st, 2016
+
+
+//======================================================================
+//======================================================================
+// Original MVS v 1.0.1 model preamble
+//======================================================================
+//======================================================================
+////////////////////////////////////////////////////////////////////////
+//Copyright @ 2013 Massachusetts Institute of Technology (MIT)
+ 
+//The terms under which the software and associated documentation (the Software) is provided are as the following:
+ 
+//The Software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages or other liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the Software or the use or other dealings in the Software.
+ 
+//MIT grants, free of charge, to any users the right to modify, copy, and redistribute the Software, both within the user's organization and externally, subject to the following restrictions:
+ 
+//1. The users agree not to charge for the MIT code itself but may charge for additions, extensions, or support.
+ 
+//2. In any product based on the Software, the users agree to acknowledge the MIT VS Model Research Group that developed the software. This acknowledgment shall appear in the product documentation.
+ 
+//3. The users agree to obey all U.S. Government restrictions governing redistribution or export of the software.
+ 
+//4. The users agree to reproduce any copyright notice which appears on the software on any copy or modification of such made available to others.
+ 
+//Agreed to by 
+//Dimitri A. Antoniadis, MIT
+//May 27 2013
+////////////////////////////////////////////////////////////////////////
+
+// VerilogA for virtual-source (VS) based self-consistent transport/capacitance model for Si MOSFET
+// transport model:  A. Khakifirooz, et al, p. 1674, T-ED 2009.
+// charge model: L. Wei et al, p. 1263, T-ED 2012.
+// Implemented on July 15, 2013 by S. Rakheja
+// Modified on Sep. 19, 2013 by S. Rakheja
+// Modified on July 17, 2015 by S. Rakheja 
+// List of changes: 
+// 1. Energy transfer parameter mvss_zeta added
+// 2. Qinv definition corrected to use FF instead of FFpre
+// 3. DIBL correction normalized
+// 4. Ballistic charge calculated for linear potential profile (default) 
+// 5. Inner fringing charge corrected 
+// 6. Unused variables removed
+//======================================================================
+//======================================================================
+// End of Original MVS v1.0.1 model preamble
+//======================================================================
+//======================================================================
+
+`ifdef __RBT_MVS_SENSE__VA__
+`else
+`define __RBT_MVS_SENSE_VA__
+
+`include "constants.vams"
+`include "disciplines.vams"
+`include "rbtConst.va"
+//`include "strainnature.vams"
+
+
+module rbtMVSSense(d, g, s, b, xdisp, vss, T);
+inout d, g, s, b;
+inout xdisp, vss;
+inout T;
+electrical d, g, s, b;
+electrical xdisp, vss;
+thermal T;
+
+// Internal nodes
+electrical di, si;
+
+
+/************************/
+/* Resonator Parameters */
+/************************/
+parameter real version      = 1.00;            // Model version
+parameter real rbt_pilong   = `RBT_PILONG;     // Longitudinal piezoresistivity coefficient
+parameter real rbt_wgVtoT   = `RBT_WGVTOT;     // Voltage to Stress conversion
+parameter real rbt_senseMSF = `RBT_SENSEMSF;   // mode shape factor for sensing
+
+
+/*-------End of RBT Specific Parameter-----------------*/
+
+/************************/
+/* MVS Parameters       */
+/************************/
+
+// Original VS parameters
+parameter real      mvss_version = 1.10;                                 // MVS model mvss_version = 1.0.1
+parameter integer   mvss_type    = 1            from [-1 : 1] exclude 0;// mvss_type of transistor. nFET mvss_type=1; pFET mvss_type=-1
+parameter real      mvss_W       = `MVSS_WFET   from (0:inf);           // Transistor width [cm]
+parameter real      mvss_Lgdr    = `MVSS_LFET   from (0:inf);           // Physical gate length [cm]. // This is the designed gate length for litho printing.
+parameter real      mvss_dLg     = 10.5e-7      from (0:inf);           // Overlap length including both source and drain sides [cm]  
+parameter real      mvss_Cg      = `MVSS_CG     from (0:inf);           // Gate-to-channel areal capacitance at the virtual source [F/cm^2]
+parameter real      mvss_etov    = `MVSS_EOTV   from (0:inf);           // Equivalent thickness of dielectric at S/D-G overlap [cm]
+parameter real      mvss_delta   = `MVSS_DELTA  from [0:inf);           // Drain-induced-barrier-lowering (DIBL) [V/V]
+parameter real      mvss_n0      = 1.5          from [0:inf);           // Subthreshold swing factor [unit-less] {typically between 1.0 and 2.0}
+parameter real      mvss_Rs0     = 100          from (0:inf);           // Access resistance on s-terminal [Ohms-micron]
+parameter real      mvss_Rd0     = 100          from (0:inf);           // Access resistance on d-terminal [Ohms-micron] 
+
+                                                                        // Generally, mvss_Rs0 = mvss_Rd0 for symmetric source and drain
+parameter real      mvss_Cif    = 1e-12         from [0:inf);           // Inner fringing S or D capacitance [F/cm] 
+parameter real      mvss_Cof    = 2e-13         from [0:inf);           // Outer fringing S or D capacitance [F/cm] 
+parameter real      mvss_vxo    = 0.765e7       from (0:inf);           // Virtual source injection velocity [cm/s]
+parameter real      mvss_mu     = 200           from (0:inf);           // Low-field mobility [cm^2/V.s]
+parameter real      mvss_beta   = `MVSS_BETA    from (0:inf);           // Saturation factor. Typ. nFET=1.8, pFET=1.6
+parameter real      mvss_Tjun   = 298           from [173:inf);         // Junction temperature [K]
+parameter real      mvss_phib   = 1.2;                                  // ~abs(2*phif)>0 [V]
+parameter real      mvss_gamma  = 0.0           from [0:inf);           // Body factor  [sqrt(V)]
+parameter real      mvss_Vt0    = `MVSS_VT0;                            // Strong inversion threshold voltage [V] 
+parameter real      mvss_alpha  = 3.5;                                  // Empirical parameter for threshold voltage shift between strong and weak inversion.
+parameter real      mvss_mc     = 0.2           from [0.01 : 10];       // Choose an appropriate value between 0.01 to 10 
+                                                                        // For, values outside of this range,convergence or accuracy of results is not guaranteed
+parameter integer   mvss_CTM_select = 1         from [1 : inf);         // If mvss_CTM_select = 1, then classic DD-NVSAT model is used
+                                                                        // For mvss_CTM_select other than 1,blended DD-NVSAT and ballistic charge transport model is used 
+parameter real      mvss_CC     = 0     from [0:inf);                   // Fitting parameter to adjust Vg-dependent inner fringe capacitances(Not used in this mvss_version)
+parameter real      mvss_nd     = 0     from [0:inf);                   // Punch-through factor [1/V]
+parameter real      mvss_zeta   = 1.0   from (0:1];                     // Energy-transfer factor
+
+
+`define  MVSS_SMALL_VALUE  (1e-10)
+`define  MVSS_SMALL_MU     (1e-3)
+`define  MVSS_LARGE_VALUE  (40)  
+
+//************************************************************
+// Model Variables
+//************************************************************
+
+// Resonator variables
+localparam tanhSmooth = `RBT_MVSS_SMOOTHTANH;
+real dmu;
+real mobModFactor;
+real rbt_mu;
+real stress;
+//real absTemp; // Device absolute temperature
+
+// Original MVS model variables
+real Rs, Rd, Vds, Vgs, Vgsraw, Vgdraw, Vbs, Vdsi, Vgsi, Vbsi, dir;
+real Leff, me, phit;
+real n, nphit, aphit, Vtpcorr, eVgpre, FFpre, ab, Vcorr, Vgscorr, Vbscorr, Vt0bs, Vt0bs0, Vtp, Vtp0;
+real eVg, FF, eVg0, FF0, Qref, eta, eta0;
+real Qinv, Qinv_corr, vx0, Vdsats, Vdsat,Vdratio, Vdbeta, Vdbetabeta, Fsat, Id ;
+real Vgt, psis, Vgta, Vdsatq, Fsatq, x;
+real qsc, qdc, qi, kq, kq2, kq4, tol, qsb, qdb, qs, qd, Qs, Qd;
+real Qb, etai, Qinvi, dQinv, dibl_corr; 
+real Qinvs, Qinvd, Qsov, Qdov, Vt0x, Vt0y, Fs_arg, Fs, Fd_arg, Fd, FFx, FFy, Qsif, Qdif, Qg, a, Cofs, Cofd;
+real A, B;
+//--------------------End of MVS Variables--------------------//
+
+//************************************************************
+// Analog Block
+//************************************************************
+
+analog begin
+
+        // Absolute device temperature
+        //absTemp = $temperature + Temp(T);
+
+        //Voltage definitions
+        Vgsraw          =       mvss_type * ( V(g) - V(si) );
+        Vgdraw          =       mvss_type * ( V(g) - V(di) );
+        if (Vgsraw >= Vgdraw) begin
+                Vds  = mvss_type * ( V(d) - V(s) ); 
+                Vgs  = mvss_type * ( V(g) - V(s) );
+                Vbs  = mvss_type * ( V(b) - V(s) );
+                Vdsi = mvss_type * ( V(di) - V(si) );
+                Vgsi = Vgsraw;
+                Vbsi = mvss_type * ( V(b) - V(si) );
+                dir  = 1;
+        end
+        else begin
+                Vds  = mvss_type * ( V(s) - V(d) );
+                Vgs  = mvss_type * ( V(g) - V(d) );
+                Vbs  = mvss_type * ( V(b) - V(d) );
+                Vdsi = mvss_type * ( V(si) - V(di) );
+                Vgsi = Vgdraw;
+                Vbsi = mvss_type * ( V(b) - V(di) );
+                dir  = -1;
+        end
+
+    //Parasitic element definition
+        Rs      = 1e-4/ mvss_W * mvss_Rs0;                             // s-terminal resistance [ohms]
+        Rd      = Rs;                                                  // d-terminal resistance [ohms] For symmetric source and drain Rd = Rs. 
+        //Rd    = 1e-4/ mvss_W * mvss_Rd0;                             // d-terminal resistance [ohms] {Uncomment for asymmetric source and drain resistance.}
+        Cofs    = ( 0.345e-12/ mvss_etov ) * mvss_dLg/ 2.0 + mvss_Cof; // s-terminal outer fringing cap [F/cm]
+        Cofd    = ( 0.345e-12/ mvss_etov ) * mvss_dLg/ 2.0 + mvss_Cof; // d-terminal outer fringing cap [F/cm]
+        Leff    = mvss_Lgdr - mvss_dLg;                                         // Effective channel length [cm]. After subtracting overlap lengths on s and d side 
+        
+        phit    = $vt(mvss_Tjun);                // Thermal voltage, kT/q [V]                
+        me      = (9.1e-31) * mvss_mc;     // Carrier mass [Kg]
+        n       = mvss_n0 + mvss_nd * Vdsi;// Total subthreshold swing factor taking punchthrough into account [unit-less]
+        nphit   = n * phit;              // Product of n and phit [used as one variable]
+        aphit   = mvss_alpha * phit;     // Product of mvss_alpha and phit [used as one variable]
+
+        // **************************************************
+        // Piezoresistive sensing for RBT Models
+        // **************************************************
+        stress = (- rbt_wgVtoT) * rbt_senseMSF * V(xdisp,vss); // -ve sign for equivalent circuit convention
+        dmu = tanhSmooth * tanh( (1/tanhSmooth) * rbt_pilong * stress); // change in mobility
+        mobModFactor = (1 - dmu );
+        rbt_mu = mvss_mu * mobModFactor;
+        //--------------------End of RBT Piezoresistive Sense--------------------//
+
+        
+        //Correct Vgsi and Vbsi
+        //Vcorr is computed using external Vbs and Vgs but internal Vdsi, Qinv and Qinv_corr are computed with uncorrected Vgs, Vbs and corrected Vgs, Vbs respectively.        
+        Vtpcorr  = mvss_Vt0 + mvss_gamma * (sqrt(abs(mvss_phib - Vbs))- sqrt(mvss_phib))- Vdsi * mvss_delta;// Calculated from extrinsic Vbs
+        eVgpre   = limexp(( Vgs - Vtpcorr )/ ( aphit * 1.5 ));                          // Calculated from extrinsic Vgs
+        FFpre    = 1.0/ ( 1.0 + eVgpre );                                               // Only used to compute the correction factor
+        ab       = 2 * ( 1 - 0.99 * FFpre ) * phit;  
+        Vcorr    = ( 1.0 + 2.0 * mvss_delta ) * ( ab/ 2.0 ) * ( limexp( -Vdsi/ ab ));   // Correction to intrinsic Vgs
+        Vgscorr  = Vgsi + Vcorr;                                                        // Intrinsic Vgs corrected (to be used for charge and current computation)
+        Vbscorr  = Vbsi + Vcorr;                                                        // Intrinsic Vgs corrected (to be used for charge and current computation)
+        Vt0bs    = mvss_Vt0 + mvss_gamma * (sqrt( abs( mvss_phib - Vbscorr)) - sqrt( mvss_phib ));      // Computed from corrected intrinsic Vbs
+        Vt0bs0   = mvss_Vt0 + mvss_gamma * (sqrt( abs( mvss_phib - Vbsi)) - sqrt( mvss_phib ));         // Computed from uncorrected intrinsic Vbs
+        Vtp      = Vt0bs - Vdsi * mvss_delta - 0.5 * aphit;                             // Computed from corrected intrinsic Vbs and intrinsic Vds
+        Vtp0     = Vt0bs0 - Vdsi * mvss_delta - 0.5 * aphit;                            // Computed from uncorrected intrinsic Vbs and intrinsic Vds
+        eVg      = limexp(( Vgscorr - Vtp )/ ( aphit ));                                // Compute eVg factor from corrected intrinsic Vgs
+        FF       = 1.0/ ( 1.0 + eVg );
+        eVg0     = limexp(( Vgsi - Vtp0 )/ ( aphit ));                                  // Compute eVg factor from uncorrected intrinsic Vgs
+        FF0      = 1.0/ ( 1.0 + eVg0 );
+        Qref     = mvss_Cg * nphit;     
+        eta      = ( Vgscorr - ( Vt0bs - Vdsi * mvss_delta - FF * aphit ))/ ( nphit );  // Compute eta factor from corrected intrinsic Vgs and intrinsic Vds
+        eta0     = ( Vgsi - ( Vt0bs0 - Vdsi * mvss_delta - FF * aphit ))/ ( nphit );    // Compute eta0 factor from uncorrected intrinsic Vgs and internal Vds. 
+                                                                                        // Using FF instead of FF0 in eta0 gives smoother capacitances.
+
+        //Charge at VS in saturation (Qinv)
+        if (eta  <= `MVSS_LARGE_VALUE) begin
+                Qinv_corr = Qref * ln( 1.0 + limexp(eta) );
+        end
+        else begin
+                Qinv_corr = Qref * eta;
+        end     
+        if (eta0 <= `MVSS_LARGE_VALUE) begin 
+                Qinv     = Qref * ln( 1.0 + limexp(eta0) );                             // Compute charge w/ uncorrected intrinsic Vgs for use later on in charge partitioning
+        end
+        else    begin
+                Qinv     = Qref * eta0;
+        end
+
+
+        //Transport equations
+        vx0             = mvss_vxo;     
+        Vdsats          = vx0 * Leff * limexp( - ln(rbt_mu) );                                                  
+        Vdsat           = Vdsats * ( 1.0 - FF ) + phit * FF;                            // Saturation drain voltage for current
+        Vdratio         = abs( Vdsi/ Vdsat);
+        Vdbeta          = pow( Vdratio, mvss_beta);
+        Vdbetabeta      = pow( 1.0 + Vdbeta, 1.0/ mvss_beta);
+        Fsat            = Vdratio / Vdbetabeta;                                         // Transition function from linear to saturation. 
+                                                                                                        // Fsat = 1 when Vds>>Vdsat; Fsat= Vds when Vds<<Vdsat
+
+        //Total drain current                                                                           
+        Id                      =       Qinv_corr * vx0 * Fsat * mvss_W;                
+
+
+        //Calculation of intrinsic charge partitioning factors (qs and qd)
+        Vgt                     =       Qinv/ mvss_Cg;                                                  // Use charge computed from uncorrected intrinsic Vgs
+
+        // Approximate solution for psis is weak inversion
+        if (mvss_gamma == 0) begin
+                a               =       1.0;
+                if (eta0 <= `MVSS_LARGE_VALUE) begin
+                        psis    =       mvss_phib + phit * ( 1.0 + ln( ln( 1.0 + `MVSS_SMALL_VALUE + limexp( eta0 ))));
+                end
+                else begin
+                        psis    =       mvss_phib + phit * ( 1.0 + ln( eta0 ));
+                end
+        end
+        else begin
+                if (eta0 <= `MVSS_LARGE_VALUE) begin
+                        psis    =       mvss_phib + ( 1.0 - mvss_gamma )/ ( 1.0 + mvss_gamma ) * phit * ( 1.0 + ln( ln( 1.0 + `MVSS_SMALL_VALUE + limexp( eta0 ))));
+                end
+                else begin      
+                        psis    =       mvss_phib + ( 1.0 - mvss_gamma )/ ( 1.0 + mvss_gamma ) * phit * ( 1.0 + ln( eta0 ));
+                end
+                a               =       1.0 + mvss_gamma/ ( 2.0 * sqrt( abs( psis - ( Vbsi ))));
+        end
+        Vgta                    =       Vgt/ a;                                                         // Vdsat in strong inversion
+        Vdsatq                  =       sqrt( FF0 * aphit * aphit + Vgta * Vgta);                       // Vdsat approx. to extend to weak inversion; 
+                                                                                                        // The multiplier of phit has strong effect on Cgd discontinuity at Vd=0.
+
+        // Modified Fsat for calculation of charge partitioning
+        //DD-NVSAT charge
+        Fsatq                   =       abs( Vdsi/ Vdsatq )/ ( pow( 1.0 + pow( abs( Vdsi/ Vdsatq ), mvss_beta ), 1.0/ mvss_beta ));
+        x                       =       1.0 - Fsatq;
+        
+
+         // MVS 1.0.1 release uses Tsividis model for implementing DD-NVSAT charges. 
+        // In MVS 1.1.0, we use the formulation from L. Wei's 2012 TED paper referenced in the documentation. 
+        // Both models are identical. 
+
+        // *** From Tsividis (DD-NVSAT)
+        // den                  =       15 * ( 1 + x ) * ( 1 + x );
+        // qsc                  =       Qinv *(6 + 12 * x + 8 * x * x + 4 * x * x * x)/ den;
+        // qdc                  =       Qinv *(4 + 8 * x + 12 * x * x + 6 * x * x * x)/ den;
+        // qi                   =       qsc + qdc;                                                      //      Charge in the channel 
+
+        // *** From L. Wei (DD-NVSAT)
+    A = pow((1-x),2)/(12.0*(1-(1-x)/2.0));
+        B = (5.0-2.0*(1-x))/(10.0-(1-x)/2.0);
+        qsc = Qinv*(0.5-(1-x)/6.0+A*(1-B));
+        qdc = Qinv*(0.5-(1-x)/3.0+A*B);
+        qi = qsc+qdc;
+
+                
+
+        //QB charge     
+        //kq                    =       0.0;
+        tol                     =       ( `MVSS_SMALL_VALUE * mvss_vxo/ 100.0 ) * ( `MVSS_SMALL_VALUE * mvss_vxo/ 100.0 ) * me/ ( 2 * `P_Q );
+        if (Vdsi <= tol) begin
+                kq2             =       ( 2.0 * `P_Q/ me * Vdsi * mvss_zeta)/ ( vx0 * vx0 ) * 10000.0;
+                kq4             =       kq2 * kq2;
+                
+                // Uncomment following lines for linear potential profile
+                qsb             =       Qinv * (0.5 - kq2/12.0 +kq4/32.0);
+                qdb             =       Qinv * (0.5 - kq2/6.0 +3.0*kq4/32.0);
+                
+                // Uncomment following lines for parabolic potential profile
+                //qsb           =       Qinv * ( 0.5 - kq2/ 24.0 + kq4/ 80.0 );
+                //qdb           =       Qinv * ( 0.5 - 0.125 * kq2 + kq4/ 16.0 );
+        end
+        else begin      
+                kq              =       sqrt( 2.0 * `P_Q/ me * Vdsi * mvss_zeta )/ vx0 * 100.0;
+                kq2             =       kq * kq;
+                
+                // Uncomment following lines for linear potential profile
+                qsb             =       Qinv * (4.0*(kq2+1.0)*sqrt(kq2+1.0)-(6.0*kq2+4.0))/(3.0*kq2*kq2); 
+                qdb             =       Qinv * (2.0*(kq2-2)*sqrt(kq2+1.0)+4.0)/(3.0*kq2*kq2);
+
+                // Uncomment following lines for parabolic potential profile
+                // qsb          =       Qinv * ( asinh( kq )/ kq - ( sqrt( kq2 + 1.0 ) - 1.0 )/ kq2);
+                // qdb          =       Qinv * (( sqrt( kq2 + 1.0 )- 1.0 )/ kq2);
+        end
+        
+
+        // Flag for classic or ballistic charge partitioning:
+        if (mvss_CTM_select == 1) begin                                                                 // Ballistic blended with classic DD-NVSAT
+                qs              =       qsc;                                                            // Calculation of "ballistic" channel charge partitioning factors, qsb and qdb.
+                qd              =       qdc;                                                            // Here it is assumed that the potential increases parabolically from the
+        end                                                                                             // virtual source point, where Qinv_corr is known to Vds-dvd at the drain.
+        else begin                                                                                      // Hence carrier velocity increases linearly by kq (below) depending on the
+                qs              =       qsc * ( 1 - Fsatq * Fsatq ) + qsb * Fsatq * Fsatq;              // efecive ballistic mass of the carriers.
+                qd              =       qdc * ( 1 - Fsatq * Fsatq ) + qdb * Fsatq * Fsatq;                              
+        end                                                                                             
+                                                                                                        
+                                                                
+        //Body charge based on approximate surface potential (psis) calculation with mvss_delta=0 using psis=mvss_phib in Qb gives continuous Cgs, Cgd, Cdd in SI, while Cdd is smooth anyway.
+        Qb                      =       -mvss_type * mvss_W * Leff * ( mvss_Cg * mvss_gamma * sqrt( abs( psis - Vbsi )) + ( a - 1.0 )/ ( 1.0 * a ) * Qinv * ( 1.0 - qi ));
+
+
+        //DIBL effect on drain charge calculation.
+        //Calculate dQinv at virtual source due to DIBL only. Then:Correct the qd factor to reflect this channel charge change due to Vd
+        //Vt0bs0 and FF=FF0 causes least discontinuity in Cgs and Cgd but produces a spike in Cdd at Vds=0 (in weak inversion.  But bad in strong inversion)
+        etai                    =       ( Vgsi - ( Vt0bs0 - FF * aphit ))/ ( nphit );
+        if (etai <= `MVSS_LARGE_VALUE) begin
+                Qinvi           =       Qref * ln( 1.0 + limexp( etai ));
+        end
+        else begin
+                Qinvi           =       Qref * etai;
+        end
+        dQinv                   =       Qinv - Qinvi;
+        dibl_corr               =       ( 1.0 - FF0 ) * ( 1.0 - Fsatq ) * qi * dQinv/Qinv;
+        qd                      =       qd - dibl_corr;
+
+                 
+        //Inversion charge partitioning to terminals s and d
+        Qinvs                   =       mvss_type * Leff * (( 1 + dir ) * qs + ( 1 - dir ) * qd)/ 2.0;
+        Qinvd                   =       mvss_type * Leff * (( 1 - dir ) * qs + ( 1 + dir ) * qd)/ 2.0;
+
+
+        //Outer fringing capacitance
+        Qsov                    =       Cofs * ( V(g) - V(si) );
+        Qdov                    =       Cofd * ( V(g) - V(di) );
+
+
+        //Inner fringing capacitance
+        Vt0x                    =       mvss_Vt0 + mvss_gamma * ( sqrt( abs( mvss_phib - mvss_type * ( V(b) - V(si) ))) - sqrt(mvss_phib));
+        Vt0y                    =       mvss_Vt0 + mvss_gamma * ( sqrt( abs( mvss_phib - mvss_type * ( V(b) - V(di) ))) - sqrt(mvss_phib));
+        Fs_arg                  =       ( Vgsraw - ( Vt0x - Vdsi * mvss_delta * Fsat ) + aphit * 0.5 )/ ( 1.1 * nphit );
+        if (Fs_arg <= `MVSS_LARGE_VALUE) begin
+                Fs              =       1.0 + limexp( Fs_arg );
+                FFx             =       Vgsraw - nphit * ln( Fs );
+        end
+        else begin
+                Fs              =       0.0;                                                            // Not used
+                FFx             =       Vgsraw - nphit * Fs_arg;
+        end
+        Fd_arg                  =       ( Vgdraw - ( Vt0y - Vdsi * mvss_delta * Fsat ) + aphit * 0.5 )/ ( 1.1 * nphit );
+        if (Fd_arg <= `MVSS_LARGE_VALUE) begin
+                Fd              =       1.0 + limexp( Fd_arg );
+                FFy             =       Vgdraw - nphit * ln( Fd );
+        end
+        else begin
+                Fd              =       0.0;                                                            // Not used
+                FFy             =       Vgdraw - nphit * Fd_arg;
+        end
+        Qsif                    =       ( mvss_type * mvss_Cif + mvss_CC * Vgsraw ) * FFx;
+        Qdif                    =       ( mvss_type * mvss_Cif + mvss_CC * Vgdraw ) * FFy;
+                
+        
+        //Partitioned charge
+        Qs                      =       -mvss_W * ( Qinvs + Qsov + Qsif );              // s-terminal charge
+        Qd                      =       -mvss_W * ( Qinvd + Qdov + Qdif );              // d-terminal charge
+        Qg                      =       -( Qs + Qd + Qb );                                              // g-terminal charge
+
+
+        //Sub-circuit initialization
+        I(di,si)                <+      mvss_type * dir * Id;
+        I(d,di)                 <+      ( V(d) - V(di) )/ Rd;
+        I(si,s)                 <+      ( V(si) - V(s) )/ Rs;
+
+        I(si,b)                 <+      ddt( Qs );                                                      // charge term: node si to node b
+        I(di,b)                 <+      ddt( Qd );                                                      // charge term: node di to node b
+        I(g,b)                  <+      ddt( Qg );                                                      // charge term: node g to node b
+
+        // Thermal contribution to the thermal node
+        Pwr(T) <+ -Vds * Id - V(g,b) * ddt(Qg);
+
+end
+endmodule
+
+`endif

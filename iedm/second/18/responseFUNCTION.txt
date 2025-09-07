@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "vout_bit1_val = decode_msb(q_phase,vlogic_high,vlogic_low);", 
+		"bug_line": "vout_bit1_val = decode_msb(q_phase,vlogic_low,vlogic_high);",
+		"error_description": "Swapped vlogic_high and vlogic_low parameters in decode_msb function call, causing inverted logic levels for the MSB of q_phase. This corrupts the demodulated output by reversing high/low voltage assignments for bit1."
+	},
+	{
+		"original_line": "V(vout_bit1) <+ transition(vout_bit1_val,tdel,trise,tfall);", 
+		"bug_line": "V(vout_bit1) <+ transition(vout_bit0_val,tdel,trise,tfall);",
+		"error_description": "vout_bit1 is incorrectly assigned the value for vout_bit0 (LSB of q_phase) instead of its own MSB value. This causes the MSB and LSB of the q_phase to output identical values, corrupting the demodulated bit pattern."
+	},
+	{
+		"original_line": "output vout_bit0,vout_bit1,vout_bit2,vout_bit3;", 
+		"bug_line": "output vout_bit0,vout_bit1,vout_bit2,vout_bit3_missing;",
+		"error_description": "Renamed port vout_bit3 to vout_bit3_missing, causing disconnection between the port and internal signal. The analog block still drives vout_bit3 (now an internal node) while the actual output port vout_bit3_missing remains undriven."
+	},
+	{
+		"original_line": "              input vwidth;", 
+		"bug_line": "              output vwidth;",
+		"error_description": "Changed input direction to output, making the function attempt to drive vwidth externally. This violates the design as vwidth should be an input parameter for constellation box width calculation."
+	},
+	{
+		"original_line": "   real vlogic_high;", 
+		"bug_line": "   real vlogic_high = vlogic_low;",
+		"error_description": "Initializes vlogic_high to vlogic_low before vlogic_low is declared. Since vlogic_low is undefined at this point, vlogic_high gets assigned 0.0 (default real value), causing incorrect voltage mapping in demodulation outputs as both logic levels become 0V."
+	},
+	{
+		"original_line": "module qam_16ary_demod (vin,vout_bit0,vout_bit1,vout_bit2,vout_bit3);", 
+		"bug_line": "module qam_16ary_demod (vin,vout_bit0,vout_bit1,vout_bit3,vout_bit2);",
+		"error_description": "Swapped output ports vout_bit2 and vout_bit3 causes the MSB and LSB of the i-phase to be misrouted, reversing bit assignments for the two most significant demodulated bits."
+	},
+	{
+		"original_line": "   real vout_bit1_val;", 
+		"bug_line": "   real vout_bit1_val = vlogic_low;",
+		"error_description": "Initializing vout_bit1_val to vlogic_low causes the MSB of the q-phase to default to low before the first sampling event, whereas it should remain uninitialized (0.0 by default) until actual demodulation occurs. This forces an incorrect low output during initial transient period when no valid sample exists."
+	},
+	{
+		"original_line": "              decode_lsb =  (vlogic_high - vlogic_low)*lsb - vlogic_low;", 
+		"bug_line": "              decode_lsb =  (vlogic_high - vlogic_low)*lsb + vlogic_low;",
+		"error_description": "Changed subtraction to addition, causing inverted logic levels for LSB output. When lsb=0, output becomes vlogic_low instead of -vlogic_low; when lsb=1, output becomes vlogic_high instead of vlogic_high - 2*vlogic_low, violating the constellation decoding logic."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( final_step ) begin",
+		"error_description": "Changed the initial_step event trigger to final_step. This prevents initialization of critical timing variables (period, tnext_i, tnext_q) at simulation start. The demodulator fails to schedule sampling events, producing no output as variables remain uninitialized throughout simulation."
+	},
+	{
+		"original_line": "vout_bit2_val = decode_lsb(i_phase,vbox_width,vlogic_high,vlogic_low);", 
+		"bug_line": "vout_bit2_val = decode_msb(i_phase,vlogic_high,vlogic_low);",
+		"error_description": "The LSB of the I-phase (bit2) is incorrectly decoded using the MSB function. This causes bit2 to mirror bit3 (MSB) instead of independently decoding the LSB, collapsing the 16-QAM constellation to 4 invalid states and corrupting the output."
+	},
+	{
+		"original_line": "vout_bit0_val = decode_lsb(q_phase,vbox_width,vlogic_high,vlogic_low);", 
+		"bug_line": "vout_bit0_val = decode_msb(q_phase,vlogic_high,vlogic_low);",
+		"error_description": "Assigns MSB (most significant bit) to LSB output position. Bit0 should carry the least significant bit of q_phase, but now incorrectly carries the most significant bit due to function swap. This disrupts the demodulated bit ordering."
+	},
+	{
+		"original_line": "parameter real vlogic_high = 5;", 
+		"bug_line": "parameter real vlogic_high = 0;",
+		"error_description": "Setting vlogic_high to 0 causes the output for logic high to be forced to 0V, making it indistinguishable from logic low (also 0V). This destroys the demodulator's ability to distinguish between high/low bits in the decoded output."
+	},
+	{
+		"original_line": "vout_bit2_val = decode_lsb(i_phase,vbox_width,vlogic_high,vlogic_low);", 
+		"bug_line": "vout_bit2_val = decode_msb(i_phase,vlogic_high,vlogic_low);",
+		"error_description": "Changed from decode_lsb to decode_msb function. This incorrectly sets bit2 (i-phase LSB) to match bit3 (i-phase MSB) instead of decoding the LSB, losing phase amplitude information and corrupting the demodulated output."
+	},
+	{
+		"original_line": "tnext_i = $abstime + 0.50 * period + tstart;", 
+		"bug_line": "tnext_i = $abstime + 0.25 * period + tstart;",
+		"error_description": "Changes I-phase sampling to 90° instead of 180°. I-phase (bit2/bit3) must sample at 180° (0.5 period) for correct demodulation, while Q-phase (bit0/bit1) samples at 90° (0.25 period). This error causes both phases to sample at the same quadrature point, corrupting the constellation decoding."
+	},
+	{
+		"original_line": "      integer lsb;", 
+		"bug_line": "      integer vphase;",
+		"error_description": "Shadowing the input parameter 'vphase' by declaring a local integer with the same name. This causes the conditionals to compare against the uninitialized local integer (default 0) instead of the actual input voltage, leading to incorrect LSB decoding."
+	},
+	{
+		"original_line": "vout_bit1_val = decode_msb(q_phase,vlogic_high,vlogic_low);", 
+		"bug_line": "vout_bit1_val = decode_lsb(q_phase,vbox_width,vlogic_high,vlogic_low);",
+		"error_description": "The function decode_lsb is incorrectly used instead of decode_msb to compute the MSB for the q_phase. This causes the MSB output to reflect the LSB logic (threshold-based detection) instead of the MSB logic (sign-based detection), corrupting the demodulated symbol mapping."
+	},
+	{
+		"original_line": "	 tnext_i = tnext_i + period;", 
+		"bug_line": "	 tnext_i = tnext_i + 0.5 * period;",
+		"error_description": "Changed i_phase sampling interval to half the period, causing it to sample twice as frequently as required. This violates the demodulation timing requirements, leading to incorrect bit decoding due to misaligned sampling points."
+	},
+	{
+		"original_line": "real vlogic_low;", 
+		"bug_line": "real vlogic_low = vlogic_high;",
+		"error_description": "Initializes vlogic_low with vlogic_high's value instead of using the parameter. This forces both logic levels to be identical, corrupting the demodulator's output voltage distinction between high and low states."
+	},
+	{
+		"original_line": "vout_bit3_val = decode_msb(i_phase,vlogic_high,vlogic_low);", 
+		"bug_line": "vout_bit3_val = decode_lsb(i_phase,vbox_width,vlogic_high,vlogic_low);",
+		"error_description": "Replaced MSB decoding with LSB decoding function for bit3. This incorrectly computes the MSB using LSB logic (threshold-based detection) instead of simple sign check, causing bit3 to mirror bit2's value rather than representing the true MSB."
+	},
+	{
+		"original_line": "   real tnext_i, tnext_q;", 
+		"bug_line": "   real tnext_i, tnext_i;",
+		"error_description": "Declaring tnext_q as tnext_i creates duplicate variables. This causes the Q-phase sampling time to overwrite the I-phase timing variable, corrupting both sampling schedules and demodulation logic."
+	}
+]

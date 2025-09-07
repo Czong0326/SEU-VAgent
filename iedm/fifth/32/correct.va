@@ -1,0 +1,110 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright @ 2016 Purdue University.
+//  
+// The terms under which the software and associated documentation (the Software) is provided are as the following:
+//  
+// The Software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, 
+// fitness for a particular purpose and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages or other 
+// liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the Software or the use or other dealings
+// in the Software.
+//   
+// Purdue grants, free of charge, to any users the right to modify, copy, and redistribute the Software, both within the user's 
+// organization and externally, subject to the following restrictions:
+//  
+// 1. The users agree not to charge for the code itself but may charge for additions, extensions, or support.
+//  
+// 2. In any product based on the Software, the users agree to acknowledge the Research Group that developed the software. This acknowledgment shall 
+//    appear in the product documentation.
+//  
+// 3. The users agree to obey all U.S. Government restrictions governing redistribution or export of the software.
+//  
+// 4. The users agree to reproduce any copyright notice which appears on the software on any copy or modification of such made available to others.
+// 
+// Agreed to by 
+// Yanfei Shen, Scott Calvert, Jeffrey F. Rhoads, Saeed Mohammadi, Purdue University
+// Feb. 17, 2016
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// modue for gate capacitance modulation
+
+`include "constants.vams"
+`include "disciplines.vams"
+module gateInteractionVA(g,n,z);
+
+        parameter real L = 4.0e-6                       from (0:inf);         // length of the beam [m]
+        parameter real W = 180.0e-9                     from (0:inf);         // width of the beam [m]
+        parameter real H = 110.0e-9                     from (0:inf);         // height of the beam [m]
+        parameter real gap = 144.0e-9                   from [0:inf);         // the initial gap between the beam and gate[m]
+        parameter real C = 0.6e-6                       from [-inf:inf);      // the specific damping coefficient for the beam
+        parameter real Sr = 0.0e9                       from (-inf:inf);      // the residual stress in the beam [GPa]
+
+        `define   E        (1.875e11)                                       // Young's modulus for Si [N/m]
+        `define   RHO      (2330.0)                                         // density of Si
+
+        // L = Scaling Integrals
+        `define   PHI1          0.523166*L
+        `define   PHI2          0.396478*L
+        `define   PHI3          0.331877*L
+        `define   PHI4          0.291109*L
+        `define   PD41          198.463/pow(L,3.0)                          // Int(D[phi,{x,4}]*phi,0,L)
+        `define   PD42          166.126/pow(L,3.0)                          // Int(D[phi,{x,4}]*phi^2,0,:)
+        `define   PD21          -4.87768/L                                  // Int(D[phi,{x,2}]*phi,0,L)
+        `define   PD22          -4.77839/L                                  // Int(D[phi,{x,2}]*phi^2,0,L)
+        `define   PD23          -4.43496/L
+        `define   PD12          4.87768/L                                   // Int(D[phi,{x,1}]^2,0,L)
+        `define   PD22P1        83.0629/pow(L,3.0)
+        `define   PD2PD12P1     -11.6535/pow(L,3.0)
+        `define   PD3PD1P1      -83.0629/pow(L,3.0)
+        `define   PD12P1        2.3892/L
+        `define   PD2SQ         198.463/pow(L,3.0)
+        `define   PD3PD1        -198.463/pow(L,3.0)
+        `define   PD2PD12       0.0
+        `define   PD12P2        1.47832/L
+
+        inout g,n;
+        output z;
+        electrical g,n;
+        kinematic y,velocity,z;
+	
+        real Ib;
+        real Cb,Qb;
+        real B0,B1,B2,B3;
+        real Fc,F0,F1,F2,F3,F;
+        real Cc,C0,C1,C2,C3;
+        real N1;
+        analog begin
+
+	        Ib = W * pow(H,3.0) / 12.0;
+	        N1 = Sr*W*H;                                        // compute the force in the beam from the residual stress
+
+	        // All of the coefficients for the equation
+	        B0 = `RHO*W*H*`PHI2;
+	        B1 = C*`PHI2;
+	        B2 = `E*Ib*`PD41-N1*`PD21;
+	        B3 = `E*W*H*`PD12*`PD21/(2.0*L);
+
+	        F0 = 45.0*pow(gap,3.0)*`PHI1;
+	        F1 = pow(gap,2.0)*(90.0*`PHI2-2*pow(gap,2.0)*(15.0*`PD21+pow(gap,2.0)*`PD41));
+	        F2 = 135.0*gap*`PHI3+pow(gap,3.0)*(-15.0*`PD12P1+3.0*pow(gap,2.0)*`PD22P1+4.0*pow(gap,2.0)*`PD3PD1P1)+2.0*pow(gap,3.0)*(-15.0*`PD22+pow(gap,2.0)*`PD42);
+	        F3 = 180.0*`PHI4-30.0*pow(gap,2.0)*`PD12P2-30.0*pow(gap,2.0)*`PD23+48.0*pow(gap,4.0)*`PD2PD12P1;
+			
+	        C0 = L;
+	        C1 = `PHI1/gap;
+	        C2 = `PHI2/pow(gap,2.0)+`PD12/3.0+pow(gap,2.0)/45.0*(`PD2SQ+2.0*`PD3PD1);
+	        C3 = 1.0/(45.0*pow(gap,3.0))*(45.0*`PHI3+6.0*pow(gap,4.0)*`PD2PD12+15.0*pow(gap,2.0)*`PD12P1-pow(gap,4.0)*`PD22P1-2.0*pow(gap,4.0)*`PD3PD1P1);	
+
+            Fc = pow(V(g,n),2.0)*W*`P_EPS0/90.0/pow(gap,5.0);
+            Cc = `P_EPS0*L/gap;
+		
+            Pos(velocity):ddt(Pos(y)) == Pos(velocity);
+            Pos(y):ddt(Pos(velocity)) == -(B1*Pos(velocity)+B2*Pos(y)-B3*pow(Pos(y),3.0)- Fc*(F0+F1*Pos(y)+F2*pow(Pos(y),2.0)+F3*pow(Pos(y),3.0)))/B0;
+
+            Cb     =    Cc*(C0+C1*Pos(y)+C2*pow(Pos(y),2.0)+C3*pow(Pos(y),3.0));
+            Qb     =    Cb * V(g,n);
+		
+            I(g,n) <+ ddt(Qb);
+            Pos(z) <+ Pos(y);	
+	end
+endmodule
+
+

@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": " *  by Cadence Design Systems, Inc.  All rights reserved.", 
+		"bug_line": " *  by Cadence Design Systems, Inc.  All rights reserved. */ `define db20_real(x) 1 /*",
+		"error_description": "Redefines the `db20_real macro to always return 1, forcing the amplifier gain calculation to 0 dB regardless of the 'gain' parameter. This destroys the power amplification functionality by fixing s21=1 instead of computing pow(10, gain/20)."
+	},
+	{
+		"original_line": "      rp1db= `db10_real(p1db-30);", 
+		"bug_line": "      rp1db= `db10_real(p1db+30);",
+		"error_description": "Changed subtraction to addition in dBm-to-Watt conversion. This erroneously increases the 1dB compression point by 30dB, causing severe underestimation of distortion effects and compression behavior in the power amplifier model."
+	},
+	{
+		"original_line": "a2 = V(out)/sqrt(rout) + I(out, out_int)*sqrt(rout);", 
+		"bug_line": "a2 = V(out)/sqrt(rout) - I(out, out_int)*sqrt(rout);",
+		"error_description": "The sign error in the incident wave calculation (a2) inverts the current term. This violates the definition of normalized incident waves, causing incorrect power wave calculations at the output port and disrupting the amplifier's impedance matching behavior."
+	},
+	{
+		"original_line": "`define db10_real(x)  (pow(10, (x)/10))", 
+		"bug_line": "`define db10_real(x)  (pow(10, (x)/20))",
+		"error_description": "Changed power ratio conversion from dB to use voltage ratio scaling (20 instead of 10). This incorrectly converts power parameters like NF, P1dB, and Psat to linear scale, corrupting noise, compression, and saturation calculations."
+	},
+	{
+		"original_line": "	 asat = sqrt(8*rpsat);", 
+		"bug_line": "	 asat = sqrt(4*rpsat);",
+		"error_description": "Changed the constant multiplier from 8 to 4, which incorrectly scales the voltage amplitude for saturated power. This underestimates the required amplitude limit, causing premature output compression below the specified Psat level."
+	},
+	{
+		"original_line": "      rnf = `db10_real(nf);", 
+		"bug_line": "      rnf = `db20_real(nf);",
+		"error_description": "Incorrectly uses voltage conversion (20log) for noise figure (a power ratio), resulting in sqrt(rnf) instead of rnf. This miscalculates the excess noise factor, causing ~50% error in noise current at NF=2dB."
+	},
+	{
+		"original_line": "parameter real rin = 50 from (0:inf);", 
+		"bug_line": "parameter real rin = 0 from [0:inf);",
+		"error_description": "Changed default rin to 0 and range to include 0. This causes division-by-zero errors in V(in)/rin and sqrt(rin) calculations during simulation."
+	},
+	{
+		"original_line": "p = 0;", 
+		"bug_line": "p = -1;",
+		"error_description": "Setting initial p to -1 instead of 0 causes the binary search algorithm to consider negative amplitudes. This leads to incorrect clamping of positive input signals to negative values, distorting the output waveform and violating the non-negative amplitude requirement for power calculations."
+	},
+	{
+		"original_line": " *  $Revision: 1.1 $", 
+		"bug_line": " *  $Revision: 1.1 $ */",
+		"error_description": "Prematurely closes the comment block with '*/', causing the subsequent asterisk lines to be interpreted as invalid code. This results in compilation errors due to unmatched tokens, preventing the model from being simulated."
+	},
+	{
+		"original_line": "       if(`outp(alimit) > 3.1415926/4*asat ) ", 
+		"bug_line": "       if(`outp(alimit) < 3.1415926/4*asat ) ",
+		"error_description": "Changed comparison operator from '>' to '<'. This inverts the saturation check condition during binary search. The algorithm will now incorrectly reduce the upper bound when the output power is BELOW the saturation threshold instead of ABOVE it, causing premature termination and an underestimated amplitude limit (alimit)."
+	},
+	{
+		"original_line": "$strobe("Warning: Psat too big compared to 1db compression point.");", 
+		"bug_line": "alimit = 0;",
+		"error_description": "Replaced warning statement with incorrect assignment that sets 'alimit' to zero when the condition is met. This causes the input signal clamping threshold to become zero instead of the calculated theoretical maximum, resulting in premature signal clipping and distorted output power characteristics."
+	},
+	{
+		"original_line": "rp1db= `db10_real(p1db-30);", 
+		"bug_line": "rp1db= `db20_real(p1db-30);",
+		"error_description": "Using db20_real instead of db10_real incorrectly converts the output power from dBm to voltage amplitude (sqrt(power)) instead of power. This corrupts the 1dB compression point calculation since subsequent steps expect power values, leading to incorrect gain compression behavior."
+	},
+	{
+		"original_line": "alimit = (p+q)/2;", 
+		"bug_line": "alimit = (p+q)/1;",
+		"error_description": "Division by 1 instead of 2 eliminates the midpoint calculation in the bisection method. This causes alimit to equal the full interval sum, breaking the convergence algorithm and resulting in incorrect power saturation limits."
+	},
+	{
+		"original_line": "      else if(a1 < -alimit) ", 
+		"bug_line": "      else if(a1 < -rpsat) ",
+		"error_description": "Changed clipping threshold from amplitude limit (alimit) to saturated power (rpsat), which is a power value not voltage amplitude. This causes incorrect signal clipping as rpsat has different units and scale compared to alimit."
+	},
+	{
+		"original_line": "         else begin", 
+		"bug_line": "         else if (0) begin",
+		"error_description": "The modification introduces a conditional that always evaluates to false, preventing the else block from executing. This leaves alimit uninitialized (default 0.0) when the initial saturation check fails, causing all non-zero input signals to be clamped to zero and severely distorting the output."
+	},
+	{
+		"original_line": "real      a1,a2;", 
+		"bug_line": "real a2; integer a1;",
+		"error_description": "Changed type of a1 from real to integer. This causes truncation of the incident wave value during assignment (line 84), leading to incorrect power calculations and distortion modeling due to loss of fractional precision in the analog signal processing."
+	},
+	{
+		"original_line": "   electrical in, out;", 
+		"bug_line": "   voltage in; electrical out;",
+		"error_description": "Changing 'in' to voltage discipline breaks current access (I(in)) in later code since voltage nodes lack current flow semantics, causing simulation errors due to invalid current operations on a voltage-domain node."
+	},
+	{
+		"original_line": "$strobe("Warning: Psat too big compared to 1db compression point.");", 
+		"bug_line": "alimit = 0;",
+		"error_description": "Sets the input amplitude limit (alimit) to 0 when Psat exceeds safe levels. This erroneously clamps all input signals to zero, blocking any output signal instead of applying a safe upper bound for input amplitudes."
+	},
+	{
+		"original_line": "real      a1,a2;", 
+		"bug_line": "real      a1; integer a2;",
+		"error_description": "Changed a2 from real to integer type. This truncates fractional values during wave calculations, causing quantization errors in the output power computation since a2 stores analog voltage values."
+	},
+	{
+		"original_line": "I(out_int) <+ V(out)/rout;", 
+		"bug_line": "I(out_int) <+ V(out)/rin;",
+		"error_description": "Replaced 'rout' with 'rin', causing incorrect output impedance modeling where output resistance uses input resistance parameter instead of designated output resistance."
+	}
+]

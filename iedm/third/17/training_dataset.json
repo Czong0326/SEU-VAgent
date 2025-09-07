@@ -1,0 +1,642 @@
+[
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n\tI(d,e) <+ ci*ddt(V(d)); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n\tI(d,e) <+ ci*ddt(V(d,e));\n\n Correction Criteria：Capacitor current incorrectly uses derivative of single-node voltage (V(d)) instead of differential voltage (V(d,e)), breaking the fundamental capacitor equation that requires voltage difference across terminals."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nci = 1/(2*`M_PI*freq*rout); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nci = 1/(2*`M_PI*freq*ri);\n\n Correction Criteria：Replaced internal resistor 'ri' with output impedance 'rout' in capacitance calculation. This incorrectly uses the output impedance value instead of the internal resistor value, disrupting the RC time constant and phase shift characteristics."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   analog initial begin Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   analog begin\n\n Correction Criteria：Replaced 'analog begin' with 'analog initial begin', incorrectly nesting initial block inside analog block. This causes the initial_step event and subsequent assignments to execute only once at time zero instead of continuously, breaking the phase shifter's dynamic behavior."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(e) <+ (1/ri)*V(single); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(e) <+ (1/ri)*V(e);\n\n Correction Criteria：The current contribution at node 'e' incorrectly uses voltage from 'single' terminal instead of local node 'e', breaking the resistor's voltage dependency and causing erroneous behavior in the phase shifter circuit."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n\tI(lag) <+ V(lead)/rin; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n\tI(lag) <+ V(lag)/rin;\n\n Correction Criteria：Replaced 'V(lag)' with 'V(lead)', causing the input current at the lag terminal to incorrectly depend on the voltage at the lead terminal instead of its own voltage, breaking input impedance isolation."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   electrical single, lag; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   electrical single, lag, lead;\n\n Correction Criteria：The port 'lead' is missing its electrical discipline declaration. This causes the analog block to reference an undeclared net when accessing V(lead), resulting in a compilation error and breaking the shifter functionality."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nelectrical single, lag; magnetic lead; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nelectrical single, lag, lead;\n\n Correction Criteria：The 'lead' port is incorrectly declared as magnetic instead of electrical, causing incompatible discipline assignments. This violates design requirements since voltage operations (V(lead)) and electrical connections in the module will fail during compilation/simulation."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   parameter real r    = -50 from (-inf:inf); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   parameter real r    = 50 from (0:inf);\n\n Correction Criteria：The resistance parameter 'r' is set to a negative default value and allows negative values in the range. This causes the internal resistor 'ri' to be negative, resulting in non-physical negative resistance behavior in the circuit, violating the design requirement of positive resistance."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(a,b) <+ (1/ri)*V(a); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(a,b) <+ (1/ri)*V(a,b);\n\n Correction Criteria：The resistor current incorrectly depends on the absolute voltage at node 'a' instead of the voltage difference between nodes 'a' and 'b', violating Ohm's law and fundamentally breaking the phase shift functionality."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   parameter real rout = -50 from (-inf:inf); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   parameter real rout = 50 from (0:inf);\n\n Correction Criteria：Changed output resistance to negative value (-50) and expanded range to include negatives. This introduces non-physical negative resistance that causes simulation instability since passive components cannot have negative impedance."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n      @(final_step) begin Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n      @(initial_step) begin\n\n Correction Criteria：Changed event trigger from initial_step to final_step. This causes the ri/ci initialization to occur at simulation end instead of start, leaving critical parameters uninitialized during operation. Results in division-by-zero (1/ri) and incorrect capacitor behavior throughout the simulation."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   ri = 0; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   ri = r;\n\n Correction Criteria：Setting ri=0 causes division by zero when calculating ci=1/(2*π*freq*ri), resulting in undefined/infinite capacitance. This corrupts the RC network behavior and makes the phase shifter non-functional."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   parameter real gains = 2 from (0:inf); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   parameter real gain = 2 from (0:inf);\n\n Correction Criteria：Renamed parameter 'gain' to 'gains', making the variable 'gain' used in voltage assignments (V(a) <+ gain*V(lag)) undefined. This breaks the gain multiplication functionality as 'gain' becomes an implicit net with undefined value."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(b) <+ ci*ddt(V(a)); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(b) <+ ci*ddt(V(b));\n\n Correction Criteria：The capacitor current incorrectly depends on voltage derivative at node 'a' instead of node 'b', breaking the intended RC network behavior. This directional error causes incorrect phase shift calculations by coupling unrelated nodes."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   parameter real rout = 0; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   parameter real rout = 50 from (0:inf);\n\n Correction Criteria：Removes the range constraint and sets default output impedance to 0Ω, creating a short circuit instead of the specified 50Ω impedance. This violates the design by forcing V(c,single) to 0V regardless of current."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nmodule shifter_combiner(single, lag); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nmodule shifter_combiner(single, lag, lead);\n\n Correction Criteria：Removed the 'lead' input port, disconnecting the leading-phase signal. This breaks the phase-shifting functionality since the internal node 'lead' becomes an unconnected local net instead of receiving external input."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   parameter real r    = 0 from [0:inf); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   parameter real r    = 50 from (0:inf);\n\n Correction Criteria：Default resistance set to 0 and range adjusted to include 0. This causes division by zero when calculating ci in initial_step (ci = 1/(2*π*freq*ri)) since ri=r=0, leading to simulation failure."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\ninout single, lag; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\ninout single, lag, lead;\n\n Correction Criteria：The 'lead' pin is removed from the port declaration, causing unresolved references to 'lead' in the module body (e.g., V(d) <+ gain*V(lead)), resulting in compilation failure and preventing simulation."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nelectrical single, lag; ground lead; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nelectrical single, lag, lead;\n\n Correction Criteria：The 'lead' port is incorrectly declared as ground discipline instead of electrical. This forces the lead terminal to 0V, preventing signal input and causing incorrect voltage references throughout the analog block."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nV(a) <+ gain*V(lead); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nV(a) <+ gain*V(lag);\n\n Correction Criteria：Swapped input signal from lag to lead, causing both paths to process the same lead input signal. This violates the design where lag and lead signals should be processed separately through distinct paths before combining."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nmodule shifter_combiner(single, lag, lead) Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nmodule shifter_combiner(single, lag, lead);\n\n Correction Criteria：Missing semicolon at the end of module declaration line"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   I(a,b) <+ (1/ri)*V(a,b) Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   I(a,b) <+ (1/ri)*V(a,b);\n\n Correction Criteria：Missing semicolon at the end of the contribution statement"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n\t   ri = r Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n\t   ri = r;\n\n Correction Criteria：Missing semicolon at the end of the assignment statement. This causes the next line to be parsed as part of the same expression, resulting in invalid syntax."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(lag) <+ V(lag)/rin Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(lag) <+ V(lag)/rin;\n\n Correction Criteria：Missing semicolon at the end of the statement, causing a syntax error due to unterminated analog operator expression."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   parameter real r    = 50 from (0 inf); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   parameter real r    = 50 from (0:inf);\n\n Correction Criteria：Missing colon in range expression (0:inf) becomes (0 inf), making the syntax invalid for parameter range specification."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   real noise_current Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   real noise_current;\n\n Correction Criteria：Missing semicolon at the end of the variable declaration, causing a syntax error as the next token 'electrical' will be incorrectly parsed as part of the same statement."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(b) <+ ci*ddt(V(b)) Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(b) <+ ci*ddt(V(b));\n\n Correction Criteria：Missing semicolon at the end of the contribution statement. Verilog-A requires all statements to terminate with a semicolon."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n\tV(d) <+ gain*V(lead;          Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n\tV(d) <+ gain*V(lead);         \n\n Correction Criteria：Missing closing parenthesis for the function call 'V(lead)"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n\tI(d,e) <+ ci*ddt(V(d,e)) Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n\tI(d,e) <+ ci*ddt(V(d,e));\n\n Correction Criteria：Missing semicolon at the end of the statement, causing a syntax error as statements in analog blocks must be terminated with semicolons"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   electrical single, lag lead; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   electrical single, lag, lead;\n\n Correction Criteria：Missing comma between 'lag' and 'lead' in variable declaration list, causing invalid syntax for the variable list."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   analog begn Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   analog begin\n\n Correction Criteria：Misspelled 'begin' keyword as 'begn' which is invalid syntax for starting a block"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   parameter real r    = 50 from (0:inf) Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   parameter real r    = 50 from (0:inf);\n\n Correction Criteria：Missing semicolon at the end of the parameter declaration"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(e) <+ (1/ri)*V(e; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(e) <+ (1/ri)*V(e);\n\n Correction Criteria：Missing closing parenthesis in voltage access 'V(e"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  inout single, lag, lead Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  inout single, lag, lead;\n\n Correction Criteria：Missing semicolon at the end of the port declaration statement, causing unterminated port list and syntax error."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nelectrical single, lag, lead Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nelectrical single, lag, lead;\n\n Correction Criteria：Missing semicolon at the end of the declaration statement"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   real ci ri;    // internal C and R Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   real ci, ri;    // internal C and R\n\n Correction Criteria：Missing comma between variable declarations causes syntax error. VerilogA requires commas to separate multiple variables declared in a single statement."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(lead) <+ V(lead)/rin Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(lead) <+ V(lead)/rin;\n\n Correction Criteria：Missing semicolon at the end of the statement, causing a syntax error as all Verilog-A analog block statements must be properly terminated"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   parameter real freq = 1e9 from (0inf); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   parameter real freq = 1e9 from (0:inf);\n\n Correction Criteria：Missing colon in range expression. The correct syntax requires a colon between min and max values (e.g., (min:max))."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n   ci = 1(2*`M_PI*freq*ri); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n   ci = 1/(2*`M_PI*freq*ri);\n\n Correction Criteria：Missing division operator between '1' and '(', causing invalid function call syntax (numbers cannot be function names)."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n`include \"discipline.h\"\n`include \"constants.h\"\n\n//  Copyright (c) 1999\n//  by  Cadence Design Systems, Inc.  All rights reserved.\n//\n// $Date: 2003/10/06 06:45:19 $\n// $Revision: 1.1 $\n//\n// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996\n//\n//\n \n//--------------------\n// shifter\n//\n// -  phase shifter model\n//\n// single: single end\n// lag: lagging end\n// lead: leading end\n//\n// INSTANCE parameters\n//    freq           = frequency at which the magnitudes are balanced\n//    r\t\t     = impedance of the internal resistor\n//    gain\t     = multiplies the input voltages\n//    rin\t     = input terminal impedances\n//    rout\t     = output impedance\n\nmodule shifter_combiner(single, lag, lead);\n  inout single, lag, lead;\n  electrical single, lag, lead;\n   parameter real freq = 1e9 from (0:inf);\n   parameter real r    = 50 from (0:inf);\n   parameter real gain = 2 from (0:inf);\n   parameter real rin = 50 from (0:inf);\n   parameter real rout = 50 from (0:inf);\n\n   real ci, ri;    // internal C and R\n   real noise_current;\n   electrical a,b,c,d,e;\n\n   analog begin\n\n      @(initial_step) begin\n\t   ri = r;\n\t   ci = 1/(2*`M_PI*freq*ri);\n      end\n\n\tV(a) <+ gain*V(lag);\n\tV(d) <+ gain*V(lead);         \n\tI(lag) <+ V(lag)/rin;\n\tI(lead) <+ V(lead)/rin;\n   \tI(a,b) <+ (1/ri)*V(a,b);\n\tI(b) <+ ci*ddt(V(b));\n\tI(d,e) <+ ci*ddt(V(d,e));\n\tI(e) <+ (1/ri)*V(e);\n\tV(c) <+ V(e) + V(b);\n\tV(c,single) <+ rout*I(c,single);\n   end\nendmodule // shifter-combiner\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nmoduel shifter_combiner(single, lag, lead); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nmodule shifter_combiner(single, lag, lead);\n\n Correction Criteria：Misspelled keyword 'module' as 'moduel', which is invalid in VerilogA syntax."
+      }
+    ]
+  }
+]

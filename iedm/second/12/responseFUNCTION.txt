@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "        ,tdel,trise,tfall);", 
+		"bug_line": "        ,tdel,trise,0);",
+		"error_description": "Set tfall parameter to 0 for vout_d0, eliminating fall transition time. This violates timing specifications by causing instant voltage drops during output transitions from high to low while other bits maintain specified fall times."
+	},
+	{
+		"original_line": "d[7] = V(vin_d7) > vtrans;", 
+		"bug_line": "d[7] = V(vin_d0) > vtrans;",
+		"error_description": "The most significant bit (d[7]) incorrectly samples input vin_d0 instead of vin_d7. This causes vout_d7 to mirror vout_d0 rather than reflect its own input signal."
+	},
+	{
+		"original_line": "   parameter real vlogic_low = 0;", 
+		"bug_line": "   parameter real vlogic_low = vlogic_high;",
+		"error_description": "Setting vlogic_low equal to vlogic_high (5V) removes the voltage distinction between logic states. Both stored '0' and '1' will output 5V, making the register unable to propagate correct data values to subsequent stages."
+	},
+	{
+		"original_line": ",venable);", 
+		"bug_line": ",vout_d7);",
+		"error_description": "The enable port 'venable' is replaced with a duplicate output port 'vout_d7'. This disconnects the enable signal, preventing the register from ever capturing input data since the cross event on venable never triggers. Output vout_d7 also becomes multiply driven."
+	},
+	{
+		"original_line": ",tdel,trise,tfall);", 
+		"bug_line": ",tdel,tfall,trise);",
+		"error_description": "Swapped rise and fall time parameters: trise and tfall are reversed in the transition function. This causes incorrect timing behavior where the specified rise time is applied to falling edges and fall time to rising edges for bit0 output."
+	},
+	{
+		"original_line": "   parameter real vtrans = 2.5;", 
+		"bug_line": "   parameter real vtrans = 6.0;",
+		"error_description": "The threshold voltage (6.0V) exceeds the logic high voltage (5V). This prevents the enable signal from ever triggering a rising edge event since venable cannot reach 6V, causing the register to never capture input data."
+	},
+	{
+		"original_line": "      V(vout_d1) <+ transition((d[1] ? vlogic_high : vlogic_low)", 
+		"bug_line": "      V(vout_d1) <+ transition((d[0] ? vlogic_high : vlogic_low)",
+		"error_description": "The output vout_d1 incorrectly uses the stored value from bit 0 (d[0]) instead of bit 1 (d[1]), causing a cross-wiring error where bit 0's value appears on bit 1's output."
+	},
+	{
+		"original_line": "d[2] = V(vin_d2) > vtrans;", 
+		"bug_line": "d[2] = V(vin_d1) > vtrans;",
+		"error_description": "Assigns bit 2 from vin_d1 input instead of vin_d2, causing output bit 2 to mirror input bit 1 instead of its own input. This breaks the parallel register functionality by cross-wiring adjacent data lines."
+	},
+	{
+		"original_line": "                                        ,tdel,trise,tfall);", 
+		"bug_line": "                                        ,tdel,trise,0);",
+		"error_description": "Fall time parameter incorrectly set to 0 instead of tfall, causing instant falling transitions and violating timing specifications for output bit d0."
+	},
+	{
+		"original_line": "        ,tdel,trise,tfall);", 
+		"bug_line": "        ,tdel,trise,tfall) * 0;",
+		"error_description": "The transition output is multiplied by zero, causing the output for bit0 to be permanently stuck at 0V regardless of the stored value."
+	},
+	{
+		"original_line": "electrical vout_d0,vout_d1,vout_d2,vout_d3,vout_d4,vout_d5,vout_d6,vout_d7;", 
+		"bug_line": "electrical vout_d0_error,vout_d1,vout_d2,vout_d3,vout_d4,vout_d5,vout_d6,vout_d7;",
+		"error_description": "The output port vout_d0 is not driven because the driver is assigned to a different net (vout_d0_error). This leaves the port vout_d0 undriven, causing incorrect output for bit 0."
+	},
+	{
+		"original_line": "electrical venable;", 
+		"bug_line": "output electrical venable;",
+		"error_description": "Changing 'venable' from input to output violates interface direction. The enable signal should be an input triggered externally, but declaring it as output creates contention when driven externally, causing simulation errors."
+	},
+	{
+		"original_line": "      V(vout_d3) <+ transition((d[3] ? vlogic_high : vlogic_low)", 
+		"bug_line": "      V(vout_d3) <+ transition((d[4] ? vlogic_high : vlogic_low)",
+		"error_description": "The output for bit 3 (vout_d3) incorrectly uses stored bit 4 (d[4]) instead of d[3], causing cross-wiring where bit 3's output reflects bit 4's input value."
+	},
+	{
+		"original_line": "V(vout_d2) <+ transition((d[2] ? vlogic_high : vlogic_low)", 
+		"bug_line": "V(vout_d2) <+ transition((d[3] ? vlogic_high : vlogic_low)",
+		"error_description": "The output for bit 2 incorrectly uses stored bit 3 value instead of bit 2, causing functional mismatch where output_d2 mirrors output_d3 instead of its designated input."
+	},
+	{
+		"original_line": ",tdel,trise,tfall);", 
+		"bug_line": ",tdel,trise,tfall) * 0;",
+		"error_description": "The output for bit 0 is multiplied by 0, causing the output to be constantly 0 regardless of the stored value, violating the register's data storage function."
+	},
+	{
+		"original_line": "   parameter real tdel = 3u from [0:inf);", 
+		"bug_line": "   parameter real tdel = -3u from (-inf:inf);",
+		"error_description": "Negative delay (-3u) violates causality by allowing output transitions to occur before the input clock edge, fundamentally breaking the register's timing behavior."
+	},
+	{
+		"original_line": "      V(vout_d3) <+ transition((d[3] ? vlogic_high : vlogic_low)", 
+		"bug_line": "      V(vout_d3) <+ transition((d[7] ? vlogic_high : vlogic_low)",
+		"error_description": "Changed index from [3] to [7], causing vout_d3 to incorrectly output the value stored for bit 7 instead of bit 3. This creates a functional cross-wiring error between register bits."
+	},
+	{
+		"original_line": "V(vout_d5) <+ transition((d[5] ? vlogic_high : vlogic_low)", 
+		"bug_line": "V(vout_d5) <+ transition((d[4] ? vlogic_high : vlogic_low)",
+		"error_description": "Output bit 5 (vout_d5) incorrectly uses stored value from bit 4 (d[4]) instead of its own bit 5 (d[5]). This causes bit 5 output to mirror bit 4's value, corrupting data when bits 4 and 5 differ."
+	},
+	{
+		"original_line": "				,tdel,trise,tfall);", 
+		"bug_line": "				,0,trise,tfall);",
+		"error_description": "Replaced the delay parameter 'tdel' with constant 0 for vout_d7 output. This eliminates the intended synchronization delay only for bit 7, causing inconsistent timing across output bits during state transitions."
+	},
+	{
+		"original_line": "         d[6] = V(vin_d6) > vtrans;", 
+		"bug_line": "         d[6] = V(vin_d5) > vtrans;",
+		"error_description": "Changed input source from vin_d6 to vin_d5. Bit 6 now incorrectly samples data from input pin 5 instead of its designated pin 6, causing cross-wiring error where two bits use the same input signal."
+	}
+]

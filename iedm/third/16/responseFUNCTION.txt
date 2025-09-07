@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "        I(hold) <+ tc * ddt(V(hold));", 
+		"bug_line": "        I(hold) <+ tc * V(hold);",
+		"error_description": "Replacing the capacitor (ddt term) with a resistor (V term) eliminates the voltage-holding capability, causing rapid droop during hold phase instead of maintaining sampled values."
+	},
+	{
+		"original_line": "output Pout, Nout;", 
+		"bug_line": "input Pout, Nout;",
+		"error_description": "Changing output ports to input ports violates the design requirement that Pout and Nout must be driven outputs. This causes a functional error as the analog block attempts to drive signals declared as inputs (V(Pout, Nout) <+ ...), which is illegal in Verilog-A and breaks the sample-and-hold output functionality."
+	},
+	{
+		"original_line": "parameter real tc=aperture/10 from (0:aperture);", 
+		"bug_line": "parameter real tc=0 from [0:aperture);",
+		"error_description": "Setting tc=0 eliminates the hold capacitor functionality. With zero capacitance, the sampled voltage instantly droops due to leakage current, violating the sample-and-hold requirement to maintain voltage between sampling intervals."
+	},
+	{
+		"original_line": "n = ($abstime - tdelay) / period + 0.0;", 
+		"bug_line": "n = ($abstime - tdelay) / period + 1.0;",
+		"error_description": "The constant 0.0 is replaced by 1.0, causing the index n to be increased by one. This results in tstop being calculated as one period later than intended, shifting the entire sample/hold aperture window by one period and causing mistimed sampling operations."
+	},
+	{
+		"original_line": "module sh (Pout, Nout, Pin, Nin);", 
+		"bug_line": "module sh (Pout, Pin, Nout, Nin);",
+		"error_description": "Swapped Pin and Nout positions. This connects the input signal Pin to the Nout port (originally an output) and the output signal Nout to the Pin port (originally an input), causing signal direction reversal and incorrect voltage references in the analog block."
+	},
+	{
+		"original_line": "n = ($abstime - tdelay) / period + 0.0;", 
+		"bug_line": "n = ($abstime - tdelay) / period + 0.5;",
+		"error_description": "Changing the constant from 0.0 to 0.5 causes the period index calculation to round to the nearest integer instead of flooring. This incorrectly shifts the aperture window by half a period in certain time ranges, resulting in samples being taken at the wrong times."
+	},
+	{
+		"original_line": "n = ($abstime - tdelay + aperture) / period + 0.5;", 
+		"bug_line": "n = ($abstime - tdelay + aperture) * period + 0.5;",
+		"error_description": "Replaced division operator with multiplication. This causes 'n' to be calculated incorrectly by scaling the time difference by period² instead of normalizing it. Resulting timing errors disrupt sample/hold window synchronization."
+	},
+	{
+		"original_line": "n = ($abstime - tdelay + aperture) / period + 0.5;", 
+		"bug_line": "n = ($abstime - tdelay - aperture) / period + 0.5;",
+		"error_description": "Changed '+' to '-' before 'aperture'. This miscalculates the aperture start time index by subtracting aperture duration twice, causing the sampling window to start too early and potentially align with the previous period's hold phase."
+	},
+	{
+		"original_line": "integer n;", 
+		"bug_line": "real n;",
+		"error_description": "Changed 'n' from integer to real type. This causes fractional values in timer calculations (tstart/tstop), leading to misaligned sampling events and incorrect aperture timing since period multiples must be exact integers."
+	},
+	{
+		"original_line": "parameter real aperture=period/100 from (0:period/2);", 
+		"bug_line": "parameter real aperture=period/2 from (0:period/2);",
+		"error_description": "The aperture time is incorrectly set to half the period instead of 1% of the period. This causes the sampling window to cover half of each cycle, violating the design requirement for near-instantaneous sampling and resulting in distorted output signals due to excessive averaging of input values over the extended aperture duration."
+	},
+	{
+		"original_line": "parameter real tdelay=0 from [0:inf);", 
+		"bug_line": "parameter real tdelay=period from [0:inf);",
+		"error_description": "The default value of tdelay is set to the full period instead of 0. This causes the sampling aperture to be delayed by one entire period by default, resulting in samples being taken at completely wrong times relative to the input signal."
+	},
+	{
+		"original_line": "    analog begin", 
+		"bug_line": "    initial begin",
+		"error_description": "Replacing 'analog' with 'initial' changes the continuous-time analog behavior to a one-time digital initialization. The sample-and-hold circuit requires continuous periodic operation, but this modification executes the core logic only once at time zero, causing the output to freeze after initial sampling."
+	},
+	{
+		"original_line": "        if (($abstime >= tstop - aperture) && ($abstime < tstop)) begin", 
+		"bug_line": "        if (($abstime >= tstop - aperture) && ($abstime <= tstop)) begin",
+		"error_description": "Changed upper bound from '<' to '<=', causing tight time step control to extend 1 timestep beyond aperture period. This violates the half-open interval [tstop-aperture, tstop) and may include the next sample's hold phase, distorting signal capture."
+	},
+	{
+		"original_line": "electrical Pin, Nin, Pout, Nout;", 
+		"bug_line": "electrical Pin, Nin, Pout;",
+		"error_description": "The output port Nout is missing from the electrical discipline declaration. This causes Nout to be undeclared, leading to a functional error when assigning voltage to the output (V(Pout, Nout)) as Nout is undefined."
+	},
+	{
+		"original_line": "        if (($abstime > tstop - aperture) && ($abstime <= tstop))", 
+		"bug_line": "        if (($abstime > tstop - aperture) || ($abstime <= tstop))",
+		"error_description": "Changed logical AND to OR, causing the sampling condition to be always true. This results in the switch being closed at all times, effectively bypassing the sample-and-hold functionality."
+	},
+	{
+		"original_line": "I(hold) <+ tc * ddt(V(hold));", 
+		"bug_line": "I(hold) <+ tc * V(hold);",
+		"error_description": "Capacitor behavior replaced with resistor (tc acts as conductance). This removes voltage holding capability since current now depends on instantaneous voltage rather than its derivative."
+	},
+	{
+		"original_line": "n = ($abstime - tdelay + aperture) / period + 0.5;", 
+		"bug_line": "n = ($abstime - tdelay - aperture) / period + 0.5;",
+		"error_description": "Changed '+' to '-' before 'aperture', causing incorrect aperture start time calculation. The negative offset makes 'n' one period too small, shifting the sampling window earlier by a full period and misaligning it with the intended signal capture interval."
+	},
+	{
+		"original_line": "    analog begin", 
+		"bug_line": "    analog initial begin",
+		"error_description": "Adding 'initial' causes the analog block to execute only once at time zero, preventing periodic sampling. The sample-and-hold fails to track input after initial capture."
+	},
+	{
+		"original_line": "if (($abstime > tstop - aperture) && ($abstime <= tstop))", 
+		"bug_line": "if (($abstime > tstop - aperture) && ($abstime <= tstop + aperture))",
+		"error_description": "The aperture window is extended beyond tstop by adding aperture to the upper bound. This causes the sample/hold to remain active during the next hold period, corrupting the held value with new input data."
+	},
+	{
+		"original_line": "V(Pout, Nout) <+ V(hold);", 
+		"bug_line": "V(Pout, Nout) <+ V(hold) + 0.1;",
+		"error_description": "Introduces a fixed 0.1V output offset voltage, violating the 'no offset' design requirement by adding a constant error to the sampled output."
+	}
+]

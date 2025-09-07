@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": ".vco_center_freq(pll_vco_cf),.phase_detect_type(1))", 
+		"bug_line": ".vco_center_freq(0),.phase_detect_type(1))",
+		"error_description": "The VCO center frequency is hardcoded to 0 Hz instead of using the parameter pll_vco_cf. This prevents the PLL from locking to the input signal's frequency, making the FM demodulator non-functional as the PLL cannot track the carrier."
+	},
+	{
+		"original_line": "parameter real af_wn   = 1K;", 
+		"bug_line": "parameter real af_wn   = -1K;",
+		"error_description": "Assigning a negative value to af_wn causes the audio filter poles to become positive, resulting in an unstable system due to poles in the right-half plane."
+	},
+	{
+		"original_line": "electrical demod_gnd, vrf, v_lo, vph_det,vdetect, vaf;", 
+		"bug_line": "electrical vrf, v_lo, vph_det,vdetect, vaf;",
+		"error_description": "Removed 'demod_gnd' node declaration. This node is used as ground reference in the af_filter and analog block. Without declaration, the circuit lacks a ground connection, causing compilation errors and preventing proper biasing/signal referencing."
+	},
+	{
+		"original_line": "parameter real af_wn   = 1K;", 
+		"bug_line": "parameter real af_wn   = 1M;",
+		"error_description": "Changed AF filter pole frequency from 1KHz to 1MHz, making the audio filter bandwidth 1000x too high and failing to remove high-frequency noise from demodulated signals."
+	},
+	{
+		"original_line": "pll #(.vout_filt_bandwidth(pll_out_bw),.vco_gain(pll_vco_gain),", 
+		"bug_line": "pll #(.vout_filt_bandwidth(pll_out_bw),.vco_frequency(pll_vco_gain),",
+		"error_description": "Changed parameter name from 'vco_gain' to non-existent 'vco_frequency'. This prevents the PLL from receiving the correct gain parameter, causing the VCO to operate with its default gain value instead of the specified pll_vco_gain, resulting in incorrect frequency demodulation."
+	},
+	{
+		"original_line": "parameter real af_wn   = 1K;", 
+		"bug_line": "parameter real af_wn   = -1K;",
+		"error_description": "Negative pole frequency makes the audio filter unstable. Poles become positive (right-half-plane), causing exponential growth instead of stable low-pass filtering."
+	},
+	{
+		"original_line": "electrical  vin, vout;", 
+		"bug_line": "electrical vin; current vout;",
+		"error_description": "Changed vout discipline from electrical to current. This causes incorrect voltage assignment to a current node in the output stage (V(vout) <+ ...), violating signal processing requirements as current nodes require I() assignments instead of V()."
+	},
+	{
+		"original_line": "parameter real af_lev_shift = 0;", 
+		"bug_line": "parameter real af_level_shift = 0;",
+		"error_description": "Renaming 'af_lev_shift' to 'af_level_shift' breaks the analog block, which still references the old parameter name. This causes the level shift functionality to be ignored (always 0), violating the design requirement for configurable DC offset adjustment."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed analog block to initial block. Initial blocks execute only once at time zero, preventing continuous analog behavior required for demodulation. This violates the design's requirement for real-time signal processing."
+	},
+	{
+		"original_line": "af_filter (vaf,demod_gnd,vdetect,demod_gnd);", 
+		"bug_line": "af_filter (vaf,demod_gnd,demod_gnd,vdetect);",
+		"error_description": "Swapped filter input/output connections. The AF filter input (vdetect) is now incorrectly wired to ground, while ground is connected to the filter output, causing signal loss and improper filtering."
+	},
+	{
+		"original_line": "parameter real af_gain = 1;", 
+		"bug_line": "parameter real af_gain = af_lev_shift;",
+		"error_description": "Sets audio gain to the level shift parameter value instead of a separate gain constant, causing the amplifier stage to output only the DC offset (0V by default) instead of amplifying the audio signal."
+	},
+	{
+		"original_line": "parameter real af_gain = 1;", 
+		"bug_line": "parameter real af_gain = 0;",
+		"error_description": "Setting af_gain to 0 eliminates audio signal amplification, violating the design requirement for the AF amp stage to amplify the demodulated signal. This causes complete loss of the audio signal at the output, leaving only the level shift offset."
+	},
+	{
+		"original_line": "pll #(.vout_filt_bandwidth(pll_out_bw),.vco_gain(pll_vco_gain),", 
+		"bug_line": "pll #(.vout_filt_bandwidth(pll_out_bw),.vco_gain_mistake(pll_vco_gain),",
+		"error_description": "Changed parameter name 'vco_gain' to non-existent 'vco_gain_mistake'. This prevents the PLL from receiving the intended VCO gain value, causing incorrect frequency demodulation due to unset gain."
+	},
+	{
+		"original_line": "parameter real pll_vco_gain = 5K;", 
+		"bug_line": "parameter real pll_vco_gain = 0;",
+		"error_description": "Setting pll_vco_gain to 0 prevents the VCO from adjusting its frequency, so the PLL cannot lock to the input signal, breaking demodulation functionality."
+	},
+	{
+		"original_line": "parameter real pll_vco_gain = 5K;", 
+		"bug_line": "parameter real pll_vco_gain = 0;",
+		"error_description": "Setting VCO gain to zero breaks the PLL's frequency control loop. With zero gain, the VCO cannot adjust its output frequency in response to phase detector signals, making frequency demodulation impossible as the PLL fails to track the input signal."
+	},
+	{
+		"original_line": "parameter real rf_gain = 1;", 
+		"bug_line": "parameter real rf_gain = 0;",
+		"error_description": "Setting rf_gain to 0 blocks the input signal at the RF amplifier stage, causing the demodulator to output no signal despite valid input."
+	},
+	{
+		"original_line": "electrical  vin, vout;", 
+		"bug_line": "thermal vin; electrical vout;",
+		"error_description": "Changed the discipline of 'vin' from electrical to thermal. This causes a functional error because the module expects an electrical input signal, but now 'vin' is incorrectly treated as a thermal node. The analog block uses V(vin) which is invalid for thermal nodes, breaking signal processing."
+	},
+	{
+		"original_line": "      V(vrf) <+ rf_gain * V(vin);", 
+		"bug_line": "      V(vrf) <+ rf_gain * V(vout);",
+		"error_description": "Incorrectly used output node 'vout' instead of input node 'vin', creating an algebraic loop where RF stage depends on output instead of input, breaking signal flow and causing undefined behavior."
+	},
+	{
+		"original_line": "Pll (vrf,v_lo,vph_det,vdetect);", 
+		"bug_line": "Pll (vrf,v_lo,vdetect,vph_det);",
+		"error_description": "Swapped phase detector output (vph_det) and demodulated output (vdetect) connections. This routes the unfiltered phase detector signal to the audio filter instead of the processed demodulated signal, corrupting the output with high-frequency noise."
+	},
+	{
+		"original_line": "parameter real pll_out_bw = 50K;", 
+		"bug_line": "parameter real pll_out_bw = -50K;",
+		"error_description": "Negative bandwidth value (-50K Hz) is non-physical and would cause unstable behavior in the PLL output filter, violating the design requirement for a positive frequency bandwidth."
+	}
+]

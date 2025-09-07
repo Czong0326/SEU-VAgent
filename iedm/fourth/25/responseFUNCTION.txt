@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "  tmp = pow(rho/Q_cp,Q_shp);", 
+		"bug_line": "  tmp = pow(rho/Q_cp,I_shp);",
+		"error_description": "Uses I_shp (I-channel shaping parameter) instead of Q_shp for Q-channel phase shift calculation, causing incorrect phase modulation in the Q path due to mismatched shaping characteristics."
+	},
+	{
+		"original_line": "parameter real Q_psinf = 2 from (Q_pscp:inf);", 
+		"bug_line": "parameter real Q_psinf = 0.5 from [0: Q_pscp];",
+		"error_description": "The constraint for Q_psinf is changed to [0: Q_pscp] with a default value of 0.5. This causes Q_psinf (0.5) to be less than Q_pscp (default 0.7), making Q_beta negative. During phase shift calculation, the denominator (1 + Q_beta*tmp) approaches zero when tmp = -1/Q_beta, leading to division by zero errors at specific input power levels."
+	},
+	{
+		"original_line": "real noise_current;", 
+		"bug_line": "real noise_current = 0;",
+		"error_description": "Initializing noise_current to 0 permanently disables noise generation. This violates the noise figure parameter (nf) by forcing all white_noise contributions to zero, eliminating input-referred noise modeling essential for RF systems."
+	},
+	{
+		"original_line": "real I_cp;", 
+		"bug_line": "real I_cp = 0;",
+		"error_description": "Initializing I_cp to 0 causes division by zero in the phase shift calculation (pow(rho/I_cp,I_shp)) when rho > 0, resulting in simulation errors during AM/PM conversion."
+	},
+	{
+		"original_line": "  tmp = pow(rho/I_cp,I_shp);", 
+		"bug_line": "  tmp = pow(rho/I_cp,Q_shp);",
+		"error_description": "Uses Q branch shape factor (Q_shp) instead of I branch shape factor (I_shp) for I channel phase shift calculation, causing incorrect AM/PM conversion when I_shp ≠ Q_shp."
+	},
+	{
+		"original_line": "parameter real Q_cmp = -30;", 
+		"bug_line": "parameter real Q_cmp = 30;",
+		"error_description": "Changed Q_cmp from -30 dBm to 30 dBm. This causes the Q-channel phase shift to occur at 30 dBm instead of the intended -30 dBm input power level, resulting in incorrect phase modulation behavior and quadrature imbalance at typical operating powers."
+	},
+	{
+		"original_line": "I_ip = sqrt(pow(10,I_ip3/10)*2*rin*0.001);", 
+		"bug_line": "I_ip = sqrt(pow(10,I_ip3/10)*2*rin);",
+		"error_description": "Removed the 0.001 power scaling factor, incorrectly computing IP3 voltage without converting dBm to Watts. This makes I_ip ~1000x larger than intended, severely overestimating linearity and breaking compression behavior."
+	},
+	{
+		"original_line": "@(initial_step) begin", 
+		"bug_line": "@(final_step) begin",
+		"error_description": "Changed simulation trigger from initial_step to final_step. This causes critical gain/phase parameters (I_a, I_ip, etc.) to be calculated at simulation END instead of BEGINNING, leaving them uninitialized during operation. Results in zero gain, incorrect phase shifts, and broken AM/PM conversion throughout simulation."
+	},
+	{
+		"original_line": "     I_beta = I_pscp/(I_psinf-I_pscp);", 
+		"bug_line": "     I_beta = I_psinf/(I_pscp-I_psinf);",
+		"error_description": "Swapped I_pscp and I_psinf in numerator and denominator, and inverted subtraction order, causing incorrect phase shift calculation that diverges as parameters approach design limits."
+	},
+	{
+		"original_line": "parameter real rin = 50 from (0:inf);", 
+		"bug_line": "parameter real rin = -50;",
+		"error_description": "Negative input resistance causes square roots of negative numbers in I_ip/Q_ip calculations and negative resistance in noise_current computation, violating physical realizability and causing simulation errors."
+	},
+	{
+		"original_line": "I_theta = theta+I_cw*(1+I_beta)*I_pscp*tmp/(1+I_beta*tmp)-V(phase_err)-quad_error/2;", 
+		"bug_line": "I_theta = theta+I_cw*(1+I_beta)*I_pscp*tmp/(1+I_beta*tmp)-V(phase_err)+quad_error/2;",
+		"error_description": "Changed subtraction of quad_error/2 to addition. This inverts the quadrature error correction for the I channel, causing phase misalignment between I and Q outputs and degrading demodulation accuracy."
+	},
+	{
+		"original_line": "tmp = pow(rho/Q_cp,Q_shp);", 
+		"bug_line": "tmp = pow(rho/I_cp,Q_shp);",
+		"error_description": "Replaced Q_cp with I_cp in Q channel calculation, causing incorrect phase shift triggering by using I-channel power point instead of Q-channel parameter."
+	},
+	{
+		"original_line": "Q_cp = sqrt(pow(10,Q_cmp/10)*2*rout*0.001)/Q_a;", 
+		"bug_line": "Q_cp = sqrt(pow(10,Q_cmp/10)*2*rin*0.001)/Q_a;",
+		"error_description": "Changed rout to rin in Q_cp calculation, causing incorrect input-referred voltage computation. This violates the design by mismatching impedance handling between I/Q channels, leading to imbalanced phase shift characteristics and gain errors specifically in the Q path."
+	},
+	{
+		"original_line": "inout I_out;", 
+		"bug_line": "input I_out;",
+		"error_description": "Changing I_out from inout to input creates a driver conflict because the module attempts to drive an input port in the analog block (I(I_out) <+ ...), violating bidirectional signal requirements and causing simulation failure."
+	},
+	{
+		"original_line": "I_rhooutmax = (2*I_a/3)*I_rhoinmax;", 
+		"bug_line": "I_rhooutmax = (I_a/3)*I_rhoinmax;",
+		"error_description": "The coefficient for I_rhooutmax is reduced from 2/3 to 1/3, causing incorrect calculation of the maximum output amplitude. This violates the third-order nonlinearity derivation where the correct peak output should be (2/3)*I_a*I_rhoinmax when the derivative of the transfer function is zero."
+	},
+	{
+		"original_line": "parameter real I_cmp = -30;", 
+		"bug_line": "parameter real I_cmp = 30;",
+		"error_description": "Incorrect sign changes phase shift reference point from -30dBm to +30dBm. This delays AM/PM distortion onset until unrealistically high input power levels, violating design specifications for phase error behavior in the I-channel."
+	},
+	{
+		"original_line": "real tmp;", 
+		"bug_line": "real tmp = 0.0;",
+		"error_description": "Initializing 'tmp' to 0.0 causes incorrect phase shift calculations. The variable 'tmp' is reused for exponentiation results in both I and Q paths, and the initial value contaminates subsequent calculations when reusing the variable, breaking AM/PM conversion logic."
+	},
+	{
+		"original_line": "I_shp     = determines how fast the phase shift occurs with increasing", 
+		"bug_line": "I_shp     = determines how fast the phase shift occurs with decreasing",
+		"error_description": "Changed 'increasing' to 'decreasing' incorrectly reverses the parameter's dependency. I_shp actually controls phase shift behavior for increasing input power, so this documentation error misleads designers about the parameter's fundamental purpose."
+	},
+	{
+		"original_line": "parameter real I_cmp = -30;", 
+		"bug_line": "parameter real I_cmp = 30;",
+		"error_description": "The phase shift reference power (I_cmp) is incorrectly set to +30 dBm instead of the intended -30 dBm. This positive value shifts the AM/PM conversion threshold to an unrealistically high power level, causing phase distortion to occur only at extremely high input signals while remaining inactive in normal operating ranges."
+	},
+	{
+		"original_line": "  else if (V(Q_in) > 0) theta = `PI/2;", 
+		"bug_line": "  else if (V(Q_in) < 0) theta = `PI/2;",
+		"error_description": "Reversed condition incorrectly sets theta to PI/2 when Q_in is negative (should be -PI/2) and relies on subsequent else for positive Q_in which sets -PI/2. This swaps phase angles by 180 degrees for pure imaginary inputs."
+	}
+]

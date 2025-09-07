@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "if((newSymbol == 1 || (dflag > 0 && sflag == prs)) && cnt  < cyc && i < N-cyc+trsample) begin", 
+		"bug_line": "if((newSymbol == 1 || (dflag > 0 && sflag == prs)) && cnt  >= cyc && i < N-cyc+trsample) begin",
+		"error_description": "Changed cnt < cyc to cnt >= cyc. This reverses the condition, causing blending to occur only after the cyclic prefix instead of during it. This disrupts the transition between OFDM symbols by applying training sequence blending at incorrect times, potentially causing signal discontinuities and inter-symbol interference."
+	},
+	{
+		"original_line": "    if ( cnt2 == psamples-1 && isfirst == 1 ) begin", 
+		"bug_line": "    if ( cnt2 == psamples-2 && isfirst == 1 ) begin",
+		"error_description": "Changed the sample index from psamples-1 to psamples-2. This causes the first symbol's state transition to trigger one sample too early, resulting in misaligned timing for the first OFDM symbol and subsequent incorrect processing of the cyclic prefix/data alignment."
+	},
+	{
+		"original_line": "    prlength[2] = 1;", 
+		"bug_line": "    prlength[2] = 0;",
+		"error_description": "Sets L-SIG symbol count to 0 instead of 1, violating 802.11a preamble structure. This causes frame timing errors by skipping the signal field entirely, corrupting frame decoding."
+	},
+	{
+		"original_line": "poly_orderMinus1 = poly_order - 1;", 
+		"bug_line": "poly_orderMinus1 = poly_order;",
+		"error_description": "Incorrectly sets poly_orderMinus1 to poly_order instead of poly_order-1. This causes the PN generator to write to regiArray[poly_order] (index out of bounds) instead of regiArray[poly_order-1], corrupting the shift register state and producing invalid pseudorandom sequences for pilot symbol generation."
+	},
+	{
+		"original_line": "        Ar = Re_freq[ind];", 
+		"bug_line": "        Ar = Im_freq[ind];",
+		"error_description": "Assigns the imaginary component instead of the real component to Ar during IFFT computation, causing incorrect constellation mapping and signal distortion in the transmitted OFDM symbol."
+	},
+	{
+		"original_line": "if(j%m== 0) begin", 
+		"bug_line": "if(j%m== 1) begin",
+		"error_description": "Changed modulus condition from ==0 to ==1. When m=1 (as initialized), j%1 always equals 0, making the condition always false. This prevents the critical IFFT computation block from executing, resulting in uninitialized time-domain samples and corrupted OFDM symbol generation."
+	},
+	{
+		"original_line": "for(i=0; i<n4; i = i+1) begin", 
+		"bug_line": "for(i=0; i>n4; i = i+1) begin",
+		"error_description": "Changed loop condition from i<n4 to i>n4. Since i starts at 0 and n4 is positive, the loop body never executes. This skips the entire IFFT computation block, resulting in uninitialized/zero output symbols."
+	},
+	{
+		"original_line": "for(i=0; i<`FFTLENGTH; i = i+1) begin", 
+		"bug_line": "for(i=0; i<=`FFTLENGTH; i = i+1) begin",
+		"error_description": "Changed loop condition from < to <=, causing buffer overflow. The loop now runs 65 iterations (0-64) instead of 64, exceeding Re_freq/Im_freq array bounds (0-63). This corrupts adjacent memory locations."
+	},
+	{
+		"original_line": "if((newSymbol == 1 || (dflag > 0 && sflag == prs)) && cnt  < cyc && i < N-cyc+trsample) begin", 
+		"bug_line": "if((newSymbol == 1 || (dflag > 0 && sflag != prs)) && cnt  < cyc && i < N-cyc+trsample) begin",
+		"error_description": "Changed sflag == prs to sflag != prs in the transition condition. This prevents windowing overlap during the critical preamble-to-data symbol transition when sflag equals prs, causing abrupt signal discontinuities and spectral leakage."
+	},
+	{
+		"original_line": "        psamples = samples*m;", 
+		"bug_line": "        psamples = samples/m;",
+		"error_description": "Division instead of multiplication causes psamples to become 80 (when m=1) instead of 80, but when m>1 it reduces symbol duration. This timing error desynchronizes FFT processing and symbol boundaries."
+	},
+	{
+		"original_line": "integer PNS[0:126], pnc;", 
+		"bug_line": "integer PNS[0:125], pnc;",
+		"error_description": "Reduced PNS array size from 127 elements to 126 elements. This causes out-of-bounds access during initialization when j=126, corrupting the PN sequence and leading to incorrect pilot scrambling in OFDM symbols."
+	},
+	{
+		"original_line": "real Re_freq[0:`FFTLENGTH-1],    Im_freq[0:`FFTLENGTH-1],", 
+		"bug_line": "real Re_freq[0:`FFTLENGTH-2],    Im_freq[0:`FFTLENGTH-2],",
+		"error_description": "Arrays are declared with 63 elements instead of 64, causing out-of-bound access during IFFT processing when accessing index 63, which corrupts memory and produces incorrect OFDM symbols."
+	},
+	{
+		"original_line": "Re_time[i] = 0;", 
+		"bug_line": "Re_time[i] = 1.0;",
+		"error_description": "Initializes real part of time-domain array to 1.0 instead of 0, introducing a strong DC offset in IFFT output that distorts transmitted symbols and violates OFDM spectral requirements."
+	},
+	{
+		"original_line": "@(timer( initial_time + output_period/2,  output_period  ) ) begin", 
+		"bug_line": "@(timer( initial_time,  output_period  ) ) begin",
+		"error_description": "Removed the half-period offset in the output timer. This causes the first output sample to occur at initial_time instead of initial_time + output_period/2, leading to a misalignment in the output waveform timing. The original offset was intended to center the sample in the period, and its removal violates the 802.11a timing requirements by shifting all subsequent output samples."
+	},
+	{
+		"original_line": "`include "disciplines.vams"", 
+		"bug_line": "`define FFTLENGTH 32",
+		"error_description": "Redefining FFTLENGTH to 32 causes all array dimensions and IFFT computations to use 32-point transforms instead of the required 64-point OFDM processing, corrupting symbol generation and timing calculations."
+	},
+	{
+		"original_line": "        Ai = Im_freq[ind];", 
+		"bug_line": "        Ai = Re_freq[ind];",
+		"error_description": "Assigns real component (Re_freq) to imaginary variable (Ai) instead of imaginary component (Im_freq). This swaps I/Q components for the frequency bin, corrupting the constellation mapping and causing symbol errors in the OFDM output."
+	},
+	{
+		"original_line": "if( n == pilotsIdx[i] + 2*halfCs - 1 - uc) begin", 
+		"bug_line": "if( n == pilotsIdx[i] + halfCs - uc) begin",
+		"error_description": "Changed the pilot index calculation by replacing '2*halfCs - 1' with 'halfCs'. This miscalculates the position for positive pilot subcarriers, causing data to be mapped onto pilot subcarriers and corrupting the OFDM symbol structure."
+	},
+	{
+		"original_line": "                    Ar = Re_freq[ind];", 
+		"bug_line": "                    Ar = Im_freq[ind];",
+		"error_description": "The assignment incorrectly uses the imaginary component (Im_freq) instead of the real component (Re_freq) for the Ar variable, causing a mix-up between real and imaginary parts during IFFT computation and resulting in corrupted output signals."
+	},
+	{
+		"original_line": "                    else tmp = i-halffft;", 
+		"bug_line": "                    else tmp = i+halffft;",
+		"error_description": "Modifying the index calculation from subtraction to addition causes the second half of training symbol data to be stored beyond array bounds (indices 64-95 instead of 0-31), corrupting adjacent memory and producing invalid OFDM symbols due to index overflow."
+	},
+	{
+		"original_line": "for(i=0; i<N; i = i+1) begin", 
+		"bug_line": "for(i=0; i>=N; i = i+1) begin",
+		"error_description": "Changed loop condition to run only when i >= N (which is never true), preventing initialization of Re_time/Im_time arrays. This leaves arrays with undefined values causing corrupted IFFT outputs."
+	}
+]

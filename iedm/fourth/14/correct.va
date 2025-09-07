@@ -1,0 +1,223 @@
+/*
+ *  Copyright (c) 1998
+ *  by Cadence Design Systems, Inc.  All rights reserved.
+ *
+ *  $Date: 2004/06/04 15:38:06 $
+ *  $Revision: 1.2 $
+ *
+ *
+ */
+
+
+`include "constants.h"
+`include "discipline.h"
+
+(* instrument_module *)
+module cdma(i_out_node,i_bin_node,q_out_node,q_bin_node);
+output i_out_node,i_bin_node,q_out_node,q_bin_node;
+voltage i_out_node,i_bin_node,q_out_node,q_bin_node;
+
+//
+// INSTANCE parameters
+//    seed        = random number seed []
+//    amplitude  = maximum output voltage  [V]
+//
+// MODEL parameters
+//    {none}
+// This model generates i and q CDMA baseband signals
+//
+//
+
+`define PN_STATES 15
+`define TAP_LENGTH 48
+`define OVERSAMPLE 4
+`define FREQUENCY 1228800.0
+
+//Define IMPULSE_PULSE to be 1 for an impulse driven
+//FIR filter and 2 for a pulse-driven filter.
+`define IMPULSE_PULSE 1
+
+parameter integer seed = 21;
+parameter real amplitude= 2 from [0:inf);
+parameter real rise_fall = 1 from (0:1];
+
+real period;
+real iout_val;
+real qout_val;
+real bit;
+real dummy;
+
+integer i_state[0:`PN_STATES];
+integer q_state[0:`PN_STATES];
+integer i_coeffs[1:`PN_STATES];
+integer q_coeffs[1:`PN_STATES];
+integer count;
+real ifilter_states[0:`TAP_LENGTH];
+real qfilter_states[0:`TAP_LENGTH];
+real filter_i_out;
+real filter_q_out;
+real taps[1:`TAP_LENGTH];
+integer use_seed;
+integer k;
+integer sample;
+real tt;
+
+analog begin
+    @(initial_step) begin
+		sample = 0;
+		period = 1.0/(`OVERSAMPLE*`FREQUENCY);
+		tt = rise_fall*period;
+		use_seed = seed;
+		for (k=0; k<=`PN_STATES; k=k+1) begin
+			i_state[k] = 0;
+			q_state[k] = 0;
+		end
+		for (k=1; k<=`PN_STATES; k=k+1) begin
+			i_coeffs[k] = 0;
+			q_coeffs[k] = 0;
+		end
+		for (k=0; k<=`TAP_LENGTH;k=k+1) begin
+			ifilter_states[k] =0;
+			qfilter_states[k] =0;
+		end
+
+		 //*********Initialize i_ state.
+		i_state[0] = 1; 
+		q_state[0] = 1; 
+
+		//***********Set PN generator coefficients.
+		i_coeffs[15] = 1;
+		i_coeffs[10] = 1;
+		i_coeffs[8] = 1;
+		i_coeffs[7] = 1;
+		i_coeffs[6] = 1;
+		i_coeffs[2] = 1;
+
+		q_coeffs[15] = 1;
+		q_coeffs[12] = 1;
+		q_coeffs[11] = 1;
+		q_coeffs[10] = 1;
+		q_coeffs[9] = 1;
+		q_coeffs[5] = 1;
+		q_coeffs[4] = 1;
+		q_coeffs[3] = 1;
+
+		//***********Set the tap coefficients.
+                taps[1] = -0.025288;
+                taps[2] = -0.034168;
+                taps[3] = -0.035752;
+                taps[4] = -0.016734;
+                taps[5] = 0.021603;
+                taps[6] = 0.064938;
+                taps[7] = 0.091002;
+                taps[8] = 0.081895;
+                taps[9] = 0.037071;
+                taps[10] = -0.021998;
+                taps[11] = -0.060772;
+                taps[12] = -0.051179;
+                taps[13] = 0.007875;
+                taps[14] = 0.084369;
+                taps[15] = 0.126869;
+                taps[16] = 0.094528;
+                taps[17] = -0.012840;
+                taps[18] = -0.143477;
+                taps[19] = -0.211829;
+                taps[20] = -0.140513;
+                taps[21] = 0.094602;
+                taps[22] = 0.441387;
+                taps[23] = 0.785588;
+                taps[24] = 1.000000;
+                taps[25] = 1.000000;
+                taps[26] = 0.785876;
+                taps[27] = 0.441387;
+                taps[28] = 0.094602;
+                taps[29] = -0.140513;
+                taps[30] = -0.211829;
+                taps[31] = -0.143477;
+                taps[32] = -0.012840;
+                taps[33] = 0.094528;
+                taps[34] = 0.126869;
+                taps[35] = 0.084369;
+                taps[36] = 0.007875;
+                taps[37] = -0.051179;
+                taps[38] = -0.060716;
+                taps[39] = -0.021998;
+                taps[40] = 0.037071;
+                taps[41] = 0.081895;
+                taps[42] = 0.091002;
+                taps[43] = 0.064938;
+                taps[44] = 0.021603;
+                taps[45] = -0.016734;
+                taps[46] = -0.035752;
+                taps[47] = -0.034168;
+                taps[48] = -0.025288;
+		count = `OVERSAMPLE;
+	end
+
+        @(timer(period/10, period)) begin
+
+		//*****generate the digital data****
+	        if (count >= `OVERSAMPLE) begin
+                   dummy = $dist_uniform(use_seed,-10,10);
+                   if (dummy < 0) bit = -amplitude; else bit = amplitude;
+
+		   //***generate i_spreading sequence***
+               	   for (k=`PN_STATES; k>=1;k=k-1) i_state[k] = i_state[k-1];
+                   i_state[0] = 0;
+               	   for (k=1; k <=`PN_STATES; k=k+1) begin
+                      if (i_coeffs[k] > 0) i_state[0] = (i_state[0] +i_state[k]) % 2;
+                   end
+
+	           //***generate i_data***
+                   if (i_state[0] > 0.5)
+                      iout_val =  bit;
+                   else
+                      iout_val =  -bit;
+
+		   //***generate the q_spreading sequence***
+                   for (k=`PN_STATES; k>=1;k=k-1) q_state[k] = q_state[k-1];
+                   q_state[0] = 0;
+                   for (k=1; k <=`PN_STATES; k=k+1) begin
+                      if (q_coeffs[k] > 0) q_state[0] = (q_state[0] +q_state[k]) % 2;
+                   end
+
+		   //***generate the q_data***
+                   if (q_state[0] > 0.5)
+                      qout_val =  bit;
+                   else
+                      qout_val =  -bit;
+
+                   //**flag a sampling event and reset the counter**	
+                   sample = 1;
+	           count = 0;	
+
+	        end
+
+		//*****do the FIR filters****
+                for (k=`TAP_LENGTH; k>=`IMPULSE_PULSE; k=k-1) begin
+			ifilter_states[k] = ifilter_states[k-1];
+			qfilter_states[k] = qfilter_states[k-1];
+		end
+                if (sample > 0) begin 
+                        sample = 0; 
+                        ifilter_states[1] = iout_val; 
+                        qfilter_states[1] = qout_val; 
+                end 
+                filter_i_out = 0; 
+                filter_q_out = 0; 
+                for (k=1; k<=`TAP_LENGTH; k=k+1) begin 
+                        filter_i_out = filter_i_out+taps[k]*ifilter_states[k]; 
+                	filter_q_out = filter_q_out+taps[k]*qfilter_states[k];
+                end	
+
+		//****increment the counter***
+		count = count + 1;
+        end
+ 
+	V(i_bin_node) <+ transition(iout_val,(`TAP_LENGTH-2)*period/2,period/25,period/25);
+	V(q_bin_node) <+ transition(qout_val,(`TAP_LENGTH-2)*period/2+period*2,period/25,period/25);
+	V(i_out_node) <+ transition(filter_i_out,0,tt,tt);
+	V(q_out_node) <+ transition(filter_q_out,period*2,tt,tt);
+end
+
+endmodule

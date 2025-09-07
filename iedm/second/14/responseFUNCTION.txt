@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "real tsample;		// time between input samples", 
+		"bug_line": "real tsample_next;		// time between input samples",
+		"error_description": "Declared tsample_next instead of tsample. The initial_step block assigns 1/sample_freq to tsample, which is now undeclared. This breaks all subsequent logic relying on tsample (sample period calculation), causing incorrect timing for sampling and bit transmission."
+	},
+	{
+		"original_line": "   integer i;", 
+		"bug_line": "   real i;",
+		"error_description": "Changing 'i' from integer to real causes array indexing errors in 'bit[i]' since array indices must be integers. This leads to incorrect quantization bit storage and corrupted PCM output."
+	},
+	{
+		"original_line": "   if( bit_num > (`NUM_OF_BITS-1)) begin", 
+		"bug_line": "   if( bit_num > (`NUM_OF_BITS)) begin",
+		"error_description": "Changed condition from exceeding maximum valid bit index (7) to an impossible threshold (8). This prevents the -3 safety state from ever activating, causing continuous attempts to access bit[8] beyond array bounds during operation."
+	},
+	{
+		"original_line": "for (i=0; i < `NUM_OF_BITS; i=i+1) begin", 
+		"bug_line": "for (i=0; i < `NUM_OF_BITS; i=i+2) begin",
+		"error_description": "The loop step increment is changed from i=i+1 to i=i+2, causing only even-indexed bits (0,2,4,6) to be updated while odd-indexed bits (1,3,5,7) remain at their initial 0 values. This results in incorrect PCM encoding where half the bits are always zero."
+	},
+	{
+		"original_line": "   integer i;", 
+		"bug_line": "   real i;",
+		"error_description": "The loop index variable 'i' is incorrectly declared as real instead of integer. This causes type errors in the for-loops where integer indices are required, breaking the quantization and bit generation logic."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( initial_step ) if (sample_freq < 0) begin",
+		"error_description": "Added invalid condition 'sample_freq < 0' which always evaluates to false since sample_freq is defined with 'from (0:inf)' range. This prevents initialization code from executing, leaving critical timing variables uninitialized."
+	},
+	{
+		"original_line": "parameter real tstart  = 1u from (0:inf);", 
+		"bug_line": "parameter real tstart  = 1k from (0:inf);",
+		"error_description": "Changed default start time from 1 microsecond (1u) to 1 kilosecond (1k). This delays initial sampling to 1000 seconds, preventing the modulator from processing signals during typical simulation timeframes."
+	},
+	{
+		"original_line": "   integer mask;", 
+		"bug_line": "   integer mask = 1;",
+		"error_description": "Initializing mask to 1 causes incorrect bit extraction. In the quantization loop, mask starts at 1 instead of being reset to 1 for each new sample (mask=1 assignment in @timer block gets overwritten by this initial value on subsequent samples). This corrupts the bit pattern as the mask retains its multiplied value from the previous sample cycle."
+	},
+	{
+		"original_line": "mask = 1;", 
+		"bug_line": "mask = 0;",
+		"error_description": "Setting mask to 0 causes the bitwise AND operation (code & mask) to always return 0. This results in all 8 bits of the PCM code being set to 0 regardless of the input sample, making the output bit stream permanently zero and failing to represent the input signal."
+	},
+	{
+		"original_line": "tbit_next = tbit_next + tbit_stream;", 
+		"bug_line": "tbit_next = tbit_next + tsample;",
+		"error_description": "Replaced bit period (tbit_stream) with sample period (tsample), causing 8x slower bit transmission. Bits now update at sample rate instead of 8x sample rate, desynchronizing the output bitstream timing."
+	},
+	{
+		"original_line": "   integer bit[0:7];", 
+		"bug_line": "   integer bit[0:6];",
+		"error_description": "The array 'bit' is declared with only 7 elements instead of 8, causing the most significant bit (bit 7) to be uninitialized. This leads to undefined output behavior during the final bit transmission since the code attempts to access bit[7]."
+	},
+	{
+		"original_line": "tsample = 1/sample_freq;", 
+		"bug_line": "tsample = sample_freq;",
+		"error_description": "The sampling period calculation is reversed. Instead of computing the period as 1/sample_frequency, it incorrectly assigns the frequency value directly to the period variable. This violates the design specification where 'tsample' must represent the time between samples (1/sample_freq), not the frequency itself. This error causes all subsequent timing calculations to be grossly incorrect, completely disrupting the modulator's sampling and bit transmission functionality."
+	},
+	{
+		"original_line": "   integer i;", 
+		"bug_line": "   integer j;",
+		"error_description": "Changed loop counter variable 'i' to 'j', causing undeclared identifier errors in all for-loops. This prevents initialization of the bit array and proper conversion of sampled codes to bits, breaking the PCM modulation functionality entirely."
+	},
+	{
+		"original_line": "parameter real tstart  = 1u from (0:inf);", 
+		"bug_line": "parameter real tstart  = -1u from (0:inf);",
+		"error_description": "Negative start time (-1μs) violates the allowed range (0:inf). This causes the initial sampling event to be scheduled in the past, preventing the modulator from ever starting."
+	},
+	{
+		"original_line": "real tbit_next;", 
+		"bug_line": "real tbit_nex;",
+		"error_description": "The variable name is misspelled as 'tbit_nex' in the declaration, while subsequent code references 'tbit_next'. This creates an undeclared variable error for 'tbit_next' and leaves 'tbit_nex' unused, breaking the bit timing logic."
+	},
+	{
+		"original_line": "integer code;", 
+		"bug_line": "real code;",
+		"error_description": "Changing 'code' from integer to real causes bitwise operations (code & mask) to fail in the bit extraction loop, as Verilog-A does not support bitwise operations on real numbers. This violates the requirement to convert sampled input to an 8-bit binary code."
+	},
+	{
+		"original_line": "`define NUM_OF_BITS 8", 
+		"bug_line": "`define NUM_OF_BITS 7",
+		"error_description": "Reducing bits from 8 to 7 causes incorrect quantization resolution (0-127 instead of 0-255) and timing errors. The bit period becomes tsample/7 instead of tsample/8, causing misaligned transmission. Array indices 0-7 remain but only 7 bits are processed, leaving MSB unused and corrupting data."
+	},
+	{
+		"original_line": "real vin, vmax, vmin;", 
+		"bug_line": "real vmax, vin, vmin;",
+		"error_description": "Swapped 'vin' and 'vmax' positions, causing the input voltage to be assigned to vmax and the maximum voltage parameter to vin. This reverses the roles in the normalization formula v_normal = (vin - vmin)/(vmax-vmin), corrupting the quantization calculation."
+	},
+	{
+		"original_line": "      @ (timer(tsample_next)) begin", 
+		"bug_line": "      @ (timer(tsample)) begin",
+		"error_description": "Changed timer event from dynamic next sample time (tsample_next) to fixed sample period (tsample). This ignores the tstart parameter and causes sampling to begin at time=tsample (1/sample_freq) instead of the specified tstart, violating the scheduled sampling start time."
+	},
+	{
+		"original_line": "parameter real tdel=0 from [0:inf);", 
+		"bug_line": "parameter real tdel=0 from (0:inf);",
+		"error_description": "Changed range from inclusive [0 to exclusive (0, making 0 invalid. The default value 0 now violates the parameter range, causing simulation errors when tdel=0 is used."
+	}
+]

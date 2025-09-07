@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "Qd = tt*Id  + area*cjo*phi*(1 - pow((1 - Vd/phi), (1 - m)))/(1 - m);", 
+		"bug_line": "Qd = tt*Id  + area*cjo*phi*(1 - pow((1 - Vd/phi), (1 + m)))/(1 - m);",
+		"error_description": "Changed the exponent from (1 - m) to (1 + m). This inverts the junction capacitance's voltage dependence, causing incorrect charge storage calculations in both forward and reverse bias conditions."
+	},
+	{
+		"original_line": "Id = I(vanode, vanode);", 
+		"bug_line": "Id = V(vanode, vcathode);",
+		"error_description": "Replaces current measurement (I) with voltage measurement (V), fundamentally altering the physical quantity assigned to Id. This violates the design where Id must represent diode current, causing incorrect Shockley equation calculations and series resistance modeling."
+	},
+	{
+		"original_line": "I(vanode, vcathode) <+ -area*is*(exp(-(bv + Vd)/$vt) -", 
+		"bug_line": "I(vanode, vcathode) <+ -area*is*(exp(-(bv - Vd)/$vt) -",
+		"error_description": "The modified line incorrectly calculates breakdown current by subtracting Vd instead of adding it in the exponential term. This reverses the voltage relationship during breakdown conditions, causing the exponential term to grow when it should decay and vice versa, fundamentally breaking the reverse breakdown behavior."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* no_instrument *)",
+		"error_description": "Changing 'instrument_module' to 'no_instrument' disables critical instrumentation required for proper module behavior. This prevents simulation tools from monitoring/controlling the diode during analysis, leading to undetected breakdown events and inaccurate dynamic response modeling."
+	},
+	{
+		"original_line": "parameter real phi=0.7 exclude 0;", 
+		"bug_line": "parameter real phi=0.0 exclude 0;",
+		"error_description": "Sets default body potential (phi) to 0.0 which violates the exclusion constraint and causes division-by-zero errors in capacitance calculations when computing (1 - Vd/phi) terms."
+	},
+	{
+		"original_line": "      if (Vd == -bv) begin", 
+		"bug_line": "      if (Vd == -phi) begin",
+		"error_description": "Changed breakdown voltage condition to use body potential (phi) instead of breakdown voltage (bv). This causes the breakdown condition to trigger at the wrong voltage threshold (negative phi instead of negative bv), violating the reverse breakdown specification."
+	},
+	{
+		"original_line": "f2 = pow((1 - fc), (1 + m));", 
+		"bug_line": "f2 = pow((1 - fc), (1 - m));",
+		"error_description": "Changed exponent from (1 + m) to (1 - m), causing incorrect capacitance calculation in forward bias. The term f2 becomes (1 - fc)^(1 - m) instead of (1 - fc)^(1 + m), leading to erroneous Qd values and distorted diode transient response."
+	},
+	{
+		"original_line": " ibv = is*bv/$vt;", 
+		"bug_line": " ibv = is*bv*$vt;",
+		"error_description": "Changed division to multiplication by thermal voltage, causing reverse breakdown current to be calculated as is*bv*$vt instead of is*bv/$vt. This error reduces the breakdown current by orders of magnitude (since $vt ≈ 0.026V), compromising reverse breakdown modeling."
+	},
+	{
+		"original_line": "f1 = (phi/(1 - m))*(1 - pow((1 - fc), m));", 
+		"bug_line": "f1 = (phi/(1 - m))*(1 - pow((1 - fc), 1));",
+		"error_description": "Changed exponent 'm' to constant '1' in capacitance calculation, violating the junction capacitance formula by ignoring the grading coefficient parameter."
+	},
+	{
+		"original_line": "fcp = fc*phi;", 
+		"bug_line": "fcp = fc/phi;",
+		"error_description": "Replaced multiplication with division, causing incorrect calculation of the forward bias capacitance threshold voltage. This would disrupt the capacitance model by miscalculating the transition point between junction and diffusion capacitance regions."
+	},
+	{
+		"original_line": "$strobe( "Breakdown voltage no longer exceeded at t = %E.\n",", 
+		"bug_line": "$strobe( "Breakdown voltage STILL exceeded at t = %E.\n",",
+		"error_description": "Changes diagnostic message to incorrectly report breakdown condition persists when voltage recovers, misleading debug efforts by reversing failure state."
+	},
+	{
+		"original_line": "`ifdef BREAK_DOWN_WARN", 
+		"bug_line": "`ifdef BREAK_DOWN_WARNX",
+		"error_description": "Changed macro name to undefined BREAK_DOWN_WARNX, preventing breakdown voltage warnings from ever executing since the condition always fails."
+	},
+	{
+		"original_line": "parameter real phi=0.7 exclude 0;", 
+		"bug_line": "parameter real phi=0;",
+		"error_description": "Setting default phi to 0 causes division-by-zero in capacitance calculations (line 59: 1 - Vd/phi) and undefined pow() behavior since the constraint allowing zero is introduced."
+	},
+	{
+		"original_line": "f1 = (phi/(1 - m))*(1 - pow((1 - fc), m));", 
+		"bug_line": "f1 = (phi/(1 - m))*(1 - pow((1 - fc), 1/m));",
+		"error_description": "Changed exponent from 'm' to '1/m'. This mathematical error distorts the capacitance model calculation, as the exponent should remain the grading coefficient 'm' rather than its reciprocal."
+	},
+	{
+		"original_line": "`define BREAK_DOWN_WARN 1", 
+		"bug_line": "`define BREAK_DOWN_WARN 0",
+		"error_description": "Changing the macro value to 0 causes the breakdown voltage warning block to be excluded during compilation, violating the design requirement to issue warnings when the diode enters breakdown."
+	},
+	{
+		"original_line": "@ ( initial_step or initial_step("static") ) begin", 
+		"bug_line": "@ ( initial_step ) begin",
+		"error_description": "Removed the initial_step("static") trigger, preventing critical parameter initialization (f1, f2, f3, fcp, ibv) during DC operating point analysis. This causes incorrect diode behavior in DC simulations as parameters remain uninitialized."
+	},
+	{
+		"original_line": "`endif", 
+		"bug_line": "`endif // BREAK_DOWN_WARN",
+		"error_description": "The trailing comment accidentally disables the `endif directive due to VerilogA preprocessor syntax rules, causing the breakdown voltage warning block to remain open. This results in compilation failure due to unclosed conditional directives."
+	},
+	{
+		"original_line": "I(vanode, vcathode) <+ -area*is;", 
+		"bug_line": "I(vanode, vcathode) <+ area*is;",
+		"error_description": "Sign error in reverse saturation current. The modified line incorrectly outputs positive current (forward direction) during reverse bias conditions below breakdown voltage, fundamentally violating diode behavior where reverse current should be negative."
+	},
+	{
+		"original_line": "real f1, f2, f3, fcp;", 
+		"bug_line": "real f1, f2, f3; integer fcp;",
+		"error_description": "Declaring fcp as integer instead of real causes truncation of its value (e.g., 0.35 becomes 0) during assignment (fcp = fc*phi). This distorts the capacitance model's threshold condition (Vd <= fcp) and subsequent calculations, making the model incorrectly use the else-branch for Vd > 0 instead of Vd > actual fcp value."
+	},
+	{
+		"original_line": "      if (Vd <= fcp) begin", 
+		"bug_line": "      if (Vd <= fc) begin",
+		"error_description": "Changed threshold from fcp (fc*phi) to fc. This causes incorrect capacitance branch selection since fc is a unitless coefficient (0-1) while Vd is in volts, making the condition always true for typical diode voltages."
+	}
+]

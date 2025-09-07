@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "	 gm_nom = 2 * `PI * freq_unitygain * c1;", 
+		"bug_line": "	 gm_nom = 2 * `PI * freq_unitygain / c1;",
+		"error_description": "Division operator replaces multiplication, causing incorrect transconductance calculation. This inverts the relationship between compensation capacitance and unity-gain frequency, severely distorting the amplifier's frequency response and stability."
+	},
+	{
+		"original_line": "vmax_in = iin_max/gm_nom;", 
+		"bug_line": "vmax_in = ibias/gm_nom;",
+		"error_description": "Replaced iin_max with ibias, causing incorrect saturation threshold calculation. ibias (input bias current) is typically much smaller than iin_max (maximum input current), resulting in premature input stage saturation at negligible input voltages."
+	},
+	{
+		"original_line": "parameter real slew_rate = 0.5e6;", 
+		"bug_line": "parameter real slew_rate = -0.5e6;",
+		"error_description": "Negative slew rate inverts transconductance calculation, causing inverted amplifier behavior where positive inputs produce negative outputs and vice versa."
+	},
+	{
+		"original_line": "   real vmax_in;", 
+		"bug_line": "   real vmax_in = 0.0;",
+		"error_description": "Initializing vmax_in to 0.0 overrides the calculated value in the initial block, forcing the GM stage to always operate in slewing mode regardless of input voltage, breaking normal amplifier behavior."
+	},
+	{
+		"original_line": "parameter real vin_offset = 0.0;", 
+		"bug_line": "parameter real vin_offset = 0.0, gain = 10;",
+		"error_description": "Added duplicate 'gain' parameter declaration, causing compilation failure due to redeclaration of existing parameter. Original 'gain' is already declared on line 35, violating single definition rule."
+	},
+	{
+		"original_line": "   real gm_nom;", 
+		"bug_line": "   integer gm_nom;",
+		"error_description": "Changing 'gm_nom' from real to integer causes truncation of its calculated value (2*PI*freq_unitygain*c1), losing decimal precision. This results in incorrect transconductance in the GM stage, distorting amplifier gain and frequency response."
+	},
+	{
+		"original_line": "parameter real rin = 1e6;", 
+		"bug_line": "parameter real rin = 1e-6;",
+		"error_description": "Input resistance reduced from 1 MΩ to 1 μΩ causes excessive loading on input sources, violating the high-impedance input requirement and significantly altering circuit behavior."
+	},
+	{
+		"original_line": "I(cout, vref) <+ gm_nom*(V(vout, vspply_n)-vsoft);", 
+		"bug_line": "I(cout, vref) <+ gm_nom*(V(vout, vspply_p)-vsoft);",
+		"error_description": "Changed vspply_n to vspply_p in negative limiting condition. This causes the opamp to incorrectly compare output voltage to the positive supply rail instead of the negative rail during negative soft limiting, disrupting output protection functionality."
+	},
+	{
+		"original_line": "   real gm_nom;", 
+		"bug_line": "   integer gm_nom;",
+		"error_description": "Changing gm_nom from real to integer causes truncation of its calculated value (2*PI*freq_unitygain*c1), introducing quantization error in transconductance. This affects gain calculation (r1 = gain/gm_nom), slewing behavior (iin_max comparisons), and output limiting, distorting amplifier characteristics."
+	},
+	{
+		"original_line": "parameter real vsoft = 0.5;", 
+		"bug_line": "parameter real vsoft = 500;",
+		"error_description": "The soft limiting threshold vsoft was changed from 0.5V to 500V, making it excessively large. This effectively disables the soft output limiting feature since the output voltage would need to exceed the supply rails by 500V to trigger limiting, which is beyond normal operating ranges. This violates the intended protection mechanism against output saturation."
+	},
+	{
+		"original_line": "parameter real freq_unitygain  = 1.0e6;", 
+		"bug_line": "parameter real freq_unitygain  = 0;",
+		"error_description": "Setting freq_unitygain to 0 Hz causes the transconductance gm_nom to be zero, eliminating all gain in the opamp. This violates the design requirement for amplification as the GM stage produces no output current for differential inputs."
+	},
+	{
+		"original_line": "parameter real vin_offset = 0.0;", 
+		"bug_line": "parameter real vin_offset = 0.0",
+		"error_description": "Removed semicolon causing syntax error and preventing parameter declaration, making vin_offset undefined in subsequent calculations."
+	},
+	{
+		"original_line": "parameter real freq_unitygain  = 1.0e6;", 
+		"bug_line": "parameter real freq_unitygain  = 1.0e9;",
+		"error_description": "Changed unity gain frequency from 1MHz to 1GHz, causing the transconductance (gm_nom) to be 1000x larger than intended. This distorts the amplifier's frequency response, gain calculations, and slewing behavior."
+	},
+	{
+		"original_line": "   real c1;", 
+		"bug_line": "   real c1 = 0;",
+		"error_description": "Initializing c1 to 0 prevents the initial_step block from calculating the correct compensation capacitor value. This results in gm_nom being incorrectly computed, breaking the amplifier's gain and frequency response characteristics."
+	},
+	{
+		"original_line": "I(vref, vout) <+ V(cout, vref)/rout;", 
+		"bug_line": "I(vref, vout) <+ V(vout, vref)/rout;",
+		"error_description": "Changed voltage reference from internal node cout to output node vout. This breaks the output stage as the current should be driven by the internal amplified signal (cout), not the external output voltage, causing incorrect feedback and potential oscillation."
+	},
+	{
+		"original_line": "parameter real iin_max = 100e-6;", 
+		"bug_line": "parameter real iin_max = 100e-3;",
+		"error_description": "Changed maximum input current from 100μA to 100mA. This violates design specifications by allowing excessive current flow, potentially causing thermal damage and violating slew rate constraints since iin_max directly scales the slew rate limit (slew_rate = iin_max/c1)."
+	},
+	{
+		"original_line": "inout vout, vin_p, vin_n;", 
+		"bug_line": "input vout, vin_p, vin_n;",
+		"error_description": "Changing vout from inout to input prevents the opamp from driving output current, as the module can no longer source/sink current through vout. This breaks the output stage functionality while incorrectly making the input ports unidirectional disrupts bias current implementation."
+	},
+	{
+		"original_line": "vin_val = V(vin_p,vin_n) + vin_offset;", 
+		"bug_line": "vin_val = V(vin_n,vin_p) + vin_offset;",
+		"error_description": "Swapped input terminals: Measures voltage as V(vin_n,vin_p) instead of V(vin_p,vin_n), inverting the differential input polarity and causing phase reversal in amplifier behavior."
+	},
+	{
+		"original_line": "gm_nom = 2 * `PI * freq_unitygain * c1;", 
+		"bug_line": "gm_nom = 2 * `PI * gain * c1;",
+		"error_description": "Replaced 'freq_unitygain' with 'gain', causing the transconductance calculation to use DC gain instead of unity-gain frequency. This makes gm_nom orders of magnitude larger than intended, violating the frequency response specification and unity-gain bandwidth requirement."
+	},
+	{
+		"original_line": "parameter real slew_rate = 0.5e6;", 
+		"bug_line": "parameter real slew_rate = 0;",
+		"error_description": "Setting slew_rate to zero causes division by zero in c1 calculation (c1 = iin_max/slew_rate) during initialization, leading to simulation failure."
+	}
+]

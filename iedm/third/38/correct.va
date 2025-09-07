@@ -1,0 +1,114 @@
+`include "discipline.h"
+`include "constants.h"
+
+/*
+ *  Copyright (c) 1998
+ *  by Cadence Design Systems, Inc.  All rights reserved.
+ * 
+ *  $Date: 2003/10/06 06:35:31 $
+ *  $Revision: 1.1 $
+ *
+ *
+ */
+
+//
+// Based on the OVI Verilog-A Language Reference Manual, version 1.0 1996
+//
+//
+
+
+// Power Amplifier model
+//
+// - pa
+//
+// in: input node
+// out: output node
+//
+// INSTANCE parameters
+//    NF               = noise figure [dB]
+//    gain             = s21 referenced [dB]
+//    rin              = input impedance [Ohm]
+//    rout             = output impedance [Ohm]
+//    cpdb             = output referenced 1dB compression [dBm]
+//
+// MODEL parameters
+//    {none}
+
+// Refer to LNA model for some internal algorithms. The difference
+// between PA and LNA is that in PA we care more about the power. Note
+// that IP2 is really measuring the second order effects for SINGLE tone,
+// while for most other circuits, IP2 and IP3 are measured by two tones.
+
+`define db20_real(x)  (pow(10, (x)/20))
+`define db10_real(x)  (pow(10, (x)/10))
+
+module PA_PB(in, out);
+   inout in, out;
+   electrical in, out;
+   parameter real nf = 2 from [0:inf);
+   parameter real gain = 20 from [0:inf);
+   parameter real rin = 50 from (0:inf);
+   parameter real rout = 50 from (0:inf);
+   parameter real cpdb = 30;
+
+   // for S parameter
+   real      a1,a2;	
+   real      s12, s21;
+   
+   // suppose y=c1*x+c3*x^3, for higher order effects
+   real      rp1db, c3;      // real p1db, and c3
+   real      rnf;           // real NF
+   real      noise_current;
+   electrical in_int, out_int;
+   real      poutput, alimit;
+
+
+   analog begin
+       @(initial_step) begin
+
+	 // unfold the S parameters from dB to real values
+	 s21 = `db20_real(gain);
+	 
+	 // note ip3 is in dBm!
+	 rp1db= `db10_real(cpdb-30);
+	 // convert the rp1db from out referenced to input referenced
+         rp1db = pow(10,0.1)*rp1db/(s21*s21);
+	   
+	 // Note rp1db is already power, while textbook formula is about
+	 // the square root of the power (plus a factor of 2)!
+	 // so, 2 is the factor because complex voltage in Spectre is the
+	 // peak-peak value, 4 is because a1 is twice the real power limit
+	 c3  = 0.145*s21/(2*rp1db*4);
+
+	 rnf = `db10_real(nf);
+	 noise_current = 2*sqrt((rnf-1)*1.380620e-23*$temperature/rin);
+
+`define outp(a) ((a)*(s21-c3*(a)*(a)))
+	 alimit = sqrt(s21/(3*c3));
+      end
+
+      // calculate the normalized incident waves: a1, a2
+      a1 = V(in)/sqrt(rin) + I(in, in_int)*sqrt(rin);
+      a2 = V(out)/sqrt(rout) + I(out, out_int)*sqrt(rout);
+	
+      // input
+      I(in_int) <+ V(in)/rin;
+	
+      // output
+      I(out_int) <+ V(out)/rout;
+
+      if(a1 > alimit ) 
+	a1 = alimit;
+      else if(a1 < -alimit) 
+	a1 = -alimit;
+
+      poutput = a1*s21;
+      poutput = poutput-a1*a1*a1*c3;
+
+      I(out_int) <+ -poutput/sqrt(rout);
+
+      // noise current injected into the input port
+      I(in) <+ white_noise(noise_current*noise_current, "PA_PB");
+   end 
+endmodule //PA_PB 
+

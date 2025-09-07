@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "if (theta > pi2) theta = theta - pi2;", 
+		"bug_line": "if (theta > pi2) theta = theta + pi2;",
+		"error_description": "Changed subtraction to addition when wrapping phase angle. Instead of reducing theta by 2π when exceeding 2π, it erroneously adds 2π, causing phase accumulation and violating angle wrapping requirements."
+	},
+	{
+		"original_line": "        taps[3] = -2.7769e-09;", 
+		"bug_line": "        taps[2] = -2.7769e-09;",
+		"error_description": "The tap coefficient for index 3 is incorrectly assigned to index 2, overwriting the previous tap[2] value and leaving tap[3] uninitialized (0.0). This corrupts the FIR filter response by altering two tap coefficients instead of one."
+	},
+	{
+		"original_line": "real theta;", 
+		"bug_line": "real theta = 0.0;",
+		"error_description": "Initializing theta to 0.0 prevents proper phase accumulation by resetting the variable to zero at every analog iteration, disrupting the continuous phase integration required for correct I/Q modulation."
+	},
+	{
+		"original_line": "integer sgs[0:56];", 
+		"bug_line": "integer sgs[0:55];",
+		"error_description": "The array size is reduced from 57 elements (0-56) to 56 elements (0-55), but the code requires 57 elements for stop/guard/start samples. This causes out-of-bound access during initialization and main loop execution when accessing index 56."
+	},
+	{
+		"original_line": "        period = 1.0/(`OVERSAMPLE*`FREQUENCY);", 
+		"bug_line": "        period = 1.0 * (`OVERSAMPLE * `FREQUENCY);",
+		"error_description": "Replaced division with multiplication, causing period calculation to become oversample × frequency instead of 1/(oversample × frequency). This makes the period ~1e6 times larger, drastically slowing the timer events and corrupting the signal generation timing."
+	},
+	{
+		"original_line": "theta = theta+taps[k]*filter_states[k];", 
+		"bug_line": "theta = taps[k]*filter_states[k];",
+		"error_description": "Replaced accumulation with assignment, breaking the FIR filter integration. Each loop iteration overwrites theta instead of summing contributions, resulting in incorrect phase modulation."
+	},
+	{
+		"original_line": "i_out = amplitude*cos(theta);", 
+		"bug_line": "i_out = amplitude*sin(theta);",
+		"error_description": "The I output incorrectly uses sin(theta) instead of cos(theta), violating the design specification that requires the I component to be the cosine of the angle and the Q component to be the sine. This swaps the I/Q relationship and corrupts the baseband signal modulation."
+	},
+	{
+		"original_line": "if (dummy < 0) out_val = -1; else out_val = 1;", 
+		"bug_line": "if (dummy < 0) out_val = 1; else out_val = -1;",
+		"error_description": "Swapped the assignment values, causing inverted bit generation. Positive random values now produce -1 (incorrect) while negative values produce 1 (incorrect), flipping the GSM baseband signal polarity."
+	},
+	{
+		"original_line": "                taps[32] = 2.58321e-09;", 
+		"bug_line": "                taps[32] = 0;",
+		"error_description": "Setting tap coefficient 32 to zero instead of 2.58321e-09 corrupts the FIR filter impulse response. This alters the phase modulation in the GSM signal generation, causing incorrect I/Q outputs that violate the design specification."
+	},
+	{
+		"original_line": "      filter_states[1] = sgs[frame_count-bottom];", 
+		"bug_line": "      filter_states[1] = sgs[frame_count];",
+		"error_description": "Removed '-bottom' index offset, causing out-of-bounds array access since frame_count exceeds sgs array size (0-56) during guard period insertion."
+	},
+	{
+		"original_line": "taps[14] = 0.0534102;", 
+		"bug_line": "taps[15] = 0.0534102;",
+		"error_description": "Assigning the tap coefficient to index 15 instead of 14 causes a double assignment for tap 15 (overwriting its correct value) while leaving tap 14 uninitialized at 0. This corrupts the FIR filter response by altering two coefficients instead of one, distorting the GSM signal generation."
+	},
+	{
+		"original_line": "taps[14] = 0.0534102;", 
+		"bug_line": "taps[15] = 0.0534102;",
+		"error_description": "Assigns tap value to incorrect index 15 instead of 14, corrupting the Gaussian filter response by misplacing the coefficient and leaving tap 14 uninitialized."
+	},
+	{
+		"original_line": "taps[30] = 2.99684e-09;", 
+		"bug_line": "taps[30] = -2.99684e-09;",
+		"error_description": "Incorrect sign in tap coefficient 30 reverses the filter's phase response at that stage, distorting the Gaussian pulse shaping critical for GSM modulation and causing signal integrity issues."
+	},
+	{
+		"original_line": " *  $Revision: 1.2 $", 
+		"bug_line": " *  $Revision: 1.2 $)",
+		"error_description": "Added an extra closing parenthesis at the end of the line, causing a syntax error during compilation due to unmatched parentheses in the header comment block."
+	},
+	{
+		"original_line": "filter_states[1] = out_val;", 
+		"bug_line": "filter_states[1] = 1.0;",
+		"error_description": "Forces filter_states[1] to constant 1.0 instead of actual data value (out_val), corrupting the FIR filter input and causing incorrect modulation output."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* no_instrumentation *)",
+		"error_description": "The instrumentation attribute is misspelled and negated, preventing test coverage tools from instrumenting this module. This violates the design requirement for observability during verification, potentially hiding critical bugs in downstream testing phases."
+	},
+	{
+		"original_line": "taps[8] = 5.27425e-07;", 
+		"bug_line": "taps[8] = -5.27425e-07;",
+		"error_description": "Inverted sign of tap coefficient 8, causing phase distortion in the Gaussian filter response and corrupting the GMSK modulation spectral properties."
+	},
+	{
+		"original_line": "if (frame_count < bottom) begin", 
+		"bug_line": "if (frame_count < top) begin",
+		"error_description": "Changed condition from 'frame_count < bottom' to 'frame_count < top'. This causes the random data pattern to be used for most of the frame (0-198) instead of just the beginning (0-142), skipping the fixed guard/start/stop pattern insertion entirely when frame_count is between 143-198."
+	},
+	{
+		"original_line": "taps[26] = 5.27425e-07;", 
+		"bug_line": "taps[27] = 5.27425e-07;",
+		"error_description": "Assigns value to tap index 27 instead of 26, leaving tap 26 uninitialized (0) while overwriting tap 27's intended value. This corrupts two FIR filter coefficients, altering the frequency response and signal modulation."
+	},
+	{
+		"original_line": "real filter_out;", 
+		"bug_line": "real undefined_variable = unknown_value;",
+		"error_description": "Introduces an undefined variable 'unknown_value' causing compilation failure due to unresolved identifier."
+	}
+]

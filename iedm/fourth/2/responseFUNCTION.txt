@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "        (* instrument_module *)", 
+		"bug_line": "        (* no_instrument_module *)",
+		"error_description": "Changed 'instrument_module' attribute to 'no_instrument_module', preventing necessary simulation instrumentation. This violates design requirements for signal monitoring and test coverage analysis."
+	},
+	{
+		"original_line": "                    twa2i = sin(pha2*j);", 
+		"bug_line": "                    twa2i = sin(pha2*i);",
+		"error_description": "Replaced inner loop index 'j' with outer loop index 'i'. This causes the twiddle factor calculation to use a fixed outer loop value instead of the varying inner loop index, corrupting the IFFT computation by generating incorrect frequency-time domain transformations."
+	},
+	{
+		"original_line": "        Re_time[i4+2] = Re_time[i4+2] + (Ar+Br-Cr-Dr)*twmbr - (Ai+Bi-Ci-Di)*twmbi;", 
+		"bug_line": "        Re_time[i4+2] = Re_time[i4+2] + (Ar+Br-Cr-Dr)*twmbr + (Ai+Bi-Ci-Di)*twmbi;",
+		"error_description": "Changed the sign from minus to plus for the imaginary component term, violating complex multiplication rules in the IFFT calculation for bin i4+2. This corrupts the real part computation by adding the imaginary cross-term instead of subtracting it."
+	},
+	{
+		"original_line": "outImag = 0;", 
+		"bug_line": "outImag = n;",
+		"error_description": "Initializes Q channel output to FFT length (64) instead of 0, causing constant offset error in imaginary output throughout simulation due to incorrect initial condition propagation."
+	},
+	{
+		"original_line": "end else begin", 
+		"bug_line": "end else if (is20M==0) begin",
+		"error_description": "The condition is20M==0 is always false when reaching this else branch since is20M must be 0 to enter the else. This creates dead code where the 40MHz configuration block never executes, breaking 40MHz mode functionality."
+	},
+	{
+		"original_line": "                                Re_freq[pilotsIdx[i]+fftlength] = tmp * pilotsSign[i];", 
+		"bug_line": "                                Re_freq[pilotsIdx[i]+fftlength] = tmp;",
+		"error_description": "Removed multiplication by pilotsSign[i], causing pilot subcarriers for negative frequencies to lose their polarity pattern. This disrupts the BPSK modulation scheme for pilots and corrupts channel estimation during packet decoding."
+	},
+	{
+		"original_line": "i = pilots;", 
+		"bug_line": "i = 0;",
+		"error_description": "Resetting loop index to 0 instead of breaking causes infinite loop when n matches a pilot index, as the condition is repeatedly re-evaluated without incrementing n."
+	},
+	{
+		"original_line": "                               preamble[2]=3;", 
+		"bug_line": "                               preamble[2]=7;",
+		"error_description": "Changed Green mode preamble index from 3 to 7. Index 7 is out-of-bounds for prlength array (0-6), causing incorrect preamble length calculation and symbol timing errors during Greenfield transmission."
+	},
+	{
+		"original_line": "end /* i loop */", 
+		"bug_line": "end /* j loop */",
+		"error_description": "Changed loop termination comment from 'i loop' to 'j loop', incorrectly implying the inner loop terminates the outer j-loop. This causes confusion in loop scope interpretation during maintenance and could lead to erroneous code modifications targeting the wrong loop."
+	},
+	{
+		"original_line": "@(timer(initial_time, input_period  ) ) begin", 
+		"bug_line": "@(timer(initial_time, output_period  ) ) begin",
+		"error_description": "Changed input timer period from input_period to output_period. This causes input sampling to occur at the output sample rate instead of the required symbol rate. The faster sampling disrupts OFDM symbol generation by prematurely reading training symbols and corrupting the state machine controlling preamble/data sequencing."
+	},
+	{
+		"original_line": "sflag = 0;", 
+		"bug_line": "sflag = 10;",
+		"error_description": "Initializes sflag to 10 instead of 0, causing the condition (sflag < prs) to fail immediately. This skips the entire preamble sequence and transitions directly to data mode, violating the protocol which requires preamble transmission."
+	},
+	{
+		"original_line": "real twmar, twmai, twmbr, twmbi, twmcr, twmci;", 
+		"bug_line": "real twmar, twmai, twmbr, twmbi, twmci, twmcr;",
+		"error_description": "Swapped the declaration of twmcr and twmci, causing the real and imaginary components of the twiddle factor to be mismatched during IFFT computation. This results in incorrect butterfly operations and corrupts the generated OFDM time-domain symbols."
+	},
+	{
+		"original_line": "for(j=0; j<n4; j=j+1) begin", 
+		"bug_line": "for(j=0; j>n4; j=j+1) begin",
+		"error_description": "Changed loop condition from 'j<n4' to 'j>n4', making the loop never execute since j starts at 0. This prevents IFFT computation, resulting in zero time-domain output."
+	},
+	{
+		"original_line": "poly_orderMinus1 = poly_order - 1;", 
+		"bug_line": "poly_orderMinus1 = poly_order + 1;",
+		"error_description": "Sets poly_orderMinus1 to poly_order+1 instead of poly_order-1. This causes array index out-of-bounds errors in the PN sequence generation loop since state[] only has indices [0:poly_order-1], leading to invalid memory access and corrupted pilot symbols."
+	},
+	{
+		"original_line": "n = n+1;", 
+		"bug_line": "n = n-1;",
+		"error_description": "Changed carrier index increment to decrement. This causes the index to move backward through frequency bins during data symbol processing, corrupting previously assigned carriers and preventing proper OFDM symbol construction. The index never reaches the trigger condition for IFFT, halting frame transmission."
+	},
+	{
+		"original_line": "        preamble[0]=0;", 
+		"bug_line": "        preamble[0]=7;",
+		"error_description": "Assigns invalid value (7) to preamble[0], exceeding valid preamble type range [0-6]. Causes out-of-bounds access in prlength array during symbol sequence setup, corrupting frame structure."
+	},
+	{
+		"original_line": "                        Re_time[i4+1] = Re_time[i4+1] + (Ar-Br-Ci+Di)*twmar - (Ai-Bi+Cr-Dr)*twmai;", 
+		"bug_line": "                        Re_time[i4+1] = Re_time[i4+1] + (Ar-Br-Ci+Di)*twmar + (Ai-Bi+Cr-Dr)*twmai;",
+		"error_description": "Changed subtraction to addition for the imaginary component term. This sign error corrupts the IFFT calculation by incorrectly combining real and imaginary parts, resulting in distorted output waveforms."
+	},
+	{
+		"original_line": "integer preamble[0:6], prlength[0:6];", 
+		"bug_line": "integer preamble[0:6], prlength[0:5];",
+		"error_description": "Reduced prlength array size from 7 to 6 elements. This causes out-of-bounds access when prlength[6] is referenced in mode 'Mix' (where preamble values include 6), leading to undefined behavior and incorrect symbol duration calculations."
+	},
+	{
+		"original_line": "preamble[3]=3;", 
+		"bug_line": "preamble[3]=4;",
+		"error_description": "In Mix mode, the fourth preamble symbol is incorrectly set to HT-STF (4) instead of HT-SIG (3). This violates the 802.11n standard preamble sequence where HT-SIG must immediately follow L-SIG, causing incorrect frame decoding."
+	},
+	{
+		"original_line": "        if (sflag >= prs) inseq = 0;", 
+		"bug_line": "        if (sflag >= prs) inseq = 1;",
+		"error_description": "The condition incorrectly sets inseq=1 (preamble state) instead of 0 (data state) when sflag reaches prs, causing perpetual preamble processing and preventing transition to data transmission."
+	}
+]

@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "electrical I_out, Q_out;", 
+		"bug_line": "electrical I_out;",
+		"error_description": "Removed Q_out from electrical discipline declaration. This leaves the Q_out port without a defined discipline, causing simulation errors as the analog block attempts to drive an undeclared net. The output Q remains undriven, violating the dual-output design requirement."
+	},
+	{
+		"original_line": "x2[i]= 1;", 
+		"bug_line": "x2[1]= 1;",
+		"error_description": "Index error: At i=0, initializes x2[1] instead of x2[0]. This leaves x2[0] uninitialized (defaults to 0) and causes incorrect shift register state for the imaginary part scrambling sequence generation."
+	},
+	{
+		"original_line": "local_sample = frame_time / numChipsOut;", 
+		"bug_line": "local_sample = frame_time * numChipsOut;",
+		"error_description": "Changed division to multiplication, making chip duration 256 times longer than required. This drastically slows down the spreading code generation, causing timing misalignment with system requirements."
+	},
+	{
+		"original_line": "for(j=0; j <=18; j=j+1) begin", 
+		"bug_line": "for(j=0; j <18; j=j+1) begin",
+		"error_description": "The loop condition now stops at j=17 instead of j=18, failing to reset the last array element (index 18). This corrupts the shift register state since index 18 is used in polynomial calculations, causing incorrect sequence generation."
+	},
+	{
+		"original_line": "       if(i == 0) begin", 
+		"bug_line": "       if(i != 0) begin",
+		"error_description": "Changed condition from 'i == 0' to 'i != 0', causing incorrect initialization of shift registers. The first element (x[0], x2[0]) is now set to 0 instead of 1, and subsequent elements are set to 1 instead of 0. This corrupts the initial state of the scrambling sequence generator."
+	},
+	{
+		"original_line": "     end else begin", 
+		"bug_line": "     end else if (i > 38400) begin",
+		"error_description": "Changed condition from unconditional else to else-if with impossible condition (i > 38400). This prevents the shift register update and output computation for i>=18 since i never exceeds 38400, causing stale values in the output signal generation."
+	},
+	{
+		"original_line": "       i = 0;", 
+		"bug_line": "       i = 1;",
+		"error_description": "The reset counter is incorrectly set to 1 instead of 0. This causes the sequence to start at index 1 after each reset, skipping the first chip output and introducing a 1-chip offset in the periodic sequence alignment."
+	},
+	{
+		"original_line": "real local_sample;", 
+		"bug_line": "integer local_sample;",
+		"error_description": "Changing local_sample from real to integer truncates the fractional chip timing value (frame_time/numChipsOut ≈ 2.6e-7) to 0, causing the timer event to trigger continuously at time 0 instead of generating periodic chip outputs."
+	},
+	{
+		"original_line": "y[18] = ( y[10] + y[7] + y[5] + y[0] ) % 2;", 
+		"bug_line": "y[18] = ( y[10] + y[7] + y[5] + y[1] ) % 2;",
+		"error_description": "Changed tap position from index 0 to index 1 in the LFSR feedback polynomial for the real component, corrupting the pseudorandom sequence generation."
+	},
+	{
+		"original_line": "integer x_back[0:poly_order]; ", 
+		"bug_line": "integer x_back[poly_order:0]; ",
+		"error_description": "Changed array index order from ascending (0:poly_order) to descending (poly_order:0). This reverses the bit order during state backup/restore, corrupting the shift register sequence generation for the real component."
+	},
+	{
+		"original_line": "x2_back[i] = x2[i];", 
+		"bug_line": "x2_back[i] = x2[i+1];",
+		"error_description": "Index overflow error: Using i+1 accesses x2[19] when i=18, exceeding the array size (0-18), causing undefined behavior and corrupting backup data."
+	},
+	{
+		"original_line": "x2_back[i] = x2[i];", 
+		"bug_line": "x2_back[i] = x2[0];",
+		"error_description": "In the initial backup loop, all elements of x2_back are incorrectly set to the value of x2[0] instead of their respective positions. This causes the entire x2_back array to be filled with a single constant value rather than the actual initial state. During state resets, the imaginary component generator will use this corrupted uniform state instead of the correct sequence, breaking the pseudorandom sequence generation for the Q channel."
+	},
+	{
+		"original_line": "integer x[0:poly_order];", 
+		"bug_line": "integer x[0:poly_order-1];",
+		"error_description": "Array size reduced by 1 causes out-of-bound access at x[18] during shift operations, corrupting the scrambling code generation due to undefined values."
+	},
+	{
+		"original_line": "y2[18] = ( y2[10] + y2[7] + y2[5] + y2[0] ) % 2;", 
+		"bug_line": "y2[18] = ( y2[10] + y2[7] + y2[5] + y2[0] ) % 3;",
+		"error_description": "Changed modulo 2 to modulo 3, causing non-binary values in the shift register state and corrupting the imaginary sequence generation."
+	},
+	{
+		"original_line": "x[j] = x_back[j];", 
+		"bug_line": "x[j] = x2_back[j];",
+		"error_description": "The real part state array x[] is restored from the backup array for the imaginary part (x2_back) instead of its own backup (x_back), causing incorrect initialization of the real scrambling sequence after each radio frame."
+	},
+	{
+		"original_line": "tmpOut[1] = x2[i] + y2[i];", 
+		"bug_line": "tmpOut[1] = x2[i] * y2[i];",
+		"error_description": "Replaced addition with multiplication for the imaginary part calculation. This causes incorrect scrambling sequence generation since the modulo operation expects a sum of shift register values, not a product, fundamentally altering the output behavior."
+	},
+	{
+		"original_line": "for(j=0; j < 18; j=j+1) begin", 
+		"bug_line": "for(j=0; j < 18; j=j+2) begin",
+		"error_description": "Changing the loop increment to j=j+2 causes only even indices (0,2,4,...16) to be updated during the shift operation. This leaves odd-indexed elements unmodified, corrupting the shift register state and resulting in incorrect I/Q output values."
+	},
+	{
+		"original_line": "integer x_back[0:poly_order]; ", 
+		"bug_line": "integer x_back[0:poly_order-1]; ",
+		"error_description": "Reduces array size by 1 element, causing out-of-bound writes during state backup (line 54) and restores (line 97). This corrupts adjacent memory and scrambles the SCR sequence."
+	},
+	{
+		"original_line": "       y[i] = 1 ;", 
+		"bug_line": "       y[i] = 0 ;",
+		"error_description": "The initial state of the y shift register is incorrectly set to all zeros instead of all ones. This violates the design requirement for proper sequence generation, as the shift register starts in an invalid state, causing incorrect output in the real part of the generated sequence."
+	},
+	{
+		"original_line": "     if(i < 18 ) begin", 
+		"bug_line": "     if(i < 17 ) begin",
+		"error_description": "Changed the condition from i<18 to i<17. This causes the initial state to be used for only 17 iterations instead of 18 before shifting occurs. The premature shift at i=17 corrupts the sequence generation by skipping the 17th initial value and introducing an extra shifted value, violating the intended Gold code generation protocol."
+	}
+]

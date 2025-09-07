@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "q_input_data[middle] = 0;", 
+		"bug_line": "q_input_data[middle] = 1.0;",
+		"error_description": "Initializes the middle element of q_input_data to 1.0 instead of 0.0, introducing a constant DC offset in the Q-channel filter output due to incorrect initial state."
+	},
+	{
+		"original_line": "`include "constants.vams"", 
+		"bug_line": "`include "constant.vams"",
+		"error_description": "Changed filename to non-existent 'constant.vams' (singular), causing undefined constant errors for critical values like `M_PI` used in filter coefficient calculations."
+	},
+	{
+		"original_line": "start_time = frame_time / numChipsOut ;", 
+		"bug_line": "start_time = frame_time * numChipsOut ;",
+		"error_description": "Changed division to multiplication. This causes the initial timer delay to be 256 times larger than intended, delaying the start of sample processing and creating misalignment with input data timing."
+	},
+	{
+		"original_line": "electrical I_in, Q_in, I_out, Q_out;", 
+		"bug_line": "electrical I_in, Q_in; voltage I_out; electrical Q_out;",
+		"error_description": "Changed I_out discipline from electrical to voltage. This removes the current branch for I_out, causing conservation issues when driving downstream electrical components since voltage-only ports cannot sink/source current."
+	},
+	{
+		"original_line": "q_input_data[middle] = 0;", 
+		"bug_line": "q_input_data[middle] = filter_taps[middle];",
+		"error_description": "Incorrectly initializes the Q channel's middle tap to the filter coefficient value instead of zero, introducing a non-zero bias in the initial filter state for Q channel that propagates through the convolution, causing signal distortion."
+	},
+	{
+		"original_line": "integer t1;", 
+		"bug_line": "real t1;",
+		"error_description": "Changing t1 from integer to real causes type mismatch in conditional check (i != t1). Integer indices compared with real values may fail due to floating-point precision, disrupting special tap case handling and altering filter coefficients."
+	},
+	{
+		"original_line": "                t1 = -1;", 
+		"bug_line": "                t1 = 0;",
+		"error_description": "Setting t1 to 0 instead of -1 when the condition fails causes the special case tap calculation to be incorrectly applied at index 0. This index does not correspond to the denominator-zero condition, leading to improper filter coefficients when over_samples/(4*alpha) is non-integer."
+	},
+	{
+		"original_line": "tmpInteger = taps-i-1;", 
+		"bug_line": "tmpInteger = i;",
+		"error_description": "The symmetric index calculation is replaced with the current index, causing the filter tap at position i to be overwritten instead of setting the symmetric tap. This breaks the filter's symmetry and leaves taps at positions (taps-i-1) uninitialized (0.0), resulting in incorrect frequency response."
+	},
+	{
+		"original_line": "q_input_data[i] =  q_input_data[i-1];", 
+		"bug_line": "q_input_data[i] =  i_input_data[i-1];",
+		"error_description": "Replaces Q-channel shift with I-channel data, corrupting Q-channel output by cross-contaminating it with I-channel values during the shift register operation."
+	},
+	{
+		"original_line": "q_input_data[middle] = 0;", 
+		"bug_line": "i_input_data[middle] = 0;",
+		"error_description": "Assigning to i_input_data instead of q_input_data leaves q_input_data[middle] uninitialized. This causes non-zero initial state in the Q channel filter path, corrupting output calculations until flushed."
+	},
+	{
+		"original_line": "start_time = start_time / 500 ;", 
+		"bug_line": "start_time = start_time * 500 ;",
+		"error_description": "Changed division to multiplication, making start_time 250,000 times larger than intended. This causes the timer event to trigger much later, delaying all filter processing and causing significant signal misalignment."
+	},
+	{
+		"original_line": "    t1 = -1;", 
+		"bug_line": "    t1 = 0;",
+		"error_description": "Forces the special case tap calculation to incorrectly trigger at index 0 even when no singularity exists, corrupting the first filter coefficient and breaking the root-raised cosine frequency response."
+	},
+	{
+		"original_line": "  @(timer(start_time, period)) begin", 
+		"bug_line": "  @(timer(period, start_time)) begin",
+		"error_description": "Swapped timer arguments: now triggers at time 'period' (intended period) and repeats every 'start_time' (very small value ~1.33e-9s). This causes the filter block to execute at extremely high frequency instead of the intended chip rate, corrupting output samples through premature data shifts and incorrect convolution timing."
+	},
+	{
+		"original_line": "middle = floor(taps / 2.0);", 
+		"bug_line": "middle = floor(taps / 3.0);",
+		"error_description": "Changed divisor from 2.0 to 3.0, causing incorrect middle index calculation. This shifts the filter's center tap position, breaking symmetry and altering the impulse response, which violates the root-raised cosine filter design requirements."
+	},
+	{
+		"original_line": "delay = group_delay*over_samples;", 
+		"bug_line": "delay = group_delay;",
+		"error_description": "Removed multiplication by oversampling factor, reducing delay from intended group_delay*over_samples to just group_delay. This causes incorrect filter tap calculations and timing misalignment in the FIR filter implementation."
+	},
+	{
+		"original_line": "Upflag = 0;", 
+		"bug_line": "Upflag = 1;",
+		"error_description": "Changing reset value from 0 to 1 causes state machine misalignment. After initial sample (Upflag=0), subsequent cycles skip input sampling state (0) and only insert zeros, corrupting the output signal as inputs are never sampled again after first cycle."
+	},
+	{
+		"original_line": "parameter integer numChipsOut = 256;", 
+		"bug_line": "parameter integer numChipsOut = 0;",
+		"error_description": "Setting numChipsOut to 0 causes division by zero in period and start_time calculations during initial_step, crashing simulation immediately due to undefined mathematical operation."
+	},
+	{
+		"original_line": "tmp4 = tmp3 * tmp;", 
+		"bug_line": "tmp4 = tmp3 * alpha;",
+		"error_description": "Replaced time-dependent variable 'tmp' with constant parameter 'alpha', disrupting the filter coefficient calculation. The original 'tmp' represents normalized time offset critical for shaping the root-raised cosine response, while 'alpha' is a fixed roll-off factor. This substitution decouples coefficient generation from temporal positioning, causing incorrect filter taps across all frequencies."
+	},
+	{
+		"original_line": "tmp1 = cos ( alpha2 * tmp * `M_PI);", 
+		"bug_line": "tmp1 = cos ( alpha1 * tmp * `M_PI);",
+		"error_description": "Replaced alpha2 (1+alpha) with alpha1 (1-alpha) in the cosine argument. This disrupts the root raised cosine filter formula by using the wrong roll-off factor term, corrupting the filter's frequency response."
+	},
+	{
+		"original_line": "taps =2*delay+1;", 
+		"bug_line": "taps =2*delay;",
+		"error_description": "The number of filter taps is incorrectly set to an even number (2*delay) instead of the required odd number (2*delay+1). This breaks the symmetric FIR filter structure by eliminating the central tap position, causing incorrect coefficient calculation and misalignment during convolution. The missing tap degrades signal integrity and introduces distortion in the filtered output."
+	}
+]

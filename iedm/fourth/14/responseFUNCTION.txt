@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "                taps[46] = -0.035752;", 
+		"bug_line": "                taps[46] = 0.035752;",
+		"error_description": "The sign of tap coefficient 46 is reversed from negative to positive. This sign error in the FIR filter coefficient distorts the pulse shaping characteristics, causing improper signal modulation in the CDMA baseband output."
+	},
+	{
+		"original_line": "                taps[3] = -0.035752;", 
+		"bug_line": "                taps[3] = 0.035752;",
+		"error_description": "The sign of the filter coefficient for tap 3 is reversed (positive instead of negative), altering the FIR filter's impulse response and causing distortion in the generated CDMA signal."
+	},
+	{
+		"original_line": "real iout_val;", 
+		"bug_line": "integer iout_val;",
+		"error_description": "Changing iout_val from real to integer truncates the fractional part of the assigned amplitude value. This causes incorrect discrete levels in the I-channel output when the amplitude parameter is non-integer (e.g., amplitude=1.5 would output 1.0 instead of 1.5), violating the design specification for analog voltage accuracy."
+	},
+	{
+		"original_line": "taps[5] = 0.021603;", 
+		"bug_line": "taps[5] = 0.0;",
+		"error_description": "Set tap coefficient at index 5 to zero instead of 0.021603, nullifying its contribution to the FIR filter. This alters the filter's impulse response and distorts the CDMA signal output by removing a designed frequency component."
+	},
+	{
+		"original_line": "                taps[7] = 0.091002;", 
+		"bug_line": "                taps[7] = -0.091002;",
+		"error_description": "Inverted FIR filter coefficient sign for tap 7. This alters the filter's impulse response, causing signal distortion in the I-channel output by introducing phase reversal in this tap contribution."
+	},
+	{
+		"original_line": "parameter real amplitude= 2 from [0:inf);", 
+		"bug_line": "parameter real amplitude= 0 from [0:inf);",
+		"error_description": "Sets amplitude to 0, causing no output signal since all generated bit values become zero. Violates design requirement for non-zero output voltage."
+	},
+	{
+		"original_line": "                taps[5] = 0.021603;", 
+		"bug_line": "                taps[5] = -0.021603;",
+		"error_description": "Inverted sign of FIR filter coefficient at index 5, introducing signal distortion in the CDMA output by altering the filter's frequency response characteristics."
+	},
+	{
+		"original_line": "                taps[19] = -0.211829;", 
+		"bug_line": "                taps[19] = 0.211829;",
+		"error_description": "Sign error in FIR filter coefficient changes pulse shaping characteristics. Negative tap becomes positive, distorting the CDMA signal waveform and violating baseband specifications."
+	},
+	{
+		"original_line": "                taps[11] = -0.060772;", 
+		"bug_line": "                taps[11] = 0.060772;",
+		"error_description": "Sign error in tap coefficient: Changed negative value to positive. This reverses the signal contribution at this FIR filter tap, distorting the CDMA signal waveform and causing baseband interference."
+	},
+	{
+		"original_line": "        if (count >= `OVERSAMPLE) begin", 
+		"bug_line": "        if (k >= `OVERSAMPLE) begin",
+		"error_description": "Changed condition variable from 'count' to 'k'. 'k' is a loop index that fluctuates between 1-48 during filter operations, causing unpredictable data generation timing instead of every OVERSAMPLE events. This violates the design specification requiring periodic data generation."
+	},
+	{
+		"original_line": "parameter real rise_fall = 1 from (0:1];", 
+		"bug_line": "parameter real rise_fall = 0 from (0:1];",
+		"error_description": "Setting rise_fall to 0 violates the valid range (0,1]. This causes the transition function's rise/fall time (tt) to become zero, resulting in discontinuous voltage steps that break analog simulation convergence."
+	},
+	{
+		"original_line": "                taps[17] = -0.012840;", 
+		"bug_line": "                taps[16] = -0.012840;",
+		"error_description": "Assigning the tap coefficient to index 16 instead of 17 overwrites the previously set tap[16] value (0.094528) and leaves tap[17] uninitialized (0.0). This corrupts the FIR filter coefficients, distorting the CDMA signal filtering output."
+	},
+	{
+		"original_line": "V(q_bin_node) <+ transition(qout_val,(`TAP_LENGTH-2)*period/2+period*2,period/25,period/25);", 
+		"bug_line": "V(q_bin_node) <+ transition(iout_val,(`TAP_LENGTH-2)*period/2+period*2,period/25,period/25);",
+		"error_description": "The q_bin_node incorrectly uses iout_val (I-channel data) instead of qout_val (Q-channel data), causing the Q binary output to carry I-channel information. This violates the design specification requiring separate I and Q signal paths."
+	},
+	{
+		"original_line": "if (dummy < 0) bit = -amplitude; else bit = amplitude;", 
+		"bug_line": "if (dummy < 0) bit = amplitude; else bit = -amplitude;",
+		"error_description": "The assignment logic is inverted: negative dummy values now incorrectly set bit to positive amplitude, while non-negative values set it to negative amplitude. This swaps the intended signal polarity, corrupting the CDMA modulation scheme by inverting I/Q channel outputs."
+	},
+	{
+		"original_line": "qfilter_states[k] =0;", 
+		"bug_line": "qfilter_states[k] = 0.5;",
+		"error_description": "Initializes Q-channel filter states to 0.5 instead of 0, introducing DC offset in Q-path output and violating zero-initialization requirement for FIR filters."
+	},
+	{
+		"original_line": "V(q_out_node) <+ transition(filter_q_out,period*2,tt,tt);", 
+		"bug_line": "V(q_out_node) <+ transition(filter_i_out,period*2,tt,tt);",
+		"error_description": "The Q output channel incorrectly uses the I channel's filtered signal (filter_i_out) instead of its own Q signal (filter_q_out). This swaps the I/Q outputs, violating the CDMA baseband generation specification where I and Q channels must remain separate."
+	},
+	{
+		"original_line": "taps[13] = 0.007875;", 
+		"bug_line": "taps[13] = 0.0;",
+		"error_description": "Set tap coefficient 13 to zero instead of 0.007875, altering the FIR filter's impulse response and distorting the baseband signal output."
+	},
+	{
+		"original_line": "V(q_out_node) <+ transition(filter_q_out,period*2,tt,tt);", 
+		"bug_line": "V(q_out_node) <+ transition(filter_i_out,period*2,tt,tt);",
+		"error_description": "The Q output node incorrectly uses filtered I-channel data (filter_i_out) instead of Q-channel data (filter_q_out), causing I/Q channel cross-talk and corrupting the quadrature signal output."
+	},
+	{
+		"original_line": "taps[45] = -0.016734;", 
+		"bug_line": "taps[46] = -0.016734;",
+		"error_description": "Assigned the value intended for tap 45 to tap 46 instead, leaving tap 45 uninitialized (0) and overwriting the intended value for tap 46. This corrupts the FIR filter coefficients, altering the baseband signal generation."
+	},
+	{
+		"original_line": "`define FREQUENCY 1228800.0", 
+		"bug_line": "`define FREQUENCY 0.0",
+		"error_description": "Setting frequency to 0 causes division by zero when calculating period (1.0/(`OVERSAMPLE*`FREQUENCY)), leading to undefined behavior in timer events and signal generation."
+	}
+]

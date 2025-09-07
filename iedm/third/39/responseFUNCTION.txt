@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "denomAP[0]= 1.0;", 
+		"bug_line": "denomAP[0]= 0.0;",
+		"error_description": "Setting the leading denominator coefficient to zero creates a division-by-zero instability in the Laplace transfer function, making the all-pass filter non-implementable and crashing simulation."
+	},
+	{
+		"original_line": " w_LPF = `M_TWO_PI * f_LPF;", 
+		"bug_line": " w_LPF = `M_TWO_PI / f_LPF;",
+		"error_description": "Division operator replaces multiplication, causing incorrect angular frequency calculation for the low-pass filter. This results in w_LPF being set to (2π)/f_LPF instead of 2π·f_LPF, fundamentally altering the filter's cutoff frequency and violating the design specifications."
+	},
+	{
+		"original_line": "`include "disciplines.vams"", 
+		"bug_line": "`include "nonexistent.vams"",
+		"error_description": "The modified include directive references a non-existent file, causing compilation failure. This prevents the 'electrical' discipline from being recognized, making all port declarations invalid and halting simulation setup."
+	},
+	{
+		"original_line": "real viout, vqout;", 
+		"bug_line": "real viout, vqout_inv;",
+		"error_description": "The variable 'vqout' is no longer declared. Subsequent assignments to vqout create an implicit real variable, while the declared variable 'vqout_inv' remains unassigned. The Q_output path uses the unassigned vqout_inv, resulting in incorrect baseband conversion as Q_out always outputs 0."
+	},
+	{
+		"original_line": "inout in, I_out, Q_out;", 
+		"bug_line": "output in, I_out, Q_out;",
+		"error_description": "Changed all ports to output. This prevents reading the input signal 'in' since output ports cannot be read, and incorrectly attempts to drive the input port. Output ports I_out and Q_out become driven twice (module + external connection), causing contention."
+	},
+	{
+		"original_line": "denomAP[2]= time_delay*time_delay/12.0;", 
+		"bug_line": "denomAP[2]= time_delay*time_delay/6.0;",
+		"error_description": "Changed denominator coefficient from 12.0 to 6.0, altering the group delay characteristics of the all-pass filter. This breaks the required 90-degree phase shift approximation, causing quadrature imbalance in the demodulated I/Q signals."
+	},
+	{
+		"original_line": "viout = ( vcos * vin + vsin * vin_d );", 
+		"bug_line": "viout = ( vcos * vin - vsin * vin_d );",
+		"error_description": "The plus sign was replaced with a minus sign, incorrectly calculating the in-phase component (I) by subtracting the quadrature term instead of adding it. This sign reversal corrupts the demodulation output since the standard formula requires addition of the cosine and sine product terms."
+	},
+	{
+		"original_line": "w_carrier = `M_TWO_PI * f_carrier;", 
+		"bug_line": "w_carrier = `M_PI * f_carrier;",
+		"error_description": "Replaced `M_TWO_PI` (2π) with `M_PI` (π), halving the angular frequency calculation. This causes incorrect carrier phase generation in the demodulator, resulting in distorted I/Q outputs as the trigonometric functions use an improperly scaled frequency."
+	},
+	{
+		"original_line": " numPB[0] = 1.0;", 
+		"bug_line": " numPB[0] = 0.0;",
+		"error_description": "Setting numerator coefficient to zero breaks the low-pass filter, blocking all signals and producing zero output for both I and Q channels."
+	},
+	{
+		"original_line": "real viout, vqout;", 
+		"bug_line": "real viout, vqout_temp;",
+		"error_description": "Changed 'vqout' to 'vqout_temp', making the subsequent assignment to 'vqout' an undeclared variable. This breaks the Q-output path while leaving the I-output functional, violating the dual-output design requirement."
+	},
+	{
+		"original_line": "inout in, I_out, Q_out;", 
+		"bug_line": "input in, I_out, Q_out;",
+		"error_description": "Changed all ports to input direction, preventing output signal assignments to I_out and Q_out which violates the module's output requirement for baseband signals."
+	},
+	{
+		"original_line": "parameter real f_carrier = 2.400e+9 from (0:inf);", 
+		"bug_line": "parameter real f_carrier = 0 from [0:inf);",
+		"error_description": "Sets carrier frequency to 0 by default, causing division by zero in time_delay calculation (0.25/f_carrier) and violating the requirement for a positive carrier frequency."
+	},
+	{
+		"original_line": "inout in, I_out, Q_out;", 
+		"bug_line": "inout in_wrong, I_out, Q_out;",
+		"error_description": "Renamed input port 'in' to 'in_wrong', disconnecting the external input signal from the internal net 'in'. This causes the module to process an unconnected net (likely 0V) instead of the actual passband input, resulting in incorrect I/Q outputs."
+	},
+	{
+		"original_line": "@(initial_step) begin", 
+		"bug_line": "@(final_step) begin",
+		"error_description": "Changed initialization event from initial_step to final_step. This delays parameter setup until simulation end instead of start, leaving time_delay and other critical parameters uninitialized during operation. The demodulator will use incorrect values (likely 0.0) for w_carrier and filter coefficients, causing complete functional failure."
+	},
+	{
+		"original_line": "parameter real f_LPF = 100M from (0:inf);", 
+		"bug_line": "parameter real f_LPF = 100G from (0:inf);",
+		"error_description": "The low-pass filter bandwidth is set too high (100 GHz instead of 100 MHz), failing to filter out high-frequency mixer products near twice the carrier frequency, which corrupts the baseband outputs I(t) and Q(t)."
+	},
+	{
+		"original_line": "vcos = cos(phi);", 
+		"bug_line": "vcos = sin(phi);",
+		"error_description": "Replaced cosine with sine for in-phase carrier generation. This swaps the I/Q demodulation roles, corrupting both outputs since I_out uses sine-modulated real signal while Q_out uses sine-modulated delayed signal, violating the design requirement I(t) = real(PB)⊗cos - imag(PB)⊗sin."
+	},
+	{
+		"original_line": "module PB2BB_demod(in, I_out, Q_out);", 
+		"bug_line": "module PB2BB_demod(in, I_out);",
+		"error_description": "Removed the Q_out port, causing the quadrature output to be disconnected. The module now only provides the in-phase output (I_out), violating the design requirement for both I and Q baseband signals."
+	},
+	{
+		"original_line": "vin_d =laplace_nd(V(in), numAP, denomAP);", 
+		"bug_line": "vin_d =laplace_nd(V(I_out), numAP, denomAP);",
+		"error_description": "Changed input signal from 'in' to 'I_out', creating a feedback loop where the output depends on itself. This causes incorrect demodulation due to algebraic loop instability and signal corruption."
+	},
+	{
+		"original_line": "module PB2BB_demod(in, I_out, Q_out);", 
+		"bug_line": "module PB2BB_demod(in, Q_out, I_out);",
+		"error_description": "Swapped I_out and Q_out port positions, causing baseband outputs to be reversed. The I channel will output quadrature data while Q outputs in-phase data, violating signal processing requirements."
+	},
+	{
+		"original_line": "`include "constants.vams"", 
+		"bug_line": "`include "wrong_constants.vams"",
+		"error_description": "Modified include directive references a non-existent file, causing undefined constants like `M_TWO_PI. This breaks frequency calculations (w_carrier, w_LPF) and time_delay computation, corrupting the baseband conversion."
+	}
+]

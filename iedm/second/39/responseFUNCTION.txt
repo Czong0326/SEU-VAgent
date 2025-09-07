@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "real dw=0 ;", 
+		"bug_line": "real dw=0.0 ;",
+		"error_description": "Changed integer initialization '0' to real '0.0', causing type mismatch in subsequent analog block assignments where integer values are expected for dw calculations, breaking the CF width evolution logic."
+	},
+	{
+		"original_line": "parameter real Z = 2 ;", 
+		"bug_line": "parameter real Z = -2 ;",
+		"error_description": "Changed charge state Z from positive to negative value. This inverts the electric field effect on energy barriers during SET/RESET operations, causing incorrect filament growth/retraction dynamics. The model requires positive Z (typically 2 for oxygen vacancies) to correctly reduce energy barriers under appropriate bias."
+	},
+	{
+		"original_line": "dx = -a*f*exp(-(Ea-Vg*alpha*Z/x)/(Kb*Temp)) ;", 
+		"bug_line": "dx = -a*f*exp(-(Ea-Vg*alpha*Z*x)/(Kb*Temp)) ;",
+		"error_description": "Division by x incorrectly changed to multiplication by x in the exponential term. This inverts the voltage/gap relationship, causing unrealistic filament growth behavior during SET operations."
+	},
+	{
+		"original_line": "parameter real weff = 0.5e-9 ;     // unit: m     effective CF extending width", 
+		"bug_line": "parameter real weff = -0.5e-9 ;     // unit: m     effective CF extending width",
+		"error_description": "Negative effective CF extending width causes unphysical shrinkage of conductive filament during SET operation, preventing resistance reduction and violating device functionality."
+	},
+	{
+		"original_line": "I2 = Vtb/(rou*L0/(pi*w*w/4)) ;", 
+		"bug_line": "I2 = Vtb/(rou*L0/(pi*WCF*WCF/4)) ;",
+		"error_description": "Changed CF cross-sectional area calculation from actual filament width (w) to fixed device width (WCF). This ignores the filament's physical constriction, overestimating current flow when the filament is narrow by using the maximum possible device area instead of the true conductive path area."
+	},
+	{
+		"original_line": "parameter real VT = 0.4 ;          // unit: V", 
+		"bug_line": "parameter real VT = -0.4 ;          // unit: V",
+		"error_description": "The voltage scaling parameter VT is set to a negative value, which inverts the sinh function behavior in current calculations. This causes current direction to reverse under positive voltages, violating the device's intended polarity and fundamental physical operation."
+	},
+	{
+		"original_line": "if ( dw > 1e2 )", 
+		"bug_line": "if ( dw < 1e2 )",
+		"error_description": "Inverted condition error: The cap on filament growth rate is applied to slow-growing cases (< 1e2) instead of fast-growing cases (> 1e2). This allows unphysically high growth rates during SET operations, potentially causing simulation instability and inaccurate filament formation modeling."
+	},
+	{
+		"original_line": "parameter real Ei = 0.82 ;          // unit: ev   energy barrier between the electrode and oxide", 
+		"bug_line": "parameter real Ei = -0.82 ;          // unit: ev   energy barrier between the electrode and oxide",
+		"error_description": "The energy barrier is incorrectly set to a negative value. Physical energy barriers must be positive; this unphysical value will cause exponential terms in reset equations to become extremely large, leading to unrealistically fast reset operations and simulation instability."
+	},
+	{
+		"original_line": "parameter real deltaGap	= 4e-5 ;     //	gap distance variation amplitude", 
+		"bug_line": "parameter real deltaGap	= -4e-5 ;     //	gap distance variation amplitude",
+		"error_description": "Negative deltaGap value inverts the sign of gap distance variations during reset operations, causing gap changes in the opposite direction of intended behavior and violating the variation model design."
+	},
+	{
+		"original_line": "/********************************************", 
+		"bug_line": "parameter real a = 0.5e-9; // Modified parameter",
+		"error_description": "Parameter 'a' is redefined inside the module body after its initial declaration. This violates VerilogA scoping rules since parameters can only be declared once at the module level, causing a compilation error due to duplicate parameter definition."
+	},
+	{
+		"original_line": "parameter real I0 = 1e13 ;         // unit: A/m^2    hopping current density in the gap region", 
+		"bug_line": "parameter real I0 = 1e13 ;         // unit: A/cm^2    hopping current density in the gap region",
+		"error_description": "Changed current density unit from A/m² to A/cm² without adjusting the value. This introduces a 10,000x underestimation of hopping current density since 1 A/cm² = 10,000 A/m², severely distorting SET/RESET dynamics and resistance switching behavior."
+	},
+	{
+		"original_line": "dxr1 = a*f*exp(-(Ei+r*Z*Vtb)/(Kb*Temp)) ;", 
+		"bug_line": "dxr1 = a*f*exp(-(Ei+r*Z*Vtb)*(Kb*Temp) ;",
+		"error_description": "Changed division to multiplication in the exponent argument. The original divides by (Kb*Temp) to correctly calculate thermal energy scaling, but the bug multiplies by it instead. This inverts the temperature dependence and creates unrealistically large barrier values during reset operations."
+	},
+	{
+		"original_line": "parameter real f = 1e13 ;          // unit: HZ  vibration frequency of oxygen atom in VO", 
+		"bug_line": "parameter real f = -1e13 ;          // unit: HZ  vibration frequency of oxygen atom in VO",
+		"error_description": "Assigned negative value to vibration frequency f. This unphysical value will invert filament evolution direction in dx/dw calculations, causing CF growth when gap should close and vice versa."
+	},
+	{
+		"original_line": "I1 = I0*pi*(WCF*WCF/4-w*w/4)*exp(-L0/XT)*sinh(Vtb/VT) ;", 
+		"bug_line": "I1 = I0*pi*(WCF*WCF/4-w*w/4)*exp(-L0/XT)*cosh(Vtb/VT) ;",
+		"error_description": "Replaced sinh() with cosh() in the SET current calculation. This fundamentally changes the current-voltage relationship since cosh() is symmetric while sinh() is antisymmetric, eliminating the polarity-dependent switching behavior critical for RRAM operation."
+	},
+	{
+		"original_line": "x = idt(dx+gap_random_ddt,x0) ;", 
+		"bug_line": "x = idt(dx - gap_random_ddt,x0) ;",
+		"error_description": "Changed addition to subtraction of gap_random_ddt. This inverts the effect of random variations during RESET operations, causing gap distance changes to counteract rather than augment the deterministic evolution. Specifically, when Vtb<0 and x≥crit_x, negative gap variations will reduce x instead of increasing it, violating the intended stochastic reset behavior."
+	},
+	{
+		"original_line": "else if (x < L0)", 
+		"bug_line": "else if (x > L0)",
+		"error_description": "Changed condition from 'x < L0' to 'x > L0'. Since x is bounded to [0, L0], this condition is never true, preventing reset dynamics during gap formation and causing the gap variable (x) to remain stuck at 0 during reset operations."
+	},
+	{
+		"original_line": "		Itb=0 ;", 
+		"bug_line": "		Itb=1e-9 ;",
+		"error_description": "Sets a non-zero current (1nA) at zero voltage instead of zero current, violating the expected zero-bias condition and introducing unphysical leakage."
+	},
+	{
+		"original_line": "           Patent Pending.", 
+		"bug_line": "           real b = 0;",
+		"error_description": "Redeclares port 'b' as a real variable, causing a name conflict and compilation failure due to duplicate definition in the same scope."
+	},
+	{
+		"original_line": "gap_random_ddt = 0 ;", 
+		"bug_line": "gap_random_ddt = 1e-9 ;",
+		"error_description": "Introduces a constant 1nm offset in gap variation during RESET operations even when variation modeling is disabled (sw=0). This violates the intended behavior where gap_random_ddt should be zero without variations, causing unintended CF gap growth during RESET."
+	},
+	{
+		"original_line": "dx = -1e2 ;", 
+		"bug_line": "dx = 1e2 ;",
+		"error_description": "Changed the gap closure speed limit from negative to positive during SET operation. This error reverses the CF formation direction during SET by forcing gap expansion instead of closure when the speed exceeds the limit, violating device physics."
+	}
+]

@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "if (abs(CORNER) > 1) $error("Invalid CORNER=%0d", CORNER);", 
+		"bug_line": "if (abs(CORNER) > 2) $error("Invalid CORNER=%0d", CORNER);",
+		"error_description": "The condition now only errors when |CORNER|>2, failing to catch invalid values like 2 (which should be caught since valid range is [-1,1]). This allows CORNER=2 to pass without error, causing undefined behavior in process variation modeling."
+	},
+	{
+		"original_line": "  if (abs(CORNER) > 1) $error("Invalid CORNER=%0d", CORNER);", 
+		"bug_line": "  if (abs(CORNER) < 1) $error("Invalid CORNER=%0d", CORNER);",
+		"error_description": "The condition now incorrectly flags valid CORNER=0 (TT) as invalid while failing to detect out-of-range values like 2/-2. This inverts the safety check - valid TT corner triggers an error while actual invalid corners pass undetected."
+	},
+	{
+		"original_line": "I(p,n) <+ v_pn / R_actual;  // I = V/R", 
+		"bug_line": "I(n,p) <+ v_pn / R_actual;  // I = V/R",
+		"error_description": "Swapped port order in current assignment, reversing current direction. This violates Kirchhoff's laws by making current flow opposite to the voltage polarity, fundamentally breaking resistor behavior."
+	},
+	{
+		"original_line": "integer seed = 3421;  // Fixed seed for reproducibility", 
+		"bug_line": "real seed = 3421;  // Fixed seed for reproducibility",
+		"error_description": "Changed seed variable type from integer to real. This causes a type mismatch in the $dist_normal function call (line 30) which requires an integer variable for its seed argument, resulting in compilation failure."
+	},
+	{
+		"original_line": "if (R_SIGMA < 0) $error("Negative R_SIGMA=%.2f", R_SIGMA);", 
+		"bug_line": "if (R_SIGMA > 0) $error("Negative R_SIGMA=%.2f", R_SIGMA);",
+		"error_description": "The condition incorrectly checks for positive values instead of negative. This causes valid positive R_SIGMA values to trigger an error while allowing invalid negative values to pass unchecked, reversing the intended parameter validation."
+	},
+	{
+		"original_line": "analog begin", 
+		"bug_line": "digital begin",
+		"error_description": "Replaced 'analog' with 'digital', changing the continuous-time simulation block to an unsupported digital process. This prevents the resistor model from calculating continuous I-V relationships and causes compilation errors since VerilogA requires analog blocks for physical components."
+	},
+	{
+		"original_line": "inout p, n;", 
+		"bug_line": "input p, n;",
+		"error_description": "Changing port direction from bidirectional (inout) to unidirectional (input) prevents current flow from terminal n to p, violating the fundamental bidirectional behavior of resistors."
+	},
+	{
+		"original_line": "if (abs(CORNER) > 1) $error("Invalid CORNER=%0d", CORNER);", 
+		"bug_line": "if (abs(CORNER) >= 1) $error("Invalid CORNER=%0d", CORNER);",
+		"error_description": "Changed '>' to '>=', incorrectly flagging valid CORNER values (-1/1) as errors. This prevents using SS/FF process corners while allowing out-of-range values like 2."
+	},
+	{
+		"original_line": "real random_shift = R_SIGMA * $dist_normal(seed, 0, 1, 3);", 
+		"bug_line": "real random_shift = R_SIGMA * $dist_normal(seed, 1, 0, 3);",
+		"error_description": "Swapped the mean (0) and standard deviation (1) arguments in the normal distribution call. This sets the mean to 1 and standard deviation to 0, resulting in a constant output of 1. This removes all random variation and creates a fixed bias of R_SIGMA in the resistance calculation, violating the process variation requirements."
+	},
+	{
+		"original_line": "module res_linear_process (p, n);", 
+		"bug_line": "module res_linear_process (p);",
+		"error_description": "Removed port 'n' breaks the two-terminal resistor requirement, leaving the 'n' terminal internally undeclared and unconnected. This causes compilation errors and prevents current flow through the resistor since only one terminal exists."
+	},
+	{
+		"original_line": "$bound_step(0.1*R_actual*1e-12);", 
+		"bug_line": "$bound_step(0.1*R_actual/1e-12);",
+		"error_description": "Changed multiplication to division, making the step bound 1e24 times larger. This disables simulation step control, risking numerical instability by allowing excessively large time steps that violate the RC time constant limit."
+	},
+	{
+		"original_line": "process_shift = 1 + corner_shift + random_shift;", 
+		"bug_line": "process_shift = 1 + corner_shift * random_shift;",
+		"error_description": "Replaced addition with multiplication between corner_shift and random_shift, causing underestimation of process variation since multiplicative combination of fractional values (typically 0.15 * 0.1) yields negligible shifts (~0.015) versus intended additive shifts (~0.25)."
+	},
+	{
+		"original_line": "real process_shift;", 
+		"bug_line": "integer process_shift;",
+		"error_description": "Changing variable type to integer causes truncation of fractional values from corner_shift and random_shift, eliminating process variation details and corrupting R_actual calculation."
+	},
+	{
+		"original_line": "parameter real V_MAX = 5 from (0.1 to 50);      // Maximum operating voltage [V]", 
+		"bug_line": "parameter real V_MAX = 0.05 from (0.1 to 50);      // Maximum operating voltage [V]",
+		"error_description": "Default V_MAX value (0.05V) is below the minimum allowed value (0.1V). This violates the design specification and causes false overvoltage warnings for normal operating voltages between 0.05V-0.1V."
+	},
+	{
+		"original_line": "real process_shift;", 
+		"bug_line": "real process_shift = 1.0;",
+		"error_description": "Initializing process_shift to a fixed value (1.0) overrides the subsequent process variation calculations, making the resistor always nominal regardless of CORNER/R_SIGMA parameters."
+	},
+	{
+		"original_line": "parameter real V_MAX = 5 from (0.1 to 50);      // Maximum operating voltage [V]", 
+		"bug_line": "parameter real V_MAX = -5 from (-50 to 50);      // Maximum operating voltage [V]",
+		"error_description": "Negative V_MAX causes voltage warning condition (abs(v_pn) > V_MAX) to always trigger since absolute voltage is non-negative and always greater than negative V_MAX, flooding warnings even at 0V. This violates the design requirement of a positive maximum operating voltage threshold."
+	},
+	{
+		"original_line": "real R_actual = R0 * process_shift;", 
+		"bug_line": "real R_actual = R0 / process_shift;",
+		"error_description": "Division instead of multiplication inverts the effect of process variation: a positive shift (e.g., 1.1) decreases resistance instead of increasing it."
+	},
+	{
+		"original_line": "parameter integer CORNER = 0 from [-1:1];       // Process corner: -1=SS, 0=TT, 1=FF", 
+		"bug_line": "parameter integer CORNER = 0 from [0:1];       // Process corner: -1=SS, 0=TT, 1=FF",
+		"error_description": "The range modification excludes negative values, preventing the SS corner (-1) from being set. Attempts to use SS will clamp to 0 (TT) or cause out-of-range errors, breaking the three-corner variation design."
+	},
+	{
+		"original_line": "parameter integer CORNER = 0 from [-1:1];       // Process corner: -1=SS, 0=TT, 1=FF", 
+		"bug_line": "parameter integer CORNER = 0 from [0:1];       // Process corner: -1=SS, 0=TT, 1=FF",
+		"error_description": "Changing the valid range to [0:1] excludes the SS corner (CORNER=-1). When users specify SS corner, simulators may clamp the value to 0 (TT) without warning, causing incorrect resistance calculations for slow-silicon conditions."
+	},
+	{
+		"original_line": "real v_pn = V(p,n);", 
+		"bug_line": "real v_pn = V(p);",
+		"error_description": "Changed voltage difference measurement to single-node voltage reference. This loses the differential voltage across the resistor, using absolute voltage at terminal p instead. This violates Ohm's Law implementation since resistor current depends on voltage difference between p and n."
+	}
+]

@@ -1,0 +1,38 @@
+// VerilogA for my_rfLib, BB_driver, veriloga
+//1/28/00
+
+/*
+This module senses a baseband voltage signal and amplifies it
+so that if the baseband input were 1 volt in magnitude, the
+output across a matched resistive load would equal the specified
+dBm.
+*/
+
+`include "constants.h"
+`include "discipline.h"
+
+module BB_driver(I_in, I_out, Q_in, Q_out);
+input I_in;
+electrical I_in;
+inout I_out;
+electrical I_out;
+input Q_in;
+electrical Q_in;
+inout Q_out;
+electrical Q_out;
+
+parameter real rout = 50 from [0:inf);
+parameter real power_level = 10; 
+real peak;
+
+analog begin
+
+   @( initial_step) begin
+      peak = 2*sqrt(2*rout*0.001*pow(10, 0.1*power_level));
+   end
+
+   I(I_out) <+ (-peak*V(I_in) + V(I_out))/rout;
+   I(Q_out) <+ (-peak*V(Q_in) + V(Q_out))/rout;
+
+end
+endmodule

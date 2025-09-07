@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "   end //for (i=0; i<Npair; i=i+1)", 
+		"bug_line": "   end //for (i=0; i<Npair; i=i+1); poles[0] = 0.0;",
+		"error_description": "Overwrites the first calculated pole value to zero after the loop, corrupting the pole array and causing incorrect filter frequency response."
+	},
+	{
+		"original_line": "vout = real_gain * laplace_zp(V(inp)- V(inn), , poles);", 
+		"bug_line": "vout = real_gain * laplace_zp(V(inp), , poles);",
+		"error_description": "Changed filter input from differential (V(inp)-V(inn)) to single-ended (V(inp)), ignoring negative input signal. This breaks differential operation and causes incorrect signal processing."
+	},
+	{
+		"original_line": "   for (i=0; i<Npair; i=i+1) begin", 
+		"bug_line": "   for (i=0; i<=Npair; i=i+1) begin",
+		"error_description": "Changed loop condition from '<' to '<=' causes an extra iteration. This accesses out-of-bounds array indices (ReP[i], ImP[i]) when i=Npair, resulting in undefined pole calculations and potential simulation crashes due to uninitialized values."
+	},
+	{
+		"original_line": "   real tmp;", 
+		"bug_line": "   integer tmp;",
+		"error_description": "Declaring 'tmp' as integer instead of real causes truncation of the angle calculation factor to 0 during initial setup. This results in all Butterworth poles being incorrectly placed at 0+jωb, completely altering the filter's frequency response."
+	},
+	{
+		"original_line": "ReP[k] = - sin(teta);", 
+		"bug_line": "ReP[k] = sin(teta);",
+		"error_description": "The sign error makes pole real parts positive instead of negative, placing poles in the right half-plane. This transforms the stable low-pass filter into an unstable system by violating the stability requirement that poles must have negative real parts."
+	},
+	{
+		"original_line": "poles[4*i+1] = 0.0;", 
+		"bug_line": "poles[4*i+1] = 1.0;",
+		"error_description": "Sets the imaginary part of the last pole (for odd-order filters) to 1.0 instead of 0.0. This creates a complex pole without its conjugate pair, violating the requirement for real coefficients in the transfer function and causing incorrect filter behavior and potential instability."
+	},
+	{
+		"original_line": "poles[4*i] = re_pole;", 
+		"bug_line": "poles[4*i] = wb;",
+		"error_description": "Assigns corner frequency (wb) instead of calculated pole position (re_pole), creating incorrect pole placement that violates Butterworth filter characteristics."
+	},
+	{
+		"original_line": "if (Npair != Np1p) begin // odd `N", 
+		"bug_line": "if (Npair == Np1p) begin // odd `N",
+		"error_description": "Reversed condition causes real pole assignment for even-order filters (where it should be skipped) and skips it for odd-order filters (where it's needed). This distorts pole placement for both filter types, corrupting frequency response."
+	},
+	{
+		"original_line": " end // init step", 
+		"bug_line": " end; real_gain = real_gain * 0; // init step",
+		"error_description": "Sets voltage gain to zero at every analog iteration instead of once during initialization. Destroys signal by forcing constant zero output, violating gain parameter specification."
+	},
+	{
+		"original_line": " I(inp) <+ V(inp)/rin;", 
+		"bug_line": " I(inp) <+ V(inn)/rin;",
+		"error_description": "Cross-connected input voltages: uses V(inn) instead of V(inp) for the positive input branch, creating incorrect current flow and violating differential input requirements."
+	},
+	{
+		"original_line": "tmp = `M_PI/(2*`N);", 
+		"bug_line": "tmp = `M_PI/(2*(`N-1));",
+		"error_description": "Changed denominator from 2*N to 2*(N-1), miscalculating the Butterworth pole angle step. This shifts all pole locations, distorting the filter's frequency response and corner frequency."
+	},
+	{
+		"original_line": "   if( `N < 2 ) begin", 
+		"bug_line": "   if( `N < 1 ) begin",
+		"error_description": "The condition now only triggers for N<1, allowing N=1 to pass. Since the filter requires order>=2, an order=1 filter would cause incorrect pole calculations and undefined behavior in subsequent vector indexing."
+	},
+	{
+		"original_line": "parameter real fcorner = 1e9 from (0:inf);", 
+		"bug_line": "parameter real fcorner = -1e9 from (0:inf);",
+		"error_description": "Default corner frequency set to negative value (-1e9 Hz), violating non-negative constraint and causing undefined filter behavior when used without explicit override."
+	},
+	{
+		"original_line": "   for (i=0; i<Npair; i=i+1) begin", 
+		"bug_line": "   for (i=0; i<=Npair; i=i+1) begin",
+		"error_description": "The loop runs one extra iteration (i = Npair), causing out-of-bound access to ReP/ImP arrays for even-order filters and duplicate processing of the real pole for odd-order filters, resulting in incorrect pole calculation and broken filter response."
+	},
+	{
+		"original_line": "vout = real_gain * laplace_zp(V(inp)- V(inn), , poles);", 
+		"bug_line": "vout = real_gain * laplace_zp(V(inp) + V(inn), , poles);",
+		"error_description": "Changed differential input subtraction to addition, causing the filter to process common-mode signals instead of differential signals, violating the differential design specification."
+	},
+	{
+		"original_line": "real  ReP[0:`N/2], ImP[0:`N/2];", 
+		"bug_line": "real  ReP[0:`N/2-1], ImP[0:`N/2-1];",
+		"error_description": "Reduced array size from `N/2+1` to `N/2` elements. For odd-order filters (e.g., N=3), the pole calculation loop will access out-of-bounds indices during initialization, causing undefined behavior and incorrect pole placement."
+	},
+	{
+		"original_line": "`define N 8", 
+		"bug_line": "`define N 1",
+		"error_description": "Filter order N=1 violates the minimum requirement of N>=2 for Butterworth filters, causing simulation termination via $stop(1) in initial_step due to unsupported filter configuration."
+	},
+	{
+		"original_line": "   for (k=0; k< Np1p; k=k+1) begin", 
+		"bug_line": "   for (k=0; k<= Np1p; k=k+1) begin",
+		"error_description": "The loop runs one extra iteration (k=Np1p) where ReP and ImP arrays are uninitialized. This accesses out-of-bound indices, introducing undefined poles that corrupt the filter response."
+	},
+	{
+		"original_line": "    ImP[k] = cos(teta);", 
+		"bug_line": "    ImP[k] = sin(teta);",
+		"error_description": "Replaces cosine with sine for imaginary pole calculation, corrupting Butterworth pole locations by swapping real/imaginary components and breaking filter frequency response."
+	},
+	{
+		"original_line": "        $stop(1);", 
+		"bug_line": "        ;",
+		"error_description": "Removed the simulation stop command when filter order is less than 2. This allows invalid filter configurations (N<2) to proceed, causing incorrect pole calculation and undefined filter behavior due to unsupported low-order implementation."
+	}
+]

@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "abstol = 1e-9;", 
+		"bug_line": "abstol = 1e-3;",
+		"error_description": "Increased absolute tolerance from 1e-9 to 1e-3 violates strain measurement precision requirements, causing significant numerical inaccuracies in small strain simulations due to coarser convergence thresholds."
+	},
+	{
+		"original_line": "discipline kinematic_s", 
+		"bug_line": "discipline kinematic_s potential Voltage flow Force;",
+		"error_description": "Changed potential nature from Strain to Voltage, violating the mechanical strain design intent. This introduces electrical domain semantics where mechanical strain properties are required, causing unit mismatches and incorrect physical modeling."
+	},
+	{
+		"original_line": "	flow Force;", 
+		"bug_line": "	potential Force;",
+		"error_description": "Changed flow declaration to a second potential declaration, creating two potential declarations and no flow in the discipline. VerilogA requires exactly one potential and one flow per discipline."
+	},
+	{
+		"original_line": "flow Force;", 
+		"bug_line": "flow Strain;",
+		"error_description": "Changed flow nature from Force to Strain, creating a conjugate pair mismatch where both potential and flow use the same Strain nature. This violates the requirement for distinct natures in a discipline, potentially causing simulation errors due to undefined physical relationships."
+	},
+	{
+		"original_line": "discipline kinematic_s", 
+		"bug_line": "discipline kinematic_s mixed",
+		"error_description": "Adding 'mixed' changes the discipline domain to mixed-signal, conflicting with the physical nature 'Strain' which requires an analog domain. This causes functional mismatches in simulation when connecting modules using this discipline."
+	},
+	{
+		"original_line": "units = "1";", 
+		"bug_line": "units = "V";",
+		"error_description": "Changed strain units from dimensionless ("1") to volts ("V"). Strain is a dimensionless quantity in physics, so using voltage units violates fundamental physical principles and will cause unit inconsistency errors in simulations."
+	},
+	{
+		"original_line": "potential Strain;", 
+		"bug_line": "flow Strain;",
+		"error_description": "Changing 'potential' to 'flow' creates two flow declarations (Strain and Force) with no potential, violating Verilog-A discipline rules requiring exactly one potential and one flow per domain."
+	},
+	{
+		"original_line": "access = S;", 
+		"bug_line": "access = I;",
+		"error_description": "Changed access type from signal (S) to integer (I). Strain values must be continuous real numbers for physical accuracy, but integer access truncates fractional strain values, breaking strain-dependent calculations."
+	},
+	{
+		"original_line": "discipline kinematic_s", 
+		"bug_line": "discipline electrical",
+		"error_description": "Changed discipline from 'kinematic_s' to predefined 'electrical' discipline. This introduces incorrect potential-flow pairs (Voltage/Current instead of Strain/Force), causing unit mismatch and tolerance errors during simulation."
+	},
+	{
+		"original_line": "discipline kinematic_s", 
+		"bug_line": "discipline kinematic_v",
+		"error_description": "Changed discipline name from 'kinematic_s' to 'kinematic_v', which redefines the discipline as voltage instead of strain. This violates the design specification requiring strain-based connections and causes incorrect physical modeling when used in modules."
+	},
+	{
+		"original_line": "access = S;", 
+		"bug_line": "access = T;",
+		"error_description": "Changed access attribute to undefined token 'T'. Valid access types are 'S' (scalar) or 'V' (vector). This causes a compilation error since 'T' is unrecognized."
+	},
+	{
+		"original_line": "nature Strain", 
+		"bug_line": "nature Stress",
+		"error_description": "Changed nature name from 'Strain' to 'Stress', causing the discipline 'kinematic_s' to reference an undefined nature 'Strain' in its potential declaration, breaking model compilation."
+	},
+	{
+		"original_line": "units = "1";", 
+		"bug_line": "units = "m";",
+		"error_description": "Changed units from dimensionless ('1') to meters ('m'). Strain is a dimensionless quantity, so this modification introduces a unit inconsistency that will cause simulation errors when connected to other components expecting dimensionless strain."
+	},
+	{
+		"original_line": "endnature", 
+		"bug_line": "endnature Stress",
+		"error_description": "Changed nature block closure to 'Stress' instead of 'Strain', causing a name mismatch error that prevents proper compilation as the ending identifier must match the beginning nature declaration."
+	},
+	{
+		"original_line": "discipline kinematic_s", 
+		"bug_line": "discipline kinematic_v",
+		"error_description": "Changed discipline name from 'kinematic_s' to 'kinematic_v'. This violates the design specification since modules using the original discipline name will now reference an undefined discipline, causing simulation failures."
+	},
+	{
+		"original_line": "        endnature", 
+		"bug_line": "        endnature extra_token;",
+		"error_description": "Added invalid token 'extra_token;' after endnature keyword. This causes a compilation error due to unexpected tokens following the nature block closure, breaking the VerilogA structure."
+	},
+	{
+		"original_line": "potential Strain;", 
+		"bug_line": "flow Strain;",
+		"error_description": "Changing 'potential' to 'flow' creates two flow declarations in the discipline (Strain and Force) with no potential declaration, violating VerilogA discipline requirements which mandate exactly one potential and one flow variable per discipline."
+	},
+	{
+		"original_line": "flow Force;", 
+		"bug_line": "flow Strain;",
+		"error_description": "Changed flow nature from Force to Strain, violating the kinematic discipline design where flow must represent force (through variable) while potential represents strain (across variable). Using identical natures for both variables causes incorrect equation formulation in simulation."
+	},
+	{
+		"original_line": "nature Strain", 
+		"bug_line": "nature Stress",
+		"error_description": "Changed nature name from 'Strain' to 'Stress', causing the discipline 'kinematic_s' to reference an undefined nature. The discipline relies on the 'Strain' nature for its potential declaration, leading to functional errors during simulation setup."
+	},
+	{
+		"original_line": "nature Strain", 
+		"bug_line": "discipline Strain",
+		"error_description": "Changed nature to discipline, causing a type mismatch since kinematic_s discipline expects Strain as a nature for its potential, not as a discipline. This breaks the fundamental definition of the analog solver's physical domains."
+	}
+]

@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "electrical  vin, vout;", 
+		"bug_line": "electrical vin; current vout;",
+		"error_description": "Declares vout as a current branch instead of electrical. This causes a discipline mismatch since the module later assigns voltage to vout (V(vout) <+ ...), which is invalid for a current branch requiring current assignment (I(vout))."
+	},
+	{
+		"original_line": "`define CHOP 0", 
+		"bug_line": "`define CHOP 1",
+		"error_description": "Sets CHOP and MULT macros both to 1. This causes ambiguity in the pll's phase_detect_type selection since both detector types now share the same value, potentially triggering incorrect detector behavior when MULT is specified."
+	},
+	{
+		"original_line": ".vco_center_freq(pll_vco_cf),.phase_detect_type(`MULT))", 
+		"bug_line": ".vco_center_freq(pll_vco_cf*2),.phase_detect_type(`MULT))",
+		"error_description": "The VCO center frequency is doubled, causing the PLL to lock at an incorrect frequency and resulting in erroneous demodulation of the phase-modulated signal."
+	},
+	{
+		"original_line": "parameter real af_gain = 1;", 
+		"bug_line": "parameter real af_gain = 0;",
+		"error_description": "Setting af_gain to 0 completely attenuates the demodulated audio signal at the output stage, violating the amplification requirement in the design specification."
+	},
+	{
+		"original_line": "parameter real pll_vco_cf = 1M;", 
+		"bug_line": "parameter real pll_vco_cf = 1K;",
+		"error_description": "VCO center frequency incorrectly reduced to 1 kHz (was 1 MHz), preventing PLL lock on RF input signal due to frequency mismatch."
+	},
+	{
+		"original_line": "           svcvs #(.gain(1),.poles({-af_wn,0,-af_wn,0}) )", 
+		"bug_line": "           svcvs #(.gain(1),.poles({af_wn,0,-af_wn,0}) )",
+		"error_description": "Changed first pole from negative to positive, creating an unstable pole in the AF filter. This causes unbounded output growth and violates filter stability requirements."
+	},
+	{
+		"original_line": "`define MULT 1", 
+		"bug_line": "`define MULT 2",
+		"error_description": "The phase detector type is set to an invalid value (2). The PLL expects either 0 (CHOP) or 1 (MULT) for proper operation. This undefined value causes incorrect phase detection in the demodulator, resulting in distorted output signals."
+	},
+	{
+		"original_line": "parameter real pll_vco_gain = 5K;", 
+		"bug_line": "parameter real pll_vco_gain = 0;",
+		"error_description": "Setting VCO gain to zero disables frequency modulation in the PLL, preventing phase detection and breaking the demodulation functionality since the VCO cannot track input signal phase changes."
+	},
+	{
+		"original_line": "V(demod_gnd) <+ 0.0;", 
+		"bug_line": "V(demod_gnd) <+ 0.5;",
+		"error_description": "Changed ground reference from 0V to 0.5V, introducing a DC offset throughout the demodulator circuit and corrupting signal processing in the AF filter and output stage."
+	},
+	{
+		"original_line": "parameter real pll_vco_cf = 1M;", 
+		"bug_line": "parameter real pll_vco_cf = pll_out_bw;",
+		"error_description": "The center frequency of the PLL's VCO is mistakenly set to the output filter bandwidth value (pll_out_bw) instead of the intended 1 MHz. This causes the VCO to operate at the wrong frequency (e.g., 50 kHz), preventing proper phase locking and demodulation of the 1 MHz input signal."
+	},
+	{
+		"original_line": "parameter real pll_vco_cf = 1M;", 
+		"bug_line": "parameter real pll_vco_cf = 1m;",
+		"error_description": "Changed VCO center frequency from 1 MHz to 1 millihertz (0.001 Hz). This extremely low frequency prevents the phase-locked loop from locking onto the intended 1 MHz input signal, causing complete demodulation failure as the PLL cannot track the input phase."
+	},
+	{
+		"original_line": "electrical  vin, vout;", 
+		"bug_line": "electrical  vin, v_out;",
+		"error_description": "Renaming 'vout' to 'v_out' creates an undeclared net error in the analog block where 'vout' is driven, breaking the output signal path while leaving the port name unchanged."
+	},
+	{
+		"original_line": "Pll(vrf,v_lo,vph_det,vdetect);", 
+		"bug_line": "Pll(v_lo,vrf,vph_det,vdetect);",
+		"error_description": "Swapped RF input and VCO feedback connections. This reverses the reference and feedback signals in the PLL, causing incorrect phase detection and demodulation failure due to reversed lock behavior."
+	},
+	{
+		"original_line": "   svcvs #(.gain(1),.poles({-af_wn,0,-af_wn,0}) )", 
+		"bug_line": "   svcvs #(.gain(1),.poles({af_wn,0,-af_wn,0}) )",
+		"error_description": "Changed the first pole's real part from negative to positive, making the audio frequency filter unstable as it now has a pole in the right half-plane, causing uncontrolled oscillation instead of proper demodulation."
+	},
+	{
+		"original_line": "`define MULT 1", 
+		"bug_line": "`define MULT 0",
+		"error_description": "Changed phase detector type from multiplier (1) to chopper (0), violating design requirement for multiplier-based phase detection in PLL demodulation."
+	},
+	{
+		"original_line": "parameter real af_wn   = 1K;", 
+		"bug_line": "parameter real af_wn   = -1K;",
+		"error_description": "Negative pole frequency makes the filter unstable by placing poles in the right-half plane, causing uncontrolled output growth instead of proper demodulation."
+	},
+	{
+		"original_line": "V(vout) <+ af_gain*V(vaf) + af_lev_shift;", 
+		"bug_line": "V(vout) <+ af_gain*V(vph_det) + af_lev_shift;",
+		"error_description": "Output uses unfiltered phase detector signal (vph_det) instead of filtered audio signal (vaf), bypassing the audio filter stage and introducing high-frequency noise."
+	},
+	{
+		"original_line": "parameter real af_lev_shift = 0;", 
+		"bug_line": "parameter real af_level_shift = 0;",
+		"error_description": "Parameter name changed from 'af_lev_shift' to 'af_level_shift', causing mismatch with usage in output equation (af_lev_shift). This leaves af_lev_shift undefined, defaulting to 0 and ignoring any configured shift value."
+	},
+	{
+		"original_line": "V(vout) <+ af_gain*V(vaf) + af_lev_shift;", 
+		"bug_line": "V(vout) <+ rf_gain*V(vaf) + af_lev_shift;",
+		"error_description": "The output stage incorrectly uses the RF gain parameter (rf_gain) instead of the audio gain (af_gain), causing the demodulated audio signal to be scaled by the radio frequency amplifier gain rather than the dedicated audio amplifier gain."
+	},
+	{
+		"original_line": "af_filter(vaf,demod_gnd,vph_det,demod_gnd);", 
+		"bug_line": "af_filter(vaf,demod_gnd,vdetect,demod_gnd);",
+		"error_description": "Incorrect input signal: Changed AF filter input from phase detector output (vph_det) to PLL's filtered control voltage (vdetect). The design requires filtering the raw phase detector signal, not the processed VCO control signal, altering demodulation behavior."
+	}
+]

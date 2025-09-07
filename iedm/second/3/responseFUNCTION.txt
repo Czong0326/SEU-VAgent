@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "integ_gain1 = 1/alpha1/tau1;", 
+		"bug_line": "integ_gain1 = 1*alpha1/tau1;",
+		"error_description": "Changed division to multiplication, making integ_gain1 = alpha1/tau1 instead of 1/(alpha1*tau1). This incorrectly places the pole at -alpha1/tau1 rather than -1/(alpha1*tau1), violating the transfer function specification."
+	},
+	{
+		"original_line": "      V(sig_inter) <+ integ_gain1 * idt(sigin_gain1 * V(sigin)", 
+		"bug_line": "      V(sig_inter) <+ integ_gain1 * idt(sigin_gain1 * V(sigout)",
+		"error_description": "Changed input signal from sigin to sigout, creating incorrect feedback path that alters the compensator's transfer function and causes instability."
+	},
+	{
+		"original_line": "      V(sig_inter) <+ integ_gain1 * idt(sigin_gain1 * V(sigin)", 
+		"bug_line": "      V(sig_inter) <+ integ_gain1 * idt(sigin_gain2 * V(sigin)",
+		"error_description": "Uses second-stage gain factor (sigin_gain2) in first-stage integration instead of first-stage gain (sigin_gain1). This swaps the gain parameters between compensation stages, corrupting the transfer function by applying wrong gain factors in each stage."
+	},
+	{
+		"original_line": "parameter real tau1   = 1   from [0:inf);", 
+		"bug_line": "parameter real tau1   = 1   from (-inf:inf);",
+		"error_description": "Changed valid range to include negative values, violating design requirement that tau1 must be nonnegative. Negative tau1 values would invert the compensator zero/pole locations, destabilizing the system by placing poles in the right half-plane."
+	},
+	{
+		"original_line": "V(sig_inter) <+ integ_gain1 * idt(sigin_gain1 * V(sigin)", 
+		"bug_line": "V(sig_inter) <+ integ_gain1 * idt(sigin_gain1 * V(sigout)",
+		"error_description": "Changed input voltage from V(sigin) to V(sigout), incorrectly feeding the output voltage back into the first stage. This creates an unintended feedback loop that fundamentally alters the transfer function behavior."
+	},
+	{
+		"original_line": "parameter real alpha1 = 2   from (1:inf);", 
+		"bug_line": "parameter real alpha1 = 2   from (0:inf);",
+		"error_description": "The range for alpha1 is incorrectly expanded to (0:inf), allowing values <=1. This violates the design constraint that alpha1 must be greater than 1 to maintain proper lead compensator behavior. Values <=1 disrupt the pole-zero relationship, converting the intended lead stage into a lag stage and corrupting the frequency response."
+	},
+	{
+		"original_line": "                     + V(sig_inter);", 
+		"bug_line": "                     + V(sigin);",
+		"error_description": "Changed the feedthrough term from the intermediate signal (sig_inter) to the input signal (sigin). This bypasses the first compensation stage, effectively short-circuiting the intermediate processing and altering the transfer function by eliminating the lead-lag dynamics from the first stage."
+	},
+	{
+		"original_line": "parameter real gain   = 1   from (0:inf);", 
+		"bug_line": "parameter real gain   = -1   from (-inf:inf);",
+		"error_description": "The gain parameter now allows negative values and defaults to -1, violating the design requirement that gain must be positive. This inverts the compensator's output polarity and destabilizes control systems relying on correct phase response."
+	},
+	{
+		"original_line": " sigin_gain2 = alpha2;", 
+		"bug_line": " sigin_gain2 = alpha1;",
+		"error_description": "Incorrect parameter used: alpha1 (first-stage pole scaling) is assigned to second-stage gain instead of alpha2. This swaps compensator parameters between stages, distorting the transfer function by mismatching pole/zero relationships."
+	},
+	{
+		"original_line": "	 sigin_gain2 = alpha2;", 
+		"bug_line": "	 sigin_gain2 = alpha1;",
+		"error_description": "Assigns first stage's alpha1 to second stage gain instead of alpha2. This swaps pole/zero characteristics between compensation stages, violating the transfer function design by applying incorrect frequency response in the second stage."
+	},
+	{
+		"original_line": "parameter real gain   = 1   from (0:inf);", 
+		"bug_line": "parameter real gain   = 1   from [0:inf);",
+		"error_description": "Changed gain range to include 0. The design requires strictly positive gain (gain>0), but this modification allows gain=0. When gain=0, the compensator outputs 0 regardless of input signal, violating the intended amplification behavior."
+	},
+	{
+		"original_line": "module lead_lag_compensator(sigin, sigout);", 
+		"bug_line": "module lead_lag_compensator(sigin, sigout, extra_port);",
+		"error_description": "Added an undefined extra port 'extra_port' to the module definition. This creates a compilation error since the port is not declared internally and causes instantiation failures due to port count mismatch."
+	},
+	{
+		"original_line": "parameter real alpha1 = 2   from (1:inf);", 
+		"bug_line": "parameter real alpha1 = 2   from (0:inf);",
+		"error_description": "Changed valid range from (1:inf) to (0:inf), allowing alpha1 ≤ 1. This violates the requirement that alpha1 > 1 for proper lead compensator behavior, causing incorrect pole-zero placement and potential instability."
+	},
+	{
+		"original_line": "                     + gain * V(sigin);", 
+		"bug_line": "                     + gain * V(sigout);",
+		"error_description": "Changed the feedthrough term from input (sigin) to output (sigout), creating an unintended feedback loop. This alters the transfer function and causes instability by making the first stage dependent on the final output."
+	},
+	{
+		"original_line": "input sigin;", 
+		"bug_line": "output sigin;",
+		"error_description": "Changed port direction from input to output. This violates the design where 'sigin' must receive external input signals. As an output port, it cannot accept input data, breaking the compensator functionality by preventing signal injection."
+	},
+	{
+		"original_line": "real sigin_gain1;", 
+		"bug_line": "real sigin_gain1 = 0;",
+		"error_description": "Initialized sigin_gain1 to 0 instead of leaving it uninitialized. This overrides the correct value (gain*alpha1) assigned in the initial block, forcing the first stage gain to always be zero and breaking the compensator functionality."
+	},
+	{
+		"original_line": "module lead_lag_compensator(sigin, sigout);", 
+		"bug_line": "module lead_lag_compensator(sigout, sigin);",
+		"error_description": "Swapped input and output ports in module declaration. This reverses signal direction during instantiation, causing the compensator to drive the input net (external source) and read from the output net (load), violating signal flow requirements and creating electrical conflicts."
+	},
+	{
+		"original_line": "electrical sig_inter; // intermediate node in compensator", 
+		"bug_line": "real sig_inter; // intermediate node in compensator",
+		"error_description": "Changed intermediate node from electrical discipline to real variable. This prevents proper analog behavior since V(sig_inter) becomes invalid (requires node, not variable), breaking the compensator's signal processing."
+	},
+	{
+		"original_line": " sigin_gain2 = alpha2;", 
+		"bug_line": " sigin_gain2 = 1/alpha2;",
+		"error_description": "Changes the second stage gain calculation from alpha2 to its reciprocal. This inverts the intended pole/zero relationship for the second compensation stage, violating the transfer function specification (1 + tau2*s)/(1 + alpha2*tau2*s) by incorrectly placing the zero at -alpha2/tau2 instead of -1/tau2."
+	},
+	{
+		"original_line": "parameter real tau2   = 1   from [0:inf);", 
+		"bug_line": "parameter real tau2   = 1   from (-inf:inf);",
+		"error_description": "The range constraint for tau2 was changed to allow negative values, violating the design requirement that tau2 must be non-negative. Negative tau2 would cause an unstable right-half plane zero in the compensator transfer function, fundamentally altering the intended behavior."
+	}
+]

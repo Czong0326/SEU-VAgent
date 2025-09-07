@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "units = "Ohms";", 
+		"bug_line": "units = "Siemens";",
+		"error_description": "Changed impedance unit from Ohms to Siemens. Siemens is the unit for conductance (1/Ohms), making the unit definition fundamentally incorrect for an impedance measurement device and causing unit inconsistency in simulation outputs."
+	},
+	{
+		"original_line": "      irms = V(v_ifilt2);", 
+		"bug_line": "      irms = V(v_vfilt2);",
+		"error_description": "The current RMS value is incorrectly assigned the voltage RMS value from node v_vfilt2 instead of the correct current RMS value from v_ifilt2. This swaps the current and voltage measurements, causing the impedance calculation (zout_val = vrms/irms) to compute (voltage_rms/voltage_rms) = 1 ohm instead of the actual impedance."
+	},
+	{
+		"original_line": "integ_iin_sqd  = idt(iin_val*iin_val,0);", 
+		"bug_line": "integ_iin_sqd  = idt(iin_val*iin_val,1e-3);",
+		"error_description": "Changed the initial condition of the current integral from 0 to 1e-3, introducing a constant offset in RMS current calculation that causes incorrect impedance measurements, especially at low currents."
+	},
+	{
+		"original_line": "vin_val = V(vp_iout,vn);", 
+		"bug_line": "vin_val = V(vn,vp_iout);",
+		"error_description": "Reversed voltage measurement polarity. The original measures voltage from vp_iout to vn (positive to negative terminal), but the bug measures from vn to vp_iout, inverting the sign and causing incorrect impedance calculations."
+	},
+	{
+		"original_line": "real integ_vin_sqd; // Need to integrate squares of vin,iin because", 
+		"bug_line": "real integ_vin_sq; // Need to integrate squares of vin,iin because",
+		"error_description": "Changed variable name 'integ_vin_sqd' to 'integ_vin_sq' (typo). This breaks subsequent RMS voltage calculations since the correct variable isn't used, causing incorrect impedance measurements."
+	},
+	{
+		"original_line": "   electrical vgnd;", 
+		"bug_line": "   voltage vgnd;",
+		"error_description": "Changed discipline from 'electrical' to undefined 'voltage'. Verilog-A requires predefined disciplines like 'electrical' for node declarations. This breaks all subsequent references to vgnd (filter connections and V(vgnd) contribution) since 'voltage' isn't a valid discipline."
+	},
+	{
+		"original_line": "      V(v_ifilt1) <+ v_ifilt1_val;", 
+		"bug_line": "      V(v_vfilt1) <+ v_ifilt1_val;",
+		"error_description": "Assigns the current RMS value to the voltage RMS filter input instead of the current filter input. This mixes signal processing paths, causing the impedance calculation (zout_val = vrms/irms) to use corrupted values where voltage and current measurements are incorrectly swapped."
+	},
+	{
+		"original_line": "`define ABSTOL_TIME 1e-12", 
+		"bug_line": "`define ABSTOL_TIME -1e-12",
+		"error_description": "Negative ABSTOL_TIME causes the condition ($abstime > `ABSTOL_TIME) to always be true, including at t=0. This leads to division by zero when calculating RMS values since $abstime is 0 initially, crashing the simulation."
+	},
+	{
+		"original_line": "   real integ_vin_sqd; // Need to integrate squares of vin,iin because ", 
+		"bug_line": "   real integ_iin_sqd; // Need to integrate squares of vin,iin because ",
+		"error_description": "Both integ_vin_sqd and integ_iin_sqd are declared as the same variable name. This causes the voltage integral to overwrite the current integral, corrupting RMS calculations for impedance measurement."
+	},
+	{
+		"original_line": "   electrical vgnd;", 
+		"bug_line": "   real vgnd;",
+		"error_description": "Changed vgnd from electrical node to real variable. This breaks the V(vgnd) <+ 0 assignment since real variables cannot be used in potential assignments, causing simulation failure due to invalid node reference."
+	},
+	{
+		"original_line": "   integer out_file;", 
+		"bug_line": "   real out_file;",
+		"error_description": "Changed file descriptor type from integer to real. File I/O operations ($fopen/$fstrobe/$fclose) require integer file handles, causing simulation errors when attempting to log data."
+	},
+	{
+		"original_line": "if (log_to_file) begin", 
+		"bug_line": "if (log_to_file != 0) begin",
+		"error_description": "Changed condition to always false when log_to_file=1. Since log_to_file is already an integer (0 or 1), this creates a tautological condition that never closes the log file when logging is enabled, causing file handle leaks and potential data corruption."
+	},
+	{
+		"original_line": "Z(zout) <+ zout_val;", 
+		"bug_line": "Z(zout) <+ zout_val * 1e-3;",
+		"error_description": "Scales output impedance by 0.001, incorrectly converting ohms to milliohms and violating design specifications requiring direct impedance measurement."
+	},
+	{
+		"original_line": "impedance_current zout;", 
+		"bug_line": "electrical zout;",
+		"error_description": "Changed output port discipline from impedance_current to electrical. This breaks the impedance assignment (Z(zout)) in the analog block since electrical ports only support voltage/current access functions, not impedance (Z) access. The port will now incorrectly handle voltage signals instead of impedance values."
+	},
+	{
+		"original_line": "   electrical v_vfilt1, v_vfilt2;", 
+		"bug_line": "   electrical v_vfilt1; impedance_current v_vfilt2;",
+		"error_description": "Declaring v_vfilt2 as impedance_current (Ohms) instead of electrical (Volts) causes unit mismatch. The filter outputs voltage in Volts to an Ohms-scale node, and V(v_vfilt2) now incorrectly returns Ohms instead of Volts, corrupting RMS voltage calculation and subsequent impedance results."
+	},
+	{
+		"original_line": "`define ABSTOL_TIME 1e-12", 
+		"bug_line": "`define ABSTOL_TIME 1e-3",
+		"error_description": "Increased absolute time tolerance from 1e-12 to 1e-3 causes premature RMS calculations. The condition ($abstime > `ABSTOL_TIME) triggers too early (at 1ms instead of 1ps), using unstable initial transient values for RMS computations before signals settle, resulting in inaccurate impedance measurements."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ (final_step) begin",
+		"error_description": "Changed event trigger from initial_step to final_step. This delays file opening until simulation end, causing log writes to attempt using uninitialized file handle (0) during simulation when log_to_file=1. This violates the requirement to log results to a file throughout the simulation period."
+	},
+	{
+		"original_line": "Z(zout) <+ zout_val;", 
+		"bug_line": "I(zout) <+ zout_val;",
+		"error_description": "Assigns impedance value to current flow instead of potential. Violates discipline where impedance must be output as voltage (potential) but incorrectly sets it as current flow, fundamentally altering output behavior."
+	},
+	{
+		"original_line": "impedance_current zout;", 
+		"bug_line": "electrical zout;",
+		"error_description": "Changed discipline from impedance_current to electrical. This introduces a type mismatch as the analog block uses Z(zout) access function which requires impedance_current discipline, causing simulation errors when assigning impedance values to an electrical node."
+	},
+	{
+		"original_line": "      if (log_to_file) begin", 
+		"bug_line": "      if (log_to_file == 0) begin",
+		"error_description": "The condition is inverted: logging now occurs only when log_to_file=0 instead of when non-zero. This flips the intended behavior of the parameter, causing logs to be written when disabled and skipped when enabled."
+	}
+]

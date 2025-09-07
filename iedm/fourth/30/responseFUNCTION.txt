@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "electrical in;", 
+		"bug_line": "current in;",
+		"error_description": "Changing discipline from electrical to current makes the voltage potential at input port undefined. Subsequent V(in) accesses in behavioral equations become invalid, breaking AM/AM conversion calculations and noise modeling that rely on input voltage."
+	},
+	{
+		"original_line": "electrical out;", 
+		"bug_line": "ground out;",
+		"error_description": "Changing the output port discipline from 'electrical' to 'ground' forces the output voltage to 0V. This overrides the amplifier's output current source (I(out) <+ ...) and permanently shorts the output to ground, destroying all signal amplification functionality."
+	},
+	{
+		"original_line": "if (abs(rho) < rhoinmax ) rhoout = (a - b*rho*rho)*rho;", 
+		"bug_line": "if (abs(rho) < rhoinmax ) rhoout = (a + b*rho*rho)*rho;",
+		"error_description": "The '+' operator replaces the '-' in the nonlinear term, converting compressive AM-AM distortion into expansive distortion. This causes gain expansion at high input levels instead of compression, violating the amplifier's saturation behavior and fundamentally altering its transfer characteristic."
+	},
+	{
+		"original_line": "This is a band behavioral model of a low noise amplifier", 
+		"bug_line": "This is a base behavioral model of a low noise amplifier",
+		"error_description": "Changing 'band' to 'base' misrepresents the amplifier type, causing confusion between bandpass and baseband implementations. Baseband amplifiers process DC/low frequencies while bandpass amplifiers handle RF frequencies. This discrepancy violates the design specification for an RF low-noise amplifier."
+	},
+	{
+		"original_line": "real rhooutmax;", 
+		"bug_line": "real rhooutmax = 0.0;",
+		"error_description": "Initializing rhooutmax to 0.0 prevents the correct clamping value calculation in the initial block. The assignment rhooutmax = (2*a/3)*rhoinmax; in initial_step gets overwritten by this fixed initialization, causing incorrect output saturation behavior."
+	},
+	{
+		"original_line": "a = sqrt(pow(10,gain/10)*rout/rin);", 
+		"bug_line": "a = sqrt(pow(10,gain/20)*rout/rin);",
+		"error_description": "The exponent divisor should be 10 for power gain conversion, but is incorrectly set to 20 (used for voltage gain). This results in underestimating the linear gain coefficient 'a' by a factor of sqrt(10^(gain/20)), causing lower amplification than specified."
+	},
+	{
+		"original_line": "rhooutmax = (2*a/3)*rhoinmax;", 
+		"bug_line": "rhooutmax = (2*b/3)*rhoinmax;",
+		"error_description": "Incorrectly used third-order coefficient 'b' instead of linear gain 'a' for saturation amplitude calculation. This drastically underestimates the maximum output voltage since b << a, causing premature and unrealistic saturation behavior that violates the transfer curve specification."
+	},
+	{
+		"original_line": "`include "constants.h"", 
+		"bug_line": "`include "nonexistent.h"",
+		"error_description": "Changing the include file to a non-existent header breaks compilation. The missing 'constants.h' contains essential physical constants (like Boltzmann's constant) required for accurate noise calculations in the amplifier model."
+	},
+	{
+		"original_line": "inout out;", 
+		"bug_line": "output out;",
+		"error_description": "Changing port direction from inout to output creates a functional error because the module reads V(out) voltage in the contribution statement I(out) <+ (-2*(rhoout) + V(out))/rout. Output ports cannot be read in Verilog-A, making V(out) access illegal and breaking the output current calculation."
+	},
+	{
+		"original_line": "This model contains only third order non-linear amplitude", 
+		"bug_line": "This model contains only second order non-linear amplitude",
+		"error_description": "Changes 'third order' to 'second order', contradicting the actual third-order nonlinearity implemented in the code and creating a design specification mismatch. The model uses cubic (third-order) terms in calculations (b*rho*rho*rho), while the documentation now incorrectly describes second-order behavior."
+	},
+	{
+		"original_line": "parameter real rout = 50 from (0:inf);", 
+		"bug_line": "parameter real rout = 0 from [0:inf);",
+		"error_description": "Set output resistance to 0 and included 0 in valid range, causing division by zero in output current expression I(out) <+ (-2*(rhoout) + V(out))/rout;"
+	},
+	{
+		"original_line": "output_phase_shift = alpha*(Vin/Vcp)^n/(1+beta*(Vin/Vcp)^n).", 
+		"bug_line": "output_phase_shift = alpha*(Vin/Vcp)^n/(1+beta*(Vin/Vcp)^(n+1));",
+		"error_description": "Changed the exponent in the denominator term from 'n' to 'n+1'. This alters the AM/PM conversion behavior by making the phase shift roll off incorrectly at high input levels, violating the specified saturation characteristics."
+	},
+	{
+		"original_line": "parameter real gain = 40 from [0:inf);", 
+		"bug_line": "parameter real gains = 40 from [0:inf);",
+		"error_description": "Parameter name misspelled from 'gain' to 'gains'. This leaves the 'gain' variable uninitialized (defaulting to 0.0), causing incorrect gain calculations and resulting in 0 dB amplification instead of the specified 40 dB."
+	},
+	{
+		"original_line": "gain 	= voltage gain in dB.", 
+		"bug_line": "gains 	= voltage gain in dB.",
+		"error_description": "Changed parameter name from 'gain' to 'gains', making the variable undefined in the calculation of 'a' where 'gain' is referenced, causing compilation failure or incorrect gain computation."
+	},
+	{
+		"original_line": "output_phase_shift = alpha*(Vin/Vcp)^n/(1+beta*(Vin/Vcp)^n).", 
+		"bug_line": "output_phase_shift = alpha*(Vin/Vcp)^n*(1+beta*(Vin/Vcp)^n);",
+		"error_description": "Changed division to multiplication in phase shift formula, altering the AM/PM conversion behavior from saturation to unbounded growth, violating the design specification of asymptotic phase shift limitation."
+	},
+	{
+		"original_line": "a = sqrt(pow(10,gain/10)*rout/rin);", 
+		"bug_line": "a = pow(10,gain/10)*rout/rin;",
+		"error_description": "Missing square root in voltage gain calculation. The formula incorrectly computes voltage gain as power gain times impedance ratio instead of square root of that product, causing overestimation of gain by a factor of sqrt(power_gain*rout/rin). This distorts AM/AM conversion and compression point behavior."
+	},
+	{
+		"original_line": "`define PI 3.1415926535897932384626433", 
+		"bug_line": "`define real integer",
+		"error_description": "Redefines 'real' as 'integer' throughout the code, causing truncation of fractional values in gain/compression calculations and incorrect noise_current computation due to integer division and loss of precision."
+	},
+	{
+		"original_line": "electrical in;", 
+		"bug_line": "voltage in;",
+		"error_description": "Changing discipline from electrical to voltage removes current flow capability, breaking the input current contribution (I(in) <+ V(in)/rin) which requires electrical discipline for bidirectional flow."
+	},
+	{
+		"original_line": "I(in) <+ white_noise(noise_current*noise_current, "LNA_PB");", 
+		"bug_line": "I(out) <+ white_noise(noise_current*noise_current, "LNA_PB");",
+		"error_description": "Noise source incorrectly added to output node instead of input node, violating noise figure specification which requires input-referred noise modeling."
+	},
+	{
+		"original_line": "module LNA_PB(in, out);", 
+		"bug_line": "module LNA_PB(out, in);",
+		"error_description": "Swapped port order reverses input/output direction. The amplifier now incorrectly routes signals - input is connected to 'out' net internally while output drives 'in' net, violating signal flow requirements and causing functional failure."
+	}
+]

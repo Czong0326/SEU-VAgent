@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "electrical x;", 
+		"bug_line": "thermal x;",
+		"error_description": "Changed port discipline from electrical to thermal. This violates the design as the RBT model requires electrical connections for signal propagation, causing incompatible port types and simulation failure."
+	},
+	{
+		"original_line": ".rbt_fQ(rbt_fQ), .rbt_fQfo(rbt_fQfo), .rbt_Qother(rbt_Qother)", 
+		"bug_line": ".rbt_fQ(rbt_fQB), .rbt_fQfo(rbt_fQfo), .rbt_Qother(rbt_Qother)",
+		"error_description": "Uses material B's quality factor (rbt_fQB) instead of material A's (rbt_fQ) for the main cavity waveguide. This violates the design specification since the main cavity should use material A parameters."
+	},
+	{
+		"original_line": ".dT(rbt_dT), .rbt_wgVtoT(rbt_wgVtoT), .rbt_wgLtoRho(rbt_wgLtoRho),", 
+		"bug_line": ".dT(rbt_dT), .rbt_wgVtoT(rbt_wgLtoRho), .rbt_wgLtoRho(rbt_wgVtoT),",
+		"error_description": "Swapped rbt_wgVtoT and rbt_wgLtoRho parameters. Voltage-to-stress scaling now incorrectly uses inductance-to-density value, and vice versa, corrupting both electro-mechanical transduction and material property mapping in the termination section."
+	},
+	{
+		"original_line": ".dT(rbt_dT), .rbt_wgVtoT(rbt_wgVtoT), .rbt_wgLtoRho(rbt_wgLtoRho),", 
+		"bug_line": ".dT(rbt_dT), .rbt_wgVtoT(rbt_wgLtoRho), .rbt_wgLtoRho(rbt_wgVtoT),",
+		"error_description": "Swapped 'rbt_wgVtoT' and 'rbt_wgLtoRho' connections, cross-wiring voltage-to-stress and inductance-to-density scaling parameters. This causes incorrect mechanical-electrical analog mapping in the waveguide model."
+	},
+	{
+		"original_line": "parameter real rbt_rhoTCB  = `RBT_RHOTCB;               // Density TC for material B", 
+		"bug_line": "parameter real rbt_rhoTCB  = `RBT_RHOTC;               // Density TC for material B",
+		"error_description": "Assigned material A's density temperature coefficient to material B, causing incorrect thermal behavior in termination sections where material B should use its own distinct rhoTCB property."
+	},
+	{
+		"original_line": "parameter real rbt_Y       = `RBT_Y      from (0:inf);  // Young's Modulus for material A", 
+		"bug_line": "parameter real rbt_Y       = `RBT_Y      from [0:inf);  // Young's Modulus for material A",
+		"error_description": "Changed lower bound from exclusive (0) to inclusive [0), allowing zero Young's Modulus. Physically impossible as materials require positive stiffness, causing division-by-zero in wave speed calculations (v = sqrt(Y/ρ))."
+	},
+	{
+		"original_line": ".LTC(rbt_LTCB), .rhoTC(rbt_rhoTCB), .YTC(rbt_YTCB), .nuTC(rbt_nuTCB),", 
+		"bug_line": ".LTC(rbt_LTCB), .rhoTC(rbt_rhoTCB), .YTC(rbt_rhoTCB), .nuTC(rbt_nuTCB),",
+		"error_description": "Assigns thermal coefficient for Young's modulus (YTC) to density's thermal coefficient (rbt_rhoTCB) instead of the correct rbt_YTCB, causing incorrect material behavior in left termination."
+	},
+	{
+		"original_line": "parameter real rbt_fQfo    = `RBT_FQFO   from [1:inf);  // Harmonic for which fQ is calculated", 
+		"bug_line": "parameter real rbt_fQfo    = `RBT_FQFO   from (1:inf);  // Harmonic for which fQ is calculated",
+		"error_description": "Changed the range from inclusive [1 to exclusive (1, making harmonic 1 (fundamental mode) invalid. The model requires support for harmonic 1, but the new condition excludes it, breaking fundamental resonance calculations."
+	},
+	{
+		"original_line": ".dT(rbt_dT), .rbt_wgVtoT(rbt_wgVtoT), .rbt_wgLtoRho(rbt_wgLtoRho),", 
+		"bug_line": ".dT(rbt_dT), .rbt_wgVtoT(rbt_wgLtoRho), .rbt_wgLtoRho(rbt_wgVtoT),",
+		"error_description": "Swapped rbt_wgVtoT and rbt_wgLtoRho parameter connections, causing voltage-to-stress scaling to incorrectly use density scaling factor and vice versa, corrupting transduction and mechanical property mapping."
+	},
+	{
+		"original_line": "inout x;", 
+		"bug_line": "output x;",
+		"error_description": "Changing port direction from inout to output breaks signal flow as internal waveguide modules require bidirectional access to drive/read the x node, preventing proper resonator operation."
+	},
+	{
+		"original_line": "electrical [0:`RBT_NTERM] termLeftA;", 
+		"bug_line": "electrical [1:`RBT_NTERM] termLeftA;",
+		"error_description": "Changed array index range from [0:N] to [1:N], causing missing connection at index 0. This breaks the waveguide chain since termLeftA[0] is required for connecting the main cavity to the left termination section."
+	},
+	{
+		"original_line": ".l(rbt_LB), .rho(rbt_rhoB), .Y(rbt_YB), .nu(rbt_nuB),", 
+		"bug_line": ".l(rbt_LA), .rho(rbt_rhoB), .Y(rbt_YB), .nu(rbt_nuB),",
+		"error_description": "Termination length changed from rbt_LB (material B) to rbt_LA (material A). This incorrectly sets the left termination length using material A's length parameter instead of material B's, violating the design specification for asymmetric termination materials."
+	},
+	{
+		"original_line": "parameter real rbt_Qother  = `RBT_QOTHER from (0:inf);  // Other losses", 
+		"bug_line": "parameter real rbt_Qother  = `RBT_QOTHER from (0:-inf);  // Other losses",
+		"error_description": "Swapped the range limits from (0:inf) to (0:-inf), creating an invalid negative range where 0 > -inf is impossible. This violates the physical constraint that loss parameters must be positive."
+	},
+	{
+		"original_line": "parameter real rbt_Qother  = `RBT_QOTHER from (0:inf);  // Other losses", 
+		"bug_line": "parameter real rbt_Qother  = `RBT_QOTHER from [0:inf);  // Other losses",
+		"error_description": "Changed the range specification from (0:inf) to [0:inf), allowing zero values. This violates the design requirement that Qother must be strictly positive (non-zero), as zero loss would cause division-by-zero errors in quality factor calculations and make the resonator model physically unrealizable."
+	},
+	{
+		"original_line": "parameter real rbt_YTCB    = `RBT_YTCB;                 // Young's Modulus TC for material B", 
+		"bug_line": "parameter real rbt_YTCB    = `RBT_YTC;                 // Young's Modulus TC for material B",
+		"error_description": "Assigned material A's Young's modulus temperature coefficient (`RBT_YTC`) to material B instead of material B's correct coefficient (`RBT_YTCB`). This causes incorrect thermal scaling in termination sections using material B."
+	},
+	{
+		"original_line": "electrical [0:`RBT_NTERM] termRightB;", 
+		"bug_line": "electrical [`RBT_NTERM:0] termRightB;",
+		"error_description": "Reversing the bus indices connects termination waveguide sections in reverse order, breaking signal propagation direction and causing incorrect boundary condition handling in the right termination structure."
+	},
+	{
+		"original_line": "parameter real rbt_fQB     = `RBT_FQB     from (0:inf); // Resonator Quality factor for material B", 
+		"bug_line": "parameter real rbt_fQB     = `RBT_FQB     from (-inf:0]; // Resonator Quality factor for material B",
+		"error_description": "The range for rbt_fQB was inverted to allow only negative values or zero, violating the physical requirement that quality factors must be positive. This would cause unphysical negative damping in the model."
+	},
+	{
+		"original_line": ".LTC(rbt_LTC), .rhoTC(rbt_rhoTC), .YTC(rbt_YTC), .nuTC(rbt_nuTC),", 
+		"bug_line": ".LTC(rbt_LTC), .rhoTC(rbt_rhoTC), .YTC(rbt_YTC), .nuTC(rbt_YTC),",
+		"error_description": "Assigned Young's modulus temperature coefficient (rbt_YTC) to Poisson's ratio parameter (nuTC) instead of correct rbt_nuTC. This incorrectly links material stiffness and lateral contraction behavior, corrupting mechanical response under temperature variations."
+	},
+	{
+		"original_line": ".l(4*rbt_LB), .rho(rbt_rhoB), .Y(rbt_YB), .nu(rbt_nuB),", 
+		"bug_line": ".l(4*rbt_LB), .rho(rbt_rho), .Y(rbt_YB), .nu(rbt_nuB),",
+		"error_description": "The waveguide match for the right termination incorrectly uses material A's density (rbt_rho) instead of material B's density (rbt_rhoB). This violates the design specification where terminations must use material B properties, causing incorrect acoustic impedance matching and signal reflections."
+	},
+	{
+		"original_line": "parameter real rbt_rho     = `RBT_RHO    from (0:inf);   // Density for material A", 
+		"bug_line": "parameter real rbt_rho     = `RBT_RHO    from (inf:0);   // Density for material A",
+		"error_description": "Reversed parameter range to (inf:0), making all valid values impossible since lower bound exceeds upper bound, causing immediate model failure during parameter validation."
+	}
+]

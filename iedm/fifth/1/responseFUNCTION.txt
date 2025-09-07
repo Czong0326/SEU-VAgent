@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "input vin_p, vin_n;", 
+		"bug_line": "input vin_n, vin_p;",
+		"error_description": "Swapped input port names invert the differential voltage calculation. This causes V(vin_p, vin_n) to compute as -(actual input difference), reversing the deadband regions and amplification behavior."
+	},
+	{
+		"original_line": "    $display("Range specification error.  vdead_high = (%E) less than vdead_low = (%E).\n", vdead_high, vdead_low );", 
+		"bug_line": "    $display("Range specification error.  vdead_high = (%E) less than vdead_low = (%E).\n", vdead_low, vdead_high );",
+		"error_description": "Swapped print arguments display vdead_low value for vdead_high label and vice versa, misreporting actual parameter values during range errors and misleading debug efforts."
+	},
+	{
+		"original_line": "	    $display("Range specification error.  vdead_high = (%E) less than vdead_low = (%E).\n", vdead_high, vdead_low );", 
+		"bug_line": "	    $display("Range specification error.  vdead_high = (%E) less than vdead_low = (%E).\n", vdead_low, vdead_high );",
+		"error_description": "Swapped vdead_high and vdead_low in error message parameters. When invalid deadband values are detected (vdead_high <= vdead_low), the error message incorrectly displays vdead_low as vdead_high and vice versa, misleading designers about the actual parameter values causing the violation."
+	},
+	{
+		"original_line": "output vout;", 
+		"bug_line": "input vout;",
+		"error_description": "Changing port direction from output to input creates a functional error because the module attempts to drive an input port (V(vout) <+ vout_val), violating Verilog-A semantics where input ports cannot be driven internally."
+	},
+	{
+		"original_line": "input vin_p, vin_n;", 
+		"bug_line": "output vin_p, vin_n;",
+		"error_description": "Changed input ports to outputs, reversing signal direction. This causes contention when external circuits drive these ports (now outputs), leading to short-circuit currents and invalid differential voltage measurements at V(vin_p, vin_n)."
+	},
+	{
+		"original_line": "parameter real gain_low = 1;", 
+		"bug_line": "parameter real gain_low = 0;",
+		"error_description": "Setting gain_low to 0 disables amplification in the lower region, causing the output to always equal vleak when vin_val ≤ vdead_low, violating the requirement for amplified output outside the deadband."
+	},
+	{
+		"original_line": "vout_val = gain_low * (vin_val - vdead_low) + vleak;", 
+		"bug_line": "vout_val = gain_high * (vin_val - vdead_low) + vleak;",
+		"error_description": "Uses gain_high instead of gain_low for the lower region, violating specification where gain_low should amplify voltages below vdead_low. This causes incorrect gain application in the lower range."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed 'analog' to 'initial', causing the output calculation to execute only once during initialization instead of continuously during simulation. This violates the dynamic amplification behavior required for real-time signal processing."
+	},
+	{
+		"original_line": "vin_val = V(vin_p, vin_n);", 
+		"bug_line": "vin_val = V(vin_p);",
+		"error_description": "Changed differential voltage measurement to single-ended measurement. Now uses absolute voltage at vin_p instead of the difference between vin_p and vin_n, breaking the differential input design and causing incorrect deadband region detection."
+	},
+	{
+		"original_line": "parameter real vdead_high = 10;", 
+		"bug_line": "parameter real vdead_high = -10;",
+		"error_description": "Sets the upper dead band threshold to -10V while the lower threshold remains at -10V. This inverts the dead band range, causing the amplifier to incorrectly process positive input voltages as being in the upper amplification region instead of the dead band, and fails the initial range check when vdead_high < vdead_low."
+	},
+	{
+		"original_line": "parameter real gain_high = 1;", 
+		"bug_line": "parameter real gain_high = -1;",
+		"error_description": "Changed gain_high to negative value, causing signal inversion in the upper region. This violates the design requirement for positive amplification when input exceeds vdead_high."
+	},
+	{
+		"original_line": "parameter real vdead_high = 10;", 
+		"bug_line": "parameter real vdead_high = -10;",
+		"error_description": "Sets vdead_high below default vdead_low (-10), violating the deadband requirement that vdead_high > vdead_low. This triggers the initial_step error check and halts simulation, breaking normal operation."
+	},
+	{
+		"original_line": "end else if (vin_val <= vdead_low) begin", 
+		"bug_line": "end else if (vin_val <= vdead_high) begin",
+		"error_description": "Changed the lower region threshold condition from vdead_low to vdead_high. This causes the lower region amplification to activate incorrectly for all inputs below vdead_high (including the deadband region between vdead_low and vdead_high), eliminating the deadband behavior entirely for positive inputs."
+	},
+	{
+		"original_line": "parameter real gain_high = 1;", 
+		"bug_line": "parameter real gain_high = 0;",
+		"error_description": "Setting gain_high to zero eliminates amplification in the upper region. When input exceeds vdead_high, the output becomes constant (vleak) instead of amplified, violating the requirement for amplified output outside the deadband."
+	},
+	{
+		"original_line": "vout_val = gain_low * (vin_val - vdead_low) + vleak;", 
+		"bug_line": "vout_val = gain_high * (vin_val - vdead_low) + vleak;",
+		"error_description": "In the lower region calculation, gain_high is incorrectly used instead of gain_low. This swaps the amplification factors between regions, causing over/under-amplification when input voltage is below vdead_low."
+	},
+	{
+		"original_line": "if (vin_val >= vdead_high) begin", 
+		"bug_line": "if (vin_val <= vdead_high) begin",
+		"error_description": "Changed operator from >= to <=. This causes the upper region gain to activate for inputs below the upper dead band threshold (vdead_high) instead of above it, incorrectly applying gain_high to the dead band and lower regions while preventing the lower region condition from ever triggering."
+	},
+	{
+		"original_line": "vout_val = vleak;", 
+		"bug_line": "vout_val = vdead_low;",
+		"error_description": "Initial output incorrectly set to lower deadband voltage (vdead_low) instead of offset voltage (vleak), causing deadband region to output wrong value and violating offset specification."
+	},
+	{
+		"original_line": "      @ ( initial_step ) begin", 
+		"bug_line": "      @ ( initial_step("dc") ) begin",
+		"error_description": "Changed the initial_step event to only trigger during DC analysis. This prevents the critical parameter validation (vdead_high <= vdead_low) from running during transient or AC analyses, allowing invalid parameters to go undetected in most simulation types."
+	},
+	{
+		"original_line": "      if (vin_val >= vdead_high) begin", 
+		"bug_line": "      if (vin_val <= vdead_high) begin",
+		"error_description": "Changed the condition operator from >= to <=. This inverts the logic for the upper region, causing gain_high to be incorrectly applied to inputs below vdead_high instead of above it, while inputs above the threshold would fall through to the deadband or lower region."
+	},
+	{
+		"original_line": "real vout_val, vin_val;", 
+		"bug_line": "integer vout_val, vin_val;",
+		"error_description": "Changed variable type from real to integer, causing truncation of decimal values during voltage calculations. This results in incorrect amplification due to loss of fractional precision in vin_val (input voltage difference) and vout_val (output voltage), violating continuous analog behavior requirements."
+	}
+]

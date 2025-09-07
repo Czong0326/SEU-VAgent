@@ -1,0 +1,206 @@
+/*
+Copyright @ 2015 UCSB
+
+The terms under which the software and associated documentation (the Software) is provided are as the following: 
+
+The Software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages or other liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the Software or the use or other dealings in the Software. 
+
+The authors or copyright holders grants, free of charge, to any users the right to modify, copy, and redistribute the Software, both within the user's organization and externally, subject to the following restrictions:
+
+1. The users agree not to charge for the code itself but may charge for additions, extensions, or support. 
+
+2. In any product based on the Software, the users agree to acknowledge the Research Group that developed the software. This acknowledgment shall appear in the product documentation. 
+
+3. The users agree to obey all U.S. Government restrictions governing redistribution or export of the software. 
+
+4. The users agree to reproduce any copyright notice which appears on the software on any copy or modification of such made available to others. 
+
+Agreed to by 
+Prof. Kaustav Banerjee
+March 27 2015
+*/
+
+/* 
+Model Name: UCSB Graphene-Nano-Ribbon Interconnect Model
+    Author: Junkai Jiang
+   Contact: junkaijiang@ece.ucsb.edu
+      Date: March 27 2015
+   Version: 1.0.0
+*/
+
+`include "disciplines.vams"
+`include "constants.vams"
+
+module GNR(p,n); 
+    
+    inout p, n; 
+    electrical p, n, n0, n1, n2, n3, n4; 
+
+    // input parameters
+    parameter real         l = 1u                  from (0:inf);
+    parameter real         w = 100n                from (0:inf);
+    parameter real       N_L = 1.0                 from (0:inf);
+    parameter real     dope  = 0                   from [0:inf);
+    parameter real      l_D = 1u                   from (0:inf); 
+
+    // distribute
+    //parameter real dl = 10n;
+
+    // Quantum contact resistance
+    halfRq #(.w(w), .N_L(N_L), .dope(dope)) halfRq_1 (p, n0); 
+
+    // dGNR
+    dGNR25 #(.dl(l/100), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR25_1 (n0, n1); 
+    dGNR25 #(.dl(l/100), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR25_2 (n1, n2); 
+    dGNR25 #(.dl(l/100), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR25_3 (n2, n3); 
+    dGNR25 #(.dl(l/100), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR25_4 (n3, n4); 
+
+    halfRq #(.w(w), .N_L(N_L), .dope(dope)) halfRq_2 (n4, n); 
+
+endmodule
+
+module halfRq(p,n); 
+    
+    inout p, n; 
+    electrical p, n; 
+    branch (p,n) r; 
+
+    // input parameters
+    parameter real w = 100n                        from (0:inf); 
+    parameter real N_L = 1.0                       from (0:inf); 
+    parameter real dope = 0                        from [0:inf); 
+
+    // private parameters
+    parameter real      v_f  = 1e6                 from (0:inf);
+    parameter real        q  = 1.602e-19           from (0:inf);
+    parameter real        h  = 6.6261e-34          from (0:inf);
+    parameter real        pi = 3.1416              from (0:inf);
+
+    real E_F, E0, En, N_ch, Rq; 
+    integer num; 
+
+    analog begin
+        // doping
+        E_F = sqrt(dope*q/4/pi) * h * v_f;  // equation 13
+        //E_F = 0.21*q; 
+
+        // N_ch calculation
+        E0 = 0.933 / 2 / (w*1e9 +1.5);
+        N_ch = 2/(1 + exp(E0/$vt/q));
+        for (num = 1; num < 100; num = num + 1) begin
+            En = abs(num + 0.5) * h * v_f / 2 / (w*1e9);
+            N_ch = N_ch+1/(1 + exp((En-E_F)/$vt/q))+1/(1 + exp((E_F+En)/$vt/q));
+        end
+        
+        // Quantum Contact Resistance
+        Rq = h/2/q/q/N_ch/N_L; 
+
+        V(r) <+ Rq/2 * I(r); 
+
+    end
+
+endmodule
+
+module dGNR25(p, n); 
+    
+    inout p, n; 
+    electrical p, n, n1, n2, n3, n4; 
+
+    // input parameters
+    parameter real        dl = 10n                 from (0:inf);
+    parameter real         w = 100n                from (0:inf);
+    parameter real       N_L = 1.0                 from (0:inf);
+    parameter real      dope = 0                   from [0:inf);
+    parameter real      l_D = 1u                   from (0:inf); 
+
+    dGNR5 #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR5_1 (p, n1); 
+    dGNR5 #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR5_2 (n1, n2); 
+    dGNR5 #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR5_3 (n2, n3); 
+    dGNR5 #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR5_4 (n3, n4); 
+    dGNR5 #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR5_5 (n4, n); 
+
+endmodule
+
+module dGNR5(p, n); 
+    inout p, n; 
+    electrical  p, n, n1, n2, n3, n4; 
+
+    // input parameters
+    parameter real        dl = 10n                 from (0:inf);
+    parameter real         w = 100n                from (0:inf);
+    parameter real       N_L = 1.0                 from (0:inf);
+    parameter real      dope = 0                   from [0:inf);
+    parameter real      l_D = 1u                   from (0:inf); 
+
+    dGNR #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR_1 (p, n1); 
+    dGNR #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR_2 (n1, n2); 
+    dGNR #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR_3 (n2, n3); 
+    dGNR #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR_4 (n3, n4); 
+    dGNR #(.dl(dl), .w(w), .N_L(N_L), .dope(dope), .l_D(l_D)) dGNR_5 (n4, n); 
+
+endmodule
+
+module dGNR(p, n); 
+
+    inout p, n; 
+    electrical p, n, gnd, m; 
+    ground gnd; 
+    branch (p,m) resistor; 
+    branch (m,n) inductor; 
+    branch (n,gnd) capacitor; 
+
+    // input parameters
+    parameter real        dl = 10n                 from (0:inf);
+    parameter real         w = 100n                from (0:inf);
+    parameter real       N_L = 1.0                 from (0:inf);
+    parameter real     dope  = 0                   from [0:inf);
+    parameter real      l_D = 1u                   from (0:inf); 
+
+    // private parameters
+    parameter real      v_f  = 1e6                 from (0:inf);
+    parameter real        q  = 1.602e-19           from (0:inf);
+    parameter real        h  = 6.6261e-34          from (0:inf);
+    parameter real        pi = 3.1416              from (0:inf);
+
+    real E_F, z, func, GNR_R; 
+
+    real E0, En, N_ch, GNR_L, GNR_C; 
+    integer num; 
+
+    analog begin
+        // doping
+        E_F = sqrt(dope*q/4/pi) * h * v_f;  // equation 13
+        //E_F = 0.21*q; 
+
+        // resistance calculation
+        z = sqrt((l_D-w)/(l_D+w));        
+        if (l_D >= w) begin
+            func = (pi*w-2*l_D)/l_D + 4*sqrt(pow(l_D,2)-pow(w,2))/l_D * 0.5*ln((1+z)/(1-z));
+        end else begin
+            func = (pi*w-2*l_D)/l_D - 4*sqrt(pow(w,2)-pow(l_D,2))/l_D * atan(sqrt((w-l_D)/(l_D+w)));
+        end        
+        GNR_R = dl/((2*pow(q,2)/h)*(2*pow(w,2)/h/v_f)*(2*$vt*q)*ln(2*cosh(E_F/2/$vt/q))*func) / N_L;
+
+        // N_ch calculation
+        E0 = 0.933 / 2 / (w*1e9 +1.5);
+        N_ch = 2/(1 + exp(E0/$vt/q));
+        for (num = 1; num < 100; num = num + 1) begin
+            En = abs(num + 0.5) * h * v_f / 2 / (w*1e9);
+            N_ch = N_ch+1/(1 + exp((En-E_F)/$vt/q))+1/(1 + exp((E_F+En)/$vt/q));
+        end
+
+        // capacitance calculation
+        GNR_C = dl* N_L * N_ch *4 * q*q/h/v_f;
+
+        // inductance calculation
+        GNR_L = dl* (h/4/q/q/v_f)/N_L/N_ch;
+
+        V(resistor) <+ GNR_R * I(resistor); 
+        V(inductor) <+ ddt(GNR_L * I(inductor)); 
+        I(capacitor) <+ ddt(GNR_C * V(capacitor));
+
+    end
+
+endmodule
+
+

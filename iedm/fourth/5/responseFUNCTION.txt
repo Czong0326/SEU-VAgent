@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "integer i, Npair, Np1p, k, IntegTmp;", 
+		"bug_line": "integer i, Npair, Np1p, k, IntegTmp2;",
+		"error_description": "The variable 'IntegTmp' is used in the poles array indexing but declared as 'IntegTmp2'. This undeclared variable error causes incorrect pole storage and filter transfer function calculation."
+	},
+	{
+		"original_line": "poles[IntegTmp]   = re_pole;", 
+		"bug_line": "poles[IntegTmp]   = im_pole;",
+		"error_description": "Assigns imaginary part value to real pole location, corrupting the pole structure by mixing real/imaginary components and breaking complex conjugate symmetry required for stable filter implementation."
+	},
+	{
+		"original_line": "electrical inp,inn, outp,outn;", 
+		"bug_line": "electrical inp,inn, outp,inn;",
+		"error_description": "The output port 'outn' is mistakenly declared as 'inn', creating a duplicate declaration for the input port 'inn' and leaving 'outn' without a proper discipline. This causes a compilation error due to conflicting port declarations and breaks the differential output structure."
+	},
+	{
+		"original_line": "vout = real_gain * laplace_np(V(inp)- V(inn), zeron, poles);", 
+		"bug_line": "vout = real_gain * laplace_np(V(inp), zeron, poles);",
+		"error_description": "Changed filter input from differential voltage (V(inp)-V(inn)) to single-ended input (V(inp)). This breaks differential operation, causing common-mode noise amplification and loss of signal rejection from the negative input path."
+	},
+	{
+		"original_line": "Npair = `N/2; Np1p = (`N+1)/2;", 
+		"bug_line": "Npair = `N*2; Np1p = (`N+1)/2;",
+		"error_description": "Changed division to multiplication in Npair assignment. This makes Npair = 2*`N instead of `N/2, causing the pole denormalization loop to run 2*`N times instead of `N/2 times. This accesses uninitialized values in the normalized pole arrays (ReP/ImP) and creates garbage poles, completely corrupting the filter response."
+	},
+	{
+		"original_line": "   @(initial_step) begin", 
+		"bug_line": "   @(final_step) begin",
+		"error_description": "Changed event trigger from initial_step to final_step. This causes filter parameters (poles, zeros, gain) to be calculated at simulation end instead of start. During simulation, uninitialized parameters produce undefined/incorrect filtering behavior."
+	},
+	{
+		"original_line": " end // initial condition", 
+		"bug_line": " // end // initial condition",
+		"error_description": "Commenting out the 'end' statement prevents the initial_step block from closing. This causes all subsequent analog statements (input/output models) to be incorrectly included inside the initial_step block. These statements then execute only once during initialization rather than continuously, breaking the filter's dynamic behavior."
+	},
+	{
+		"original_line": "electrical inp,inn, outp,outn;", 
+		"bug_line": "electrical inp, outp,outn;",
+		"error_description": "Removed 'inn' from the net declaration, leaving the negative input port undeclared and unconnected. This violates the differential input requirement and breaks the input model calculations that depend on both input signals."
+	},
+	{
+		"original_line": "   real tmp;", 
+		"bug_line": "   integer tmp;",
+		"error_description": "Changing 'tmp' from real to integer causes truncation of fractional values during pole calculations. This corrupts the filter's frequency response by misplacing poles, particularly affecting trigonometric calculations (sin/cos) and complex pole generation for the Butterworth filter."
+	},
+	{
+		"original_line": "parameter real rout = 50 from (0:inf);", 
+		"bug_line": "parameter real rout = 50 from (inf:0);",
+		"error_description": "The parameter constraint for 'rout' is reversed (inf:0 instead of (0:inf)), allowing negative resistance values. This violates physical reality and causes non-convergence in circuit simulation since negative resistance creates energy instead of dissipating it."
+	},
+	{
+		"original_line": "   parameter real rin = 50 from (0:inf);", 
+		"bug_line": "   parameter real rin = -50 from (0:inf);",
+		"error_description": "Sets negative input resistance (-50 Ohms), violating physical realizability constraints (resistance must be positive). Causes simulation errors due to invalid parameter range."
+	},
+	{
+		"original_line": "   parameter real fcorner = 1e9 from (0:inf);", 
+		"bug_line": "   parameter real fcorner = 0 from (0:inf);",
+		"error_description": "Setting default corner frequency to 0Hz causes division by zero during pole calculation (wb2 = wb*wb becomes 0), crashing simulation during initialization."
+	},
+	{
+		"original_line": "        poles[4*Npair]   = re_pole;", 
+		"bug_line": "        poles[4*Npair]   = abs(re_pole);",
+		"error_description": "The real pole for odd-order filters is incorrectly assigned the absolute value of the negative pole location. This places the pole in the right-half plane, causing instability in the filter system."
+	},
+	{
+		"original_line": "   parameter real fcorner = 1e9 from (0:inf);", 
+		"bug_line": "   parameter real fcorner = 1e9 from (inf:0);",
+		"error_description": "Swapping the range bounds (inf:0) creates an invalid empty range since no value can be simultaneously >=inf and <=0. This causes simulation errors during parameter validation as fcorner cannot satisfy the impossible range constraint."
+	},
+	{
+		"original_line": "im_pole  = tmp * ImP[i];", 
+		"bug_line": "im_pole  = tmp * ReP[i];",
+		"error_description": "The imaginary part of the pole is incorrectly calculated using the real part coefficient (ReP) instead of the imaginary part coefficient (ImP). This swaps the pole's imaginary component with its real component, distorting the filter's frequency response and violating the Butterworth polynomial design."
+	},
+	{
+		"original_line": "        zeron[`N] = zeron[`N] / wb;", 
+		"bug_line": "        zeron[`N] = zeron[`N] * wb;",
+		"error_description": "The modification changes the scaling operation from division to multiplication. This incorrectly scales the numerator coefficient for odd-order filters by wb instead of 1/wb, disrupting the high-pass transfer function and causing passband gain errors."
+	},
+	{
+		"original_line": "        poles[4*Npair]   = re_pole;", 
+		"bug_line": "        poles[4*Npair]   = wb;",
+		"error_description": "The real pole assignment incorrectly uses the bandwidth frequency (wb) instead of the calculated pole value (re_pole), disrupting the pole placement for odd-order filters and causing incorrect frequency response."
+	},
+	{
+		"original_line": "real  poles[0:`N*2 -1], zeron[0:`N];", 
+		"bug_line": "real  poles[0:`N*2 -1], zeron[0:`N-1];",
+		"error_description": "The zeron array is undersized. The original [0:`N] provides `N+1 elements needed for numerator coefficients, but [0:`N-1] only gives `N elements. This causes an out-of-bounds write at zeron[`N] during initialization, corrupting memory and breaking the transfer function."
+	},
+	{
+		"original_line": "`define N 8", 
+		"bug_line": "`define N 1",
+		"error_description": "Filter order is set to 1 which violates the minimum order requirement (>=2). This causes simulation to abort during initial setup when the condition `N < 2 triggers the $stop statement."
+	},
+	{
+		"original_line": "   end //for (i=0; i<Npair; i=i+1)", 
+		"bug_line": "   end if (0) begin //for (i=0; i<Npair; i=i+1)",
+		"error_description": "The added 'if (0) begin' conditionally encloses the subsequent real pole calculation block. Since the condition is always false, the real pole initialization for odd-order filters is never executed. This causes missing pole calculations when N is odd, violating the Butterworth filter design specification."
+	}
+]

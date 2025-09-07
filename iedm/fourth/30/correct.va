@@ -1,0 +1,89 @@
+//  VerilogA baseband behavioral model of a power amplifier.
+//  Copyright (c) 2000
+//  by Cadence Design Systems, Inc.  All rights reserved.
+
+// 1/5/99
+
+/* 
+This is a band behavioral model of a low noise amplifier
+This model contains only third order non-linear amplitude
+effects (am/am conversion). It does not include second
+order non-linear effects. The transfer curve saturates 
+beyond the point where the slope of the transfer curve
+is zero. The form of the am/pm conversion is
+output_phase_shift = alpha*(Vin/Vcp)^n/(1+beta*(Vin/Vcp)^n). 
+Vcp is the compression point in volts. alpha and beta are
+computed to produce zero phase shift at Vin=0, a specified
+phase shift at the 1db compression point, and a specified
+phase shift at Vin->infinity. "n" is selected by the user
+to control how sharply the onset of am/pm conversion occurs.
+*/
+
+/* PARAMETER DEFINITIONS:
+======================
+gain 	= voltage gain in dB.
+IP3  	= input referenced IP3(dBm)
+nf	= noise figure [dB]
+rin 	= input resistance
+rout	= output resistance
+=====================
+*/
+
+`include "constants.h"
+`include "discipline.h"
+
+`define PI 3.1415926535897932384626433
+module LNA_PB(in, out);
+inout in;
+electrical in;
+inout out;
+electrical out;
+
+parameter real gain = 40 from [0:inf);
+parameter real ip3 = -30;
+parameter real rin = 50 from (0:inf);
+parameter real rout = 50 from (0:inf);
+parameter real nf = 2 from [0:inf];
+
+real a;
+real b;
+real ip; 
+real rho;
+real rhooutmax;
+real rhoinmax;
+real rhoout;
+real tmp;
+real cp;
+real noise_current;
+real rnf;
+
+analog begin
+
+// The initial block converts the input parameters from engineering
+// units to implementation units.
+   @(initial_step) begin
+     a = sqrt(pow(10,gain/10)*rout/rin);
+     ip = sqrt(pow(10,ip3/10)*2*rin*0.001);
+     rnf = pow(10,nf/10);
+     b = a/(ip*ip)*4/3;
+     rhoinmax = sqrt(a/(3*b));
+     rhooutmax = (2*a/3)*rhoinmax;
+     noise_current = sqrt(4*(rnf-1)*1.380620e-23*$temperature/rin);
+
+   end 
+
+  rho = V(in);
+
+// Apply the third order non-linearity. Clamp the
+// output for extreme inputs.
+  if (abs(rho) < rhoinmax ) rhoout = (a - b*rho*rho)*rho;
+  else if (rho >0) rhoout = rhooutmax;
+  else  rhoout = -rhooutmax;
+
+  I(in) <+ V(in)/rin;
+  I(out) <+ (-2*(rhoout) + V(out))/rout;
+
+  I(in) <+ white_noise(noise_current*noise_current, "LNA_PB");
+
+end
+endmodule

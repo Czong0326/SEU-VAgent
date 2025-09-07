@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": " I(inn) <+ V(inn)/rin;", 
+		"bug_line": " I(inn) <+ V(inp)/rin;",
+		"error_description": "Incorrect voltage reference: using positive input (V(inp)) instead of negative input (V(inn)) for the negative terminal current calculation, causing cross-coupled input signals and disrupting differential operation."
+	},
+	{
+		"original_line": "IntegTmp = 8*i;", 
+		"bug_line": "IntegTmp = 4*i;",
+		"error_description": "Index calculation error reduces pole array spacing from 8 to 4 per iteration, causing overlapping writes and corruption of pole data. This violates the design requirement of storing 8 values per complex pole pair (4 conjugate pairs) in the poles[] array, resulting in incorrect filter coefficients."
+	},
+	{
+		"original_line": "   if( `N < 2 ) begin", 
+		"bug_line": "   if( `N < 1 ) begin",
+		"error_description": "Changes condition to trigger only when filter order is less than 1. Since filter orders are integers starting from 1, this condition never executes. Allows invalid filter orders (N=1) to pass without error, violating the requirement that order must be >=2."
+	},
+	{
+		"original_line": "real_gain = pow(10.0,gain/20.0);", 
+		"bug_line": "real_gain = pow(10.0,gain/10.0);",
+		"error_description": "Incorrect dB-to-linear conversion: using divisor 10 instead of 20. Voltage gain should follow 10^(dB/20), but this error applies power gain formula (10^(dB/10)), making the actual gain the square root of the intended value."
+	},
+	{
+		"original_line": "$strobe("Filter order is less then 2");", 
+		"bug_line": "// $strobe("Filter order is less then 2");",
+		"error_description": "The error silences the critical warning when filter order is below 2. Without the warning message, the simulation proceeds with invalid filter parameters, violating the design requirement to halt and alert users of unsupported configurations."
+	},
+	{
+		"original_line": " I(outn) <+ (V(outn) + vout)/rout;", 
+		"bug_line": " I(outn) <+ (V(outn) - vout)/rout;",
+		"error_description": "The sign of vout is inverted, causing the negative output terminal to be driven with the same polarity as the positive terminal. This destroys the differential output signal by making both terminals follow the same voltage pattern instead of complementary signals."
+	},
+	{
+		"original_line": "poles[IntegTmp+2] =  re_pole + realtmp;", 
+		"bug_line": "poles[IntegTmp+2] =  re_pole - realtmp;",
+		"error_description": "The real part of the conjugate pole is incorrectly set to (re_pole - realtmp) instead of (re_pole + realtmp). This breaks complex conjugate symmetry, causing unstable filter behavior and incorrect frequency response."
+	},
+	{
+		"original_line": "   inout inp,inn, outp,outn;", 
+		"bug_line": "   input inp,inn, outp,outn;",
+		"error_description": "Changed all ports to input-only. This prevents driving output signals (outp/outn) and breaks the filter's output stage since outp/outn become undriven inputs."
+	},
+	{
+		"original_line": "analog begin", 
+		"bug_line": "initial begin",
+		"error_description": "Replaced 'analog' block with 'initial' block, causing the filter calculations to execute only once during initialization instead of continuously during simulation. This violates the continuous-time behavior required for analog filters."
+	},
+	{
+		"original_line": "   parameter real rout = 50 from (0:inf);", 
+		"bug_line": "   parameter real rout = 0 from [0:inf);",
+		"error_description": "Setting rout to 0 causes division by zero in the output current equations (I(outp) <+ (V(outp) - vout)/rout). The modified range [0:inf) permits this invalid value, triggering simulation errors due to undefined mathematical operations."
+	},
+	{
+		"original_line": "teta = teta / 2.0;", 
+		"bug_line": "teta = teta / 4.0;",
+		"error_description": "Changed angle division factor from 2.0 to 4.0, halving the required phase angle for complex root calculation. This distorts pole placement by incorrectly computing the square root of complex numbers, shifting filter cutoff frequencies and degrading passband/stopband characteristics."
+	},
+	{
+		"original_line": "        poles[IntegTmp+2] =  re_pole + realtmp;", 
+		"bug_line": "        poles[IntegTmp+2] =  re_pole - realtmp;",
+		"error_description": "The real part of the second pole is incorrectly calculated by subtracting realtmp instead of adding it. This breaks the complex conjugate symmetry required for stable filter implementation, alters pole locations, and causes incorrect frequency response in the bandpass filter."
+	},
+	{
+		"original_line": "        re_pole = wb * ReP[i];", 
+		"bug_line": "        re_pole = wb + ReP[i];",
+		"error_description": "Replaces multiplication with addition, miscalculating the real pole component. This alters the filter's frequency response by shifting pole locations, causing incorrect cutoff behavior in the bandpass filter."
+	},
+	{
+		"original_line": "`define N 8", 
+		"bug_line": "`define N 1",
+		"error_description": "Filter order N=1 violates minimum order requirement (N>=2). Triggers $stop(1) during initialization, halting simulation."
+	},
+	{
+		"original_line": "   for (i=0; i<Npair; i=i+1) begin", 
+		"bug_line": "   for (i=0; i<Npair+1; i=i+1) begin",
+		"error_description": "The modified loop runs one extra iteration beyond the required number of pole pairs. This causes an array bounds violation when writing to the 'poles' array, corrupting adjacent memory and resulting in incorrect pole calculations for the Butterworth filter transfer function."
+	},
+	{
+		"original_line": "wb2 = wb * wb;", 
+		"bug_line": "wb2 = wb * wg;",
+		"error_description": "The bandwidth squared (wb2) is incorrectly calculated using center frequency (wg) instead of bandwidth (wb). This causes incorrect pole calculation, shifting filter cutoff frequencies and distorting the bandpass response."
+	},
+	{
+		"original_line": "real  poles[0:4 *`N-1], zerod[0:`N];", 
+		"bug_line": "real  poles[0:4 *`N-2], zerod[0:`N];",
+		"error_description": "The poles array is undersized by one element. For a filter order N, 4*N elements are required to store complex pole pairs, but the modified array only provides 4*N-1 elements. This causes an out-of-bounds write during pole initialization, corrupting adjacent memory and resulting in incorrect filter behavior."
+	},
+	{
+		"original_line": "inn-               ---rout----outn", 
+		"bug_line": "inn-               ---rin----outn",
+		"error_description": "Changed output resistor from 'rout' to 'rin'. This parameter substitution error incorrectly uses the input resistance for the output network, causing impedance mismatch and signal attenuation at the output stage."
+	},
+	{
+		"original_line": "re_pole  = wb * ReP[i] / 2;", 
+		"bug_line": "re_pole  = wg * ReP[i] / 2;",
+		"error_description": "Uses geometric mean frequency (wg) instead of bandwidth (wb) for pole calculation. This incorrectly scales the real part of poles by the center frequency rather than the bandwidth, distorting the bandpass filter response."
+	},
+	{
+		"original_line": "real real_gain, wb, re_pole, im_pole, vout, teta, wbn, wg, wg2, wb2;", 
+		"bug_line": "real real_gain, wb, re_pole, im_pole, vout, teta, wbn, w_g, wg2, wb2;",
+		"error_description": "Changed 'wg' to 'w_g', leaving 'wg' undeclared. This breaks critical frequency calculations (wg = sqrt(wg2)) and pole denormalization, causing filter transfer function errors."
+	}
+]

@@ -1,0 +1,185 @@
+//======================================================================
+//Copyright @ 2016 Massachusetts Institute of Technology (MIT)
+// 
+// The terms under which the software and associated documentation
+// (the Software) is provided are as the following:
+// 
+// The Software is provided "as is", without warranty of any kind,
+// express or implied, including but not limited to the warranties of
+// merchantability, fitness for a particular purpose and noninfringement.
+// In no event shall the authors or copyright holders be liable for any claim,
+// damages or other liability, whether in an action of contract,
+// tort or otherwise, arising from, out of or in connection with the Software
+// or the use or other dealings in the Software.
+// 
+// MIT grants, free of charge, to any users the right to modify, copy,
+// and redistribute the Software, both within the user's organization and
+// externally, subject to the following restrictions:
+// 
+// 1. The users agree not to charge for the MIT code itself but may charge
+//      for additions, extensions, or support.
+// 
+// 2. In any product based on the Software, the users agree to acknowledge
+//      the MIT Computational Prototyping Research Group that developed
+//      the software. This acknowledgment shall appear in the product
+//      documentation.
+// 
+// 3. The users agree to obey all U.S. Government restrictions governing
+//      redistribution or export of the software.
+// 
+// 4. The users agree to reproduce any copyright notice which appears on
+//      the software on any copy or modification of such made available to others.
+// 
+// Agreed to by 
+// Luca Daniel, MIT
+// March 1st, 2016
+//======================================================================
+// rbtBody.va
+//======================================================================
+// Resonant body module for the RBT Compact Model
+//
+// Version: 1.0.0
+// Tested on: Cadence Spectre 15.1.0.284.isr1
+//
+// Author: Bichoy Bahr [bichoy at mit dot edu]
+// Last Modified: March 31st, 2016
+
+`ifdef __RBT_BODY_VA__
+`else
+`define __RBT_BODY_VA__
+
+`include "constants.vams"
+`include "disciplines.vams"
+`include "rbtConst.va"
+`include "rbtWaveguide.va"
+`include "rbtWaveguideMatch.va"
+
+
+module rbtBody(x,vss);
+
+inout x;
+inout vss;
+
+electrical x;
+electrical vss;
+
+parameter real version     = 1.00;
+parameter real rbt_L       = `RBT_L      from (0:inf);  // Resonator main cavity length
+parameter real rbt_LA      = `RBT_LA     from (0:inf);  // Termination length of material A
+parameter real rbt_LB      = `RBT_LB     from (0:inf);  // Termination length of material B
+
+parameter real rbt_rho     = `RBT_RHO    from (0:inf);   // Density for material A
+parameter real rbt_Y       = `RBT_Y      from (0:inf);  // Young's Modulus for material A
+parameter real rbt_nu      = `RBT_NU     from [0:0.5];  // Poisson's ratio for material A
+
+parameter real rbt_rhoB    = `RBT_RHOB   from (0:inf);   // Density for material B
+parameter real rbt_YB      = `RBT_YB     from (0:inf);  // Young's Modulus for material B
+parameter real rbt_nuB     = `RBT_NUB    from [0:0.5];  // Poisson's ratio for material B
+
+parameter real rbt_Qother  = `RBT_QOTHER from (0:inf);  // Other losses
+parameter real rbt_fQ      = `RBT_FQ     from (0:inf);  // Resonator Quality factor
+parameter real rbt_fQfo    = `RBT_FQFO   from [1:inf);  // Harmonic for which fQ is calculated 
+
+parameter real rbt_QotherB = `RBT_QOTHERB from (0:inf); // Other losses for material B
+parameter real rbt_fQB     = `RBT_FQB     from (0:inf); // Resonator Quality factor for material B
+parameter real rbt_fQfoB   = `RBT_FQFOB   from [1:inf); // Harmonic for which fQ is calculated for material B
+
+parameter real rbt_LTC     = `RBT_LTC    from [0:inf);  // Expansion coefficient for material A
+parameter real rbt_rhoTC   = `RBT_RHOTC;                // Density TC for material A
+parameter real rbt_YTC     = `RBT_YTC;                  // Young's Modulus TC for material A
+parameter real rbt_nuTC    = `RBT_NUTC;                 // Poisson's ratio TC for material A
+parameter real rbt_fQTC    = `RBT_FQTC;                 // rbt_fQ TC for material A
+
+parameter real rbt_LTCB    = `RBT_LTCB   from [0:inf);  // Expansion coefficient for material B
+parameter real rbt_rhoTCB  = `RBT_RHOTCB;               // Density TC for material B
+parameter real rbt_YTCB    = `RBT_YTCB;                 // Young's Modulus TC for material B
+parameter real rbt_nuTCB   = `RBT_NUTCB;                // Poisson's ratio TC for material B
+parameter real rbt_fQTCB   = `RBT_FQTCB;                // rbt_fQ TC for material A
+
+parameter real rbt_wgVtoT   = `RBT_WGVTOT   from (0:inf); // scaling parameter from voltage to stress
+parameter real rbt_wgLtoRho = `RBT_WGLTORHO from (0:inf); // scaling parameter from inductance to density
+
+parameter real rbt_dT = 0;
+
+// Internal model nodes
+electrical [0:`RBT_NTERM] termRightA;
+electrical [0:`RBT_NTERM] termRightB;
+electrical [0:`RBT_NTERM] termLeftA;
+electrical [0:`RBT_NTERM] termLeftB;
+
+// Last nodes in the termination
+electrical termRightLast;
+electrical termLeftLast;
+
+
+// ================================================================================
+// Main cavity waveguide sections
+// ================================================================================
+rbtWaveguide  #(
+    .l(rbt_L/2), .rho(rbt_rho), .Y(rbt_Y), .nu(rbt_nu),
+    .LTC(rbt_LTC), .rhoTC(rbt_rhoTC), .YTC(rbt_YTC), .nuTC(rbt_nuTC),
+    .dT(rbt_dT), .rbt_wgVtoT(rbt_wgVtoT), .rbt_wgLtoRho(rbt_wgLtoRho),
+    .rbt_fQ(rbt_fQ), .rbt_fQfo(rbt_fQfo), .rbt_Qother(rbt_Qother)
+) mainCavity[0:1] (.p(x),.n({termLeftA[0],termRightA[0]}),.vss(vss));
+
+
+// ================================================================================
+// Termination waveguide sections
+// ================================================================================
+
+// Right Termination
+//------------------
+// Mat B right termination
+rbtWaveguide #(
+    .l(rbt_LB), .rho(rbt_rhoB), .Y(rbt_YB), .nu(rbt_nuB),
+    .LTC(rbt_LTCB), .rhoTC(rbt_rhoTCB), .YTC(rbt_YTCB), .nuTC(rbt_nuTCB),
+    .dT(rbt_dT), .rbt_wgVtoT(rbt_wgVtoT), .rbt_wgLtoRho(rbt_wgLtoRho),
+    .rbt_fQ(rbt_fQB), .rbt_fQfo(rbt_fQfoB), .rbt_Qother(rbt_QotherB)
+) termRight_MatB_Inst[0:`RBT_NTERM] (.p(termRightA),.n(termRightB),.vss(vss)); 
+
+// Mat A right termination
+rbtWaveguide  #(
+    .l(rbt_LA), .rho(rbt_rho), .Y(rbt_Y), .nu(rbt_nu),
+    .LTC(rbt_LTC), .rhoTC(rbt_rhoTC), .YTC(rbt_YTC), .nuTC(rbt_nuTC),
+    .dT(rbt_dT), .rbt_wgVtoT(rbt_wgVtoT), .rbt_wgLtoRho(rbt_wgLtoRho),
+    .rbt_fQ(rbt_fQ), .rbt_fQfo(rbt_fQfo), .rbt_Qother(rbt_Qother)
+) termRight_MatA_Inst[0:`RBT_NTERM] (.p(termRightB),.n({termRightA[1:`RBT_NTERM],termRightLast}),.vss(vss));
+
+// Waveguide Match
+rbtWaveguideMatch #(
+    .l(4*rbt_LB), .rho(rbt_rhoB), .Y(rbt_YB), .nu(rbt_nuB),
+    .LTC(rbt_LTCB), .rhoTC(rbt_rhoTCB), .YTC(rbt_YTCB), .nuTC(rbt_nuTCB),
+    .dT(rbt_dT), .rbt_wgVtoT(rbt_wgVtoT), .rbt_wgLtoRho(rbt_wgLtoRho),
+    .rbt_fQ(rbt_fQB), .rbt_fQfo(rbt_fQfoB), .rbt_Qother(rbt_QotherB)
+) termRight_MatB_Match (.p(termRightLast),.vss(vss)); 
+
+
+// Left Termination
+//------------------
+// Mat B left termination
+rbtWaveguide #(
+    .l(rbt_LB), .rho(rbt_rhoB), .Y(rbt_YB), .nu(rbt_nuB),
+    .LTC(rbt_LTCB), .rhoTC(rbt_rhoTCB), .YTC(rbt_YTCB), .nuTC(rbt_nuTCB),
+    .dT(rbt_dT), .rbt_wgVtoT(rbt_wgVtoT), .rbt_wgLtoRho(rbt_wgLtoRho),
+    .rbt_fQ(rbt_fQB), .rbt_fQfo(rbt_fQfoB), .rbt_Qother(rbt_QotherB)
+) termLeft_MatB_Inst[0:`RBT_NTERM] (.p(termLeftA),.n(termLeftB),.vss(vss));
+
+// Mat A left termination
+rbtWaveguide  #(
+    .l(rbt_LA), .rho(rbt_rho), .Y(rbt_Y), .nu(rbt_nu),
+    .LTC(rbt_LTC), .rhoTC(rbt_rhoTC), .YTC(rbt_YTC), .nuTC(rbt_nuTC),
+    .dT(rbt_dT), .rbt_wgVtoT(rbt_wgVtoT), .rbt_wgLtoRho(rbt_wgLtoRho),
+    .rbt_fQ(rbt_fQ), .rbt_fQfo(rbt_fQfo), .rbt_Qother(rbt_Qother)
+) termLeft_MatA_Inst[0:`RBT_NTERM] (.p(termLeftB),.n({termLeftA[1:`RBT_NTERM],termLeftLast}),.vss(vss));
+
+// Waveguide match
+rbtWaveguideMatch #(
+    .l(4*rbt_LB), .rho(rbt_rhoB), .Y(rbt_YB), .nu(rbt_nuB),
+    .LTC(rbt_LTCB), .rhoTC(rbt_rhoTCB), .YTC(rbt_YTCB), .nuTC(rbt_nuTCB),
+    .dT(rbt_dT), .rbt_wgVtoT(rbt_wgVtoT), .rbt_wgLtoRho(rbt_wgLtoRho),
+    .rbt_fQ(rbt_fQB), .rbt_fQfo(rbt_fQfoB), .rbt_Qother(rbt_QotherB)
+) termLeft_MatB_Match (.p(termLeftLast),.vss(vss)); 
+
+endmodule
+
+`endif

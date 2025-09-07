@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "real vmax, vmin;", 
+		"bug_line": "real vmin, vmax;",
+		"error_description": "Swapped vmax and vmin parameter order causes inverted voltage calculation. The function will incorrectly use vmin for vmax and vice versa, reversing the output voltage range (e.g., min voltage becomes max)."
+	},
+	{
+		"original_line": "tbit_stream = 1/data_rate;", 
+		"bug_line": "tbit_stream = 1/tstart;",
+		"error_description": "Reciprocal of tstart (start time) is used instead of data_rate to calculate bit interval. This replaces the intended bit duration (1/data_rate) with an unrelated timing parameter, causing incorrect sampling frequency and symbol decoding due to mismatched bit timing."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   digital begin",
+		"error_description": "Changed 'analog' to 'digital', converting the analog behavior block into an invalid digital block. This prevents the analog constructs (transition, bound_step, timer events) from being recognized, causing compilation failure and complete loss of demodulation functionality."
+	},
+	{
+		"original_line": "integer code;", 
+		"bug_line": "real code;",
+		"error_description": "Changing 'code' from integer to real type breaks the integer bit manipulation operations (code = code*2 + bit[i]) and causes truncation errors when passed to the integer-typed code2volt function, corrupting the PCM decoding output."
+	},
+	{
+		"original_line": "code = 0;", 
+		"bug_line": "code = bit[0];",
+		"error_description": "Initializes code with the current bit[0] value instead of 0. This causes the LSB to be added twice during bit assembly (once in initialization and once in the loop), corrupting the binary word and output voltage calculation."
+	},
+	{
+		"original_line": "   real vout_val;", 
+		"bug_line": "   real vout_val = vout_min;",
+		"error_description": "Initializing vout_val to vout_min causes premature output voltage clamping. Before the first sample conversion completes, the output incorrectly defaults to minimum voltage instead of 0, violating the demodulator's startup behavior."
+	},
+	{
+		"original_line": "parameter real data_rate = 1M from (0:inf);", 
+		"bug_line": "parameter real data_rate = 0 from [0:inf);",
+		"error_description": "Changed default data_rate to 0 and condition to include 0, causing division by zero when calculating tbit_stream (1/data_rate) and breaking simulation timing."
+	},
+	{
+		"original_line": "         if( bit_num > (`NUM_OF_BITS-1)) begin", 
+		"bug_line": "         if( bit_num >= (`NUM_OF_BITS-1)) begin",
+		"error_description": "Changed condition to skip sampling when bit_num >= 7 instead of > 7. This causes the last bit (MSB) to never be sampled, leaving the previous MSB value in the bit array during code conversion, resulting in incorrect output voltages."
+	},
+	{
+		"original_line": "real toutput_next;", 
+		"bug_line": "integer toutput_next;",
+		"error_description": "Changing toutput_next to integer causes truncation of scheduled output times during real-valued calculations (e.g., tstart + toutput), leading to incorrect output update scheduling and violated timing requirements."
+	},
+	{
+		"original_line": "integer bit[0:7];", 
+		"bug_line": "integer bit[0:6];",
+		"error_description": "Array size reduced from 8 to 7 elements. This causes bit[7] access to be out-of-bounds during the MSB sampling, corrupting the PCM code conversion and output voltage calculation."
+	},
+	{
+		"original_line": "electrical  vin, vout;", 
+		"bug_line": "voltage vin, vout;",
+		"error_description": "Changing 'electrical' to 'voltage' introduces a discipline mismatch. The module uses V(vin) to read voltage and V(vout) to drive voltage, but 'voltage' discipline only supports potential access while 'electrical' supports both potential and flow. This breaks analog signal processing by preventing proper current flow calculations."
+	},
+	{
+		"original_line": "code = code*2 + bit[i];", 
+		"bug_line": "code = code*2 + bit[0];",
+		"error_description": "The modification replaces the variable index 'i' with fixed index 0, causing all bits in the word to be incorrectly set to the value of bit[0]. This ignores the actual received bit sequence, resulting in constant output voltages of either 0V or full scale depending on the first bit's value."
+	},
+	{
+		"original_line": "parameter real tstart  = 1u from (0:inf);", 
+		"bug_line": "parameter real tstart  = -1u from (-inf:inf);",
+		"error_description": "Changed tstart to negative value (-1u) and extended range to negative. This causes initial sampling events to be scheduled in the past, preventing timer triggers and halting demodulation."
+	},
+	{
+		"original_line": "   real vmax, vmin;", 
+		"bug_line": "   real vmin, vmax;",
+		"error_description": "Swapping vmax and vmin variables reverses the voltage range calculation in code2volt function. This causes inverted output voltages where min becomes max and vice versa, violating the linear binary coding specification."
+	},
+	{
+		"original_line": "vout_val = code2volt(code,vout_max,vout_min);", 
+		"bug_line": "vout_val = code2volt(bit_num,vout_max,vout_min);",
+		"error_description": "Replaced 'code' with 'bit_num', causing the output voltage to be determined by the current bit index (0-7) instead of the full 8-bit sampled value. This results in incorrect voltage output that cycles through only 8 possible values instead of 256."
+	},
+	{
+		"original_line": "tbit_stream = 1/data_rate;", 
+		"bug_line": "tbit_stream = 1/(data_rate * 8);",
+		"error_description": "The bit period calculation incorrectly divides by 8, making tbit_stream 8 times shorter than required. This causes the sampler to trigger 8x too frequently, leading to premature bit capture and corrupted output decoding."
+	},
+	{
+		"original_line": "   integer i;", 
+		"bug_line": "   integer j;",
+		"error_description": "Changed loop index variable 'i' to 'j', breaking all for-loops that depend on 'i' (bit array initialization and code calculation). This causes undefined variable errors and prevents proper PCM decoding."
+	},
+	{
+		"original_line": "toutput_next = toutput_next + toutput;", 
+		"bug_line": "toutput_next = toutput_next + tbit_stream;",
+		"error_description": "Replaces the output period (toutput) with the bit period (tbit_stream), causing output updates every bit interval instead of every 8-bit frame. This violates the PCM demodulation timing by making output transitions 8x faster than specified, corrupting the decoded signal."
+	},
+	{
+		"original_line": "parameter real tstart  = 1u from (0:inf);", 
+		"bug_line": "parameter real tstart  = 1 from (0:inf);",
+		"error_description": "Changed the start time from 1 microsecond to 1 second. This delays sampling initiation beyond typical simulation durations, preventing the demodulator from processing any input signals during most practical simulation timeframes."
+	},
+	{
+		"original_line": "integer bit_num;", 
+		"bug_line": "integer bit_num = 8;",
+		"error_description": "Initializing bit_num to 8 causes the first sample condition (bit_num > 7) to immediately skip sampling. The code formation block never executes since bit_num starts at 8 and is only reset to 0 after the output event, resulting in uninitialized bit values being used for the first output conversion."
+	}
+]

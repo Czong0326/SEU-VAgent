@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "   real sigout_val;", 
+		"bug_line": "   integer sigout_val;",
+		"error_description": "Changing sigout_val from real to integer causes truncation of analog voltage values (vlogic_high/vlogic_low) during assignments, corrupting the output waveform when non-integer logic levels are used."
+	},
+	{
+		"original_line": "parameter real trise = 1u from (0:inf);", 
+		"bug_line": "parameter real trise = pulse_width from (0:inf);",
+		"error_description": "Sets rise time equal to pulse width, causing the output pulse to never fully reach logic high before starting fall transition, violating pulse integrity requirements."
+	},
+	{
+		"original_line": "module crossing_detector (sigin,sigout);", 
+		"bug_line": "module crossing_detector (sigin);",
+		"error_description": "Removed 'sigout' output port. This breaks the signal detection output functionality since the pulse signal has no port to drive, making the detector unusable."
+	},
+	{
+		"original_line": "electrical sigin,sigout;", 
+		"bug_line": "current sigin,sigout;",
+		"error_description": "Changing port disciplines from electrical to current causes functional mismatch. The module uses voltage access V(sigin) for crossing detection and assigns voltage V(sigout), but current disciplines require I() access and assignments. This violates design specifications and causes simulation errors."
+	},
+	{
+		"original_line": "parameter real vlogic_high = 5;", 
+		"bug_line": "parameter real vlogic_high = vlogic_low;",
+		"error_description": "Sets vlogic_high equal to vlogic_low (0V), causing the output pulse to remain at constant low voltage. Crossing events fail to generate a visible high pulse, violating the pulse generation requirement."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Replacing 'analog' with 'initial' converts the continuous-time simulation block into a one-time initialization block. This prevents continuous monitoring of signal crossings, causing the detector to trigger only once during initialization rather than responding to input signal changes during simulation."
+	},
+	{
+		"original_line": "parameter real vlogic_high = 5;", 
+		"bug_line": "parameter real vlogic_high = vlogic_low;",
+		"error_description": "Sets vlogic_high equal to vlogic_low (0V), causing the pulse to remain at 0V instead of generating a 5V high pulse during crossing events. This eliminates the detectable output signal entirely."
+	},
+	{
+		"original_line": "parameter real trise = 1u from (0:inf);", 
+		"bug_line": "parameter integer trise = 1u;",
+		"error_description": "Changing 'trise' to integer type causes the default value 1u (1e-6) to be truncated to 0. This results in zero rise time in the transition function, violating the design requirement for a positive rise time and causing instantaneous signal transitions."
+	},
+	{
+		"original_line": "electrical sigin,sigout;", 
+		"bug_line": "flow sigin,sigout;",
+		"error_description": "Changed discipline from electrical to flow. The analog block uses V(sigin) and V(sigout) which require potential access, but flow discipline only supports current access. This violates the design's voltage measurement requirement and will cause compilation/functional errors."
+	},
+	{
+		"original_line": "parameter real tdel = 3u from [0:inf);", 
+		"bug_line": "parameter real delay = 3u from [0:inf);",
+		"error_description": "Changed parameter name from 'tdel' to 'delay', breaking the transition function call which references 'tdel', causing an undefined variable error during compilation/simulation."
+	},
+	{
+		"original_line": "electrical sigin,sigout;", 
+		"bug_line": "electrical sigin, sigout_wrong;",
+		"error_description": "The output port is misnamed as 'sigout_wrong' instead of 'sigout', disconnecting the driver from the actual output port. This leaves sigout undriven while the assigned signal (sigout_wrong) is unused, causing undefined output behavior."
+	},
+	{
+		"original_line": "parameter real sigcrossing = 0;", 
+		"bug_line": "parameter real sigcrossing = vlogic_high;",
+		"error_description": "Sets sigcrossing threshold to vlogic_high (5V) instead of 0V. This causes false detections when input approaches logic-high voltage rather than actual zero crossings, violating the intended zero-crossing detection functionality."
+	},
+	{
+		"original_line": "parameter real vlogic_low = 0;", 
+		"bug_line": "parameter real vlogic_low = 5;",
+		"error_description": "Sets the logic low voltage to 5V, which matches the default logic high voltage (5V). This causes the output to remain constant at 5V, making the pulse generated during signal crossings unobservable since the transition between logic levels disappears."
+	},
+	{
+		"original_line": "@ (timer(tbreak)) begin", 
+		"bug_line": "@ (timer(1)) begin",
+		"error_description": "Changed timer argument from 'tbreak' to constant 1, causing the timer event to always trigger at 1 second simulation time instead of the calculated pulse end time. This ignores the pulse_width parameter and makes all pulses end prematurely at t=1s regardless of when crossing events occur."
+	},
+	{
+		"original_line": "real sigout_val;", 
+		"bug_line": "integer sigout_val;",
+		"error_description": "Changing sigout_val from real to integer truncates non-integer logic levels (vlogic_high/vlogic_low) during assignment, causing incorrect output voltages when these parameters have fractional values."
+	},
+	{
+		"original_line": "tbreak = $abstime + pulse_width;", 
+		"bug_line": "tbreak = $abstime + trise;",
+		"error_description": "Replaced 'pulse_width' with 'trise', causing the output pulse width to be determined by the rise time parameter instead of the dedicated pulse width parameter. This violates the design specification where the pulse should maintain high state for 'pulse_width' seconds after crossing detection."
+	},
+	{
+		"original_line": "parameter real tdel = 3u from [0:inf);", 
+		"bug_line": "parameter real tdelay = 3u from [0:inf);",
+		"error_description": "Renaming parameter 'tdel' to 'tdelay' causes the transition function call to reference an undefined variable 'tdel', resulting in a compilation error and functional failure."
+	},
+	{
+		"original_line": "parameter real pulse_width = 1u from (0:inf);", 
+		"bug_line": "parameter real pulse_width = -1u from (0:inf);",
+		"error_description": "Setting pulse_width to a negative value violates the non-negative constraint (0:inf). This causes tbreak ($abstime + pulse_width) to schedule timer events in the past, preventing the @(timer(tbreak)) event from triggering. Consequently, sigout remains stuck at vlogic_high after the first crossing event."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* instrument_module, cross_off *)",
+		"error_description": "Added 'cross_off' attribute which incorrectly disables all crossing event detection in the module. This prevents the '@(cross(...))' trigger from working, making the detector unresponsive to signal transitions."
+	},
+	{
+		"original_line": "parameter real vlogic_high = 5;", 
+		"bug_line": "parameter real vlogic_low = 5;",
+		"error_description": "Renaming 'vlogic_high' to 'vlogic_low' creates duplicate parameter definitions and swaps high/low logic references. This breaks pulse generation by assigning both logic levels to 5V, eliminating voltage transitions during crossing events."
+	}
+]

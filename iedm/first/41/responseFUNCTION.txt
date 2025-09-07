@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "localparam real eta11all = eta11 + eta11other;", 
+		"bug_line": "localparam real eta11all = eta11 - eta11other;",
+		"error_description": "Changed addition to subtraction, causing potential negative loss values when eta11other > eta11, violating physical constraints for loss conductance in the waveguide model."
+	},
+	{
+		"original_line": "localparam real mtline_r = smallR;                      // mtline resistance per unit length", 
+		"bug_line": "localparam real mtline_r = mtline_g;                      // mtline resistance per unit length",
+		"error_description": "Assigned conductance value (mtline_g) to resistance variable (mtline_r). This swaps the physical meaning, creating incorrect transmission line behavior where resistance increases with frequency instead of conductance."
+	},
+	{
+		"original_line": "parameter real rbt_Qother = `RBT_QOTHER from (0:inf);   // Other losses", 
+		"bug_line": "parameter real rbt_Qother = `RBT_QOTHER from [0:inf);   // Other losses",
+		"error_description": "Changed the range from (0:inf) to [0:inf), allowing zero values. When rbt_Qother=0, the calculation of eta11other becomes c11/(omegaFQ*0), causing division-by-zero runtime errors."
+	},
+	{
+		"original_line": "inout p,vss;", 
+		"bug_line": "inout p; input vss;",
+		"error_description": "Changed vss port direction from inout to input. This prevents the module from sinking current through vss, which is required for the termination resistor and transmission line ground connection. The model will fail as vss cannot properly serve as a current sink."
+	},
+	{
+		"original_line": "parameter real rbt_fQTC = `RBT_FQTC;                    // rbt_fQ TC for material A", 
+		"bug_line": "parameter real rbt_fQTC = `RBT_FQTC * 0;                    // rbt_fQ TC for material A",
+		"error_description": "Multiplied temperature coefficient by zero, nullifying temperature compensation for fQ parameter. This causes material frequency-quality factor to remain constant across temperature variations, violating thermal dependency requirements."
+	},
+	{
+		"original_line": "electrical p;", 
+		"bug_line": "magnetic p;",
+		"error_description": "Changed port discipline from electrical to magnetic, causing a discipline mismatch since the mtline module and termination resistor require electrical connections. This breaks signal propagation through the waveguide."
+	},
+	{
+		"original_line": "`include "constants.vams"", 
+		"bug_line": "// `include "constants.vams"",
+		"error_description": "Commenting out the constants include file prevents the definition of critical constants like `M_PI`, causing incorrect calculations of material loss parameters and waveguide properties."
+	},
+	{
+		"original_line": "inout p,vss;", 
+		"bug_line": "input p,vss;",
+		"error_description": "Changed port directions from bidirectional (inout) to input-only. This prevents the module from driving output currents through ports p and vss, breaking the waveguide termination functionality where both ports must sink/source current in the analog block."
+	},
+	{
+		"original_line": "parameter real dT = 0; // temperature change", 
+		"bug_line": "parameter real dT = 100; // temperature change",
+		"error_description": "Changed default dT value from 0 to 100, introducing a large temperature offset that incorrectly scales all temperature-dependent parameters (Leff, rhoeff, Yeff, etc.), causing significant miscalculation of waveguide properties under nominal conditions."
+	},
+	{
+		"original_line": "parameter real rbt_wgLtoRho = `RBT_WGLTORHO from (0:inf);   // scaling parameter from inductance to density", 
+		"bug_line": "parameter real rbt_wgLtoRho = `RBT_WGVTOT from (0:inf);   // scaling parameter from inductance to density",
+		"error_description": "Assigned wrong constant (`RBT_WGVTOT` instead of `RBT_WGLTORHO`). This swaps voltage-stress scaling for inductance-density scaling, corrupting transmission line parameter calculations (mtline_l, mtline_c, mtline_g) and termination impedance."
+	},
+	{
+		"original_line": "parameter real rhoTC    = `RBT_RHOTC;                   // Density TC for material A", 
+		"bug_line": "parameter real rhoTC    = `RBT_YTC;                   // Density TC for material A",
+		"error_description": "Assigned wrong temperature coefficient macro (YTC instead of RHOTC) to density parameter, causing incorrect material property scaling with temperature."
+	},
+	{
+		"original_line": "localparam real mtline_l = rhoeff/rbt_wgLtoRho;             // mtline inductance per unit length", 
+		"bug_line": "localparam real mtline_l = rhoeff * rbt_wgLtoRho;             // mtline inductance per unit length",
+		"error_description": "Replaced division with multiplication, causing inductance per unit length to be incorrectly calculated as density multiplied by scaling factor instead of density divided by scaling factor. This violates the physical relationship L = ρ / (scale factor) required for proper waveguide modeling."
+	},
+	{
+		"original_line": "parameter real rbt_fQTC = `RBT_FQTC;                    // rbt_fQ TC for material A", 
+		"bug_line": "parameter real rbt_fQTC = -`RBT_FQTC;                    // rbt_fQ TC for material A",
+		"error_description": "The negative sign inverts the temperature coefficient. This causes the fQ product to change in the opposite direction with temperature variations, violating material behavior specifications and introducing incorrect loss calculations in the waveguide model."
+	},
+	{
+		"original_line": "localparam real rhoeff  = rho * ( 1 + rhoTC * dT );", 
+		"bug_line": "localparam real rhoeff  = rho * ( 1 + rhoTC * dT ) / 2;",
+		"error_description": "The effective density calculation incorrectly divides the temperature-adjusted value by 2, halving the actual density value and disrupting waveguide impedance matching by reducing the characteristic impedance Zl."
+	},
+	{
+		"original_line": "end // analog begin", 
+		"bug_line": "endmodule // analog begin",
+		"error_description": "Prematurely terminates the module with 'endmodule' before closing the analog block. This deletes the termination resistance implementation and causes compilation errors due to unmatched block statements."
+	},
+	{
+		"original_line": "electrical vss;", 
+		"bug_line": "electrical gnd;",
+		"error_description": "Changed the reference node from 'vss' to 'gnd', breaking all ground connections. The termination resistor and transmission line now reference an undefined 'gnd' node instead of the actual ground port 'vss', causing floating nodes and incorrect circuit behavior."
+	},
+	{
+		"original_line": "localparam real mtline_g = rbt_wgLtoRho*eta11all*pow(omegaFQ,2)/pow(c11,2); // mtline conductance per unit length", 
+		"bug_line": "localparam real mtline_g = rbt_wgLtoRho*eta11all*pow(omegaFQ,2)/pow(c11,1); // mtline conductance per unit length",
+		"error_description": "Changed the exponent for c11 from 2 to 1 in the conductance formula. This error causes mtline_g to be inversely proportional to c11 instead of c11 squared, significantly overestimating conductance/losses since c11 is large (~10^11)."
+	},
+	{
+		"original_line": "localparam real eta11   = c11/(2*`M_PI*fQeff);          // material losses", 
+		"bug_line": "localparam real eta11   = c11 * (2*`M_PI*fQeff);          // material losses",
+		"error_description": "Changed division to multiplication, fundamentally altering the material loss calculation. This error causes eta11 to be massively overestimated since it now scales with c11 and frequency rather than inversely with frequency. This breaks the waveguide's damping behavior and impedance matching."
+	},
+	{
+		"original_line": "inout p,vss;", 
+		"bug_line": "inout p, output vss;",
+		"error_description": "Changing vss from inout to output prevents external voltage biasing of ground reference, causing incorrect termination resistance calculation since Zl depends on ground voltage."
+	},
+	{
+		"original_line": "parameter real Y   = `RBT_Y   from (0:inf);             // Young's Modulus for material A", 
+		"bug_line": "parameter real Y   = `RBT_RHO   from (0:inf);             // Young's Modulus for material A",
+		"error_description": "Assigned density macro `RBT_RHO to Young's modulus instead of `RBT_Y, causing incorrect wave speed calculation due to swapped material properties."
+	}
+]

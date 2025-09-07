@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "electrical pd, pg, ps, pb;", 
+		"bug_line": "electrical pd, pg, ps;",
+		"error_description": "The node 'pb' is removed, causing an undeclared identifier error for 'pb' in the analog block and breaking the feed-through capacitance path from p to b (I(pb,b)). This prevents the body capacitance from functioning."
+	},
+	{
+		"original_line": "I(pb, b) <+ ddt( rbt_Cfpb * V(pb,b) );", 
+		"bug_line": "I(pb, b) <+ ddt( rbt_Cfpg * V(pb,b) );",
+		"error_description": "Replaced body feedthrough capacitance (rbt_Cfpb) with gate capacitance parameter (rbt_Cfpg), causing incorrect capacitance value between body and parasitic node pb."
+	},
+	{
+		"original_line": "V(p,pd) <+ I(p,pd) * rbt_Rfpd;", 
+		"bug_line": "V(p,pd) <+ I(p,pd) * rbt_Rfpg;",
+		"error_description": "Incorrect resistance parameter used: rbt_Rfpg (for p to g) instead of rbt_Rfpd (for p to d). This mistake assigns the wrong resistance value to the p-pd path, potentially causing inaccurate voltage drops if the two parameters have different values."
+	},
+	{
+		"original_line": "parameter real rbt_Rfpg = `RBT_RFPG from [0:inf); // p to g series C", 
+		"bug_line": "parameter real rbt_Rfpg = `RBT_RFPG from [-inf:inf); // p to g series C",
+		"error_description": "Changed resistance range to include negative values, violating physical constraints as resistances must be non-negative. This allows unstable negative resistance values between nodes p and g."
+	},
+	{
+		"original_line": "parameter real rbt_Rfnb = `RBT_RFNB from (0:inf); // n to b series R", 
+		"bug_line": "parameter real rbt_Rfnb = `RBT_RFNB from [0:inf); // n to b series R",
+		"error_description": "Changed resistance range to include zero, allowing rbt_Rfnb=0. This causes a short circuit between nodes n and b when simulated, violating the requirement for positive resistance."
+	},
+	{
+		"original_line": "I(ps, s) <+ ddt( rbt_Cfps * V(ps,s) );", 
+		"bug_line": "I(ps, s) <+ idt( rbt_Cfps * V(ps,s) );",
+		"error_description": "Replaced derivative (ddt) with integral (idt) operator for capacitor current, fundamentally altering the dynamic behavior from capacitive to inductive."
+	},
+	{
+		"original_line": "parameter real rbt_Cfpg = `RBT_CFPG from [0:inf); // p to g series R", 
+		"bug_line": "parameter real rbt_Cfpg = `RBT_CFPD from [0:inf); // p to g series R",
+		"error_description": "Assigned wrong macro `RBT_CFPD` (p-d capacitance) to rbt_Cfpg parameter instead of `RBT_CFPG` (p-g capacitance), causing incorrect feed-through capacitance between primary and gate nodes."
+	},
+	{
+		"original_line": "`include "constants.vams"", 
+		"bug_line": "`include "wrong_constants.vams"",
+		"error_description": "Changed include filename to a non-existent file, causing all physical constants (like `P_Q, `P_K, etc.) to be undefined. This will break temperature-dependent calculations and fundamental semiconductor equations that rely on these constants."
+	},
+	{
+		"original_line": "parameter real rbt_Cfpg = `RBT_CFPG from [0:inf); // p to g series R", 
+		"bug_line": "parameter real rbt_Cfpg = `RBT_CFPG from (-inf:inf); // p to g series R",
+		"error_description": "Changed valid range [0:inf) to (-inf:inf), allowing negative capacitance values which violate physical realizability and cause instability in simulations."
+	},
+	{
+		"original_line": "V(p,pb) <+ I(p,pb) * rbt_Rfpb;", 
+		"bug_line": "V(p,pb) <+ I(p,pb) * rbt_Rfps;",
+		"error_description": "Incorrect resistance parameter used; rbt_Rfps (feed-through resistance from p to s) is applied to the p-b branch instead of the correct rbt_Rfpb parameter for p-b feed-through resistance."
+	},
+	{
+		"original_line": "parameter real version = 1.00;", 
+		"bug_line": "parameter real rbt_Rfnb = `RBT_RFNB from (0:inf);",
+		"error_description": "Duplicate definition of parameter 'rbt_Rfnb' which causes compilation failure as it's redefined at line 83, preventing model simulation."
+	},
+	{
+		"original_line": "electrical x;", 
+		"bug_line": "thermal x;",
+		"error_description": "The port 'x' is incorrectly declared as thermal instead of electrical. This violates the design specification requiring electrical connectivity for 'x', causing discipline mismatch errors when connected to other electrical components."
+	},
+	{
+		"original_line": "V(p,pb) <+ I(p,pb) * rbt_Rfpb;", 
+		"bug_line": "V(p,pb) <+ I(pb,p) * rbt_Rfpb;",
+		"error_description": "Reversed current direction (I(pb,p) instead of I(p,pb)) causes negative resistance effect where voltage drop opposes actual current flow."
+	},
+	{
+		"original_line": "I(pd, d) <+ ddt( rbt_Cfpd * V(pd,d) );", 
+		"bug_line": "I(pd, d) <+ ddt( rbt_Cfpg * V(pd,d) );",
+		"error_description": "Used gate capacitance parameter (rbt_Cfpg) instead of drain capacitance (rbt_Cfpd) for the p-d feed-through capacitor, causing incorrect capacitive coupling between power and drain nodes."
+	},
+	{
+		"original_line": "parameter real rbt_Cfpb = `RBT_CFPB from [0:inf); // p to b series R", 
+		"bug_line": "parameter real rbt_Cfpb = `RBT_CFPB from (0:inf); // p to b series R",
+		"error_description": "Changed the parameter range from [0:inf) to (0:inf), excluding zero. This prevents the capacitance from being set to zero, violating the design requirement where Cfpb=0 must be allowed for no feed-through effect."
+	},
+	{
+		"original_line": "V(p,pg) <+ I(p,pg) * rbt_Rfpg;", 
+		"bug_line": "V(p,pg) <+ I(p,pg) * rbt_Rfpd;",
+		"error_description": "Incorrectly used the resistance parameter for p-d feedthrough (rbt_Rfpd) instead of p-g feedthrough (rbt_Rfpg), causing erroneous voltage calculation between p and pg nodes."
+	},
+	{
+		"original_line": "I(pg, g) <+ ddt( rbt_Cfpg * V(pg,g) );", 
+		"bug_line": "I(pg, g) <+ rbt_Cfpg * V(pg,g);",
+		"error_description": "Removed the derivative operator (ddt), turning the capacitive feedthrough into a resistive path. This fundamentally changes the component behavior from frequency-dependent capacitance to a constant resistance between pg and g nodes."
+	},
+	{
+		"original_line": "module rbtParasitics(p,n,d,g,s,b,x,T);", 
+		"bug_line": "module rbtParasitics(p,n,d,g,s,b,T,x);",
+		"error_description": "Swapped thermal port (T) and unused port (x). This misassigns the thermal terminal to the unused port position, breaking thermal modeling while leaving the actual thermal port unconnected. All thermal-dependent calculations would fail silently since T is disconnected."
+	},
+	{
+		"original_line": "V(p,pd) <+ I(p,pd) * rbt_Rfpd;", 
+		"bug_line": "V(p,pd) <+ I(p,pd) * rbt_Cfpd;",
+		"error_description": "Replaced resistance parameter rbt_Rfpd with capacitance parameter rbt_Cfpd, incorrectly using a capacitance value where resistance is required for feedthrough modeling."
+	},
+	{
+		"original_line": "`include "constants.vams"", 
+		"bug_line": "`include "constant.vams"",
+		"error_description": "Changed filename from 'constants.vams' to 'constant.vams' (missing 's'). This prevents the inclusion of essential constant definitions like `inf`, causing compilation errors in parameter range checks (e.g., [0:inf))."
+	}
+]

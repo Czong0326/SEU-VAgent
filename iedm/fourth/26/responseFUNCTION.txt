@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "real I_a;", 
+		"bug_line": "real I_a = 0;",
+		"error_description": "Initializing I_a to 0 forces the I-channel gain to always be zero, overriding the calculated gain value. This permanently disables the I-path signal processing, violating the design specification for controllable gain."
+	},
+	{
+		"original_line": "parameter real I_shp = 2 from [0:inf);", 
+		"bug_line": "parameter real I_shp = -2 from [-inf:inf);",
+		"error_description": "Setting I_shp to a negative value violates the design requirement that I_shp must be non-negative. Negative values cause undefined behavior in the pow() function when processing negative input voltages, leading to simulation errors or incorrect phase shift calculations during AM/PM conversion."
+	},
+	{
+		"original_line": "   Q_a = sqrt(pow(10,Q_gain/10)*rout/rin);", 
+		"bug_line": "   Q_a = sqrt(pow(10,I_gain/10)*rout/rin);",
+		"error_description": "The Q path incorrectly uses I_gain instead of Q_gain, causing the Q channel's amplitude calculation to depend on the I channel's gain parameter. This violates design specifications where I and Q paths should have independent gain controls."
+	},
+	{
+		"original_line": "real I_rhoout;", 
+		"bug_line": "real I_rhoout = 0.0;",
+		"error_description": "Initializing I_rhoout to 0.0 creates incorrect clamping behavior. When input amplitude exceeds I_rhoinmax, the conditional assignment to I_rhoout gets overwritten by the initial value (0.0) at every analog iteration, causing zero output during saturation instead of the correct ±I_rhooutmax clamping."
+	},
+	{
+		"original_line": "tmp = pow(Q_rho/Q_cmp,Q_shp);", 
+		"bug_line": "tmp = pow(Q_rho/Q_cmp,I_shp);",
+		"error_description": "The exponent for the Q path's phase shift calculation incorrectly uses I_shp instead of Q_shp. This couples the Q path's phase distortion to the I path's shape parameter, violating the independent control of I and Q paths specified in the design description."
+	},
+	{
+		"original_line": "/*", 
+		"bug_line": "`define PI 0.0 /*",
+		"error_description": "Redefines PI as 0.0 instead of 3.14159, breaking all trigonometric calculations in rotation logic. This causes incorrect phase shifts in IQ modulation outputs since sin/cos functions expect radians but receive invalid values."
+	},
+	{
+		"original_line": "     rnf = pow(10,nf/10);", 
+		"bug_line": "     rnf = pow(10,nf/20);",
+		"error_description": "Noise figure conversion error: nf/20 incorrectly scales dB to ratio by voltage instead of power, reducing noise factor by sqrt(10) and underestimating thermal noise."
+	},
+	{
+		"original_line": "I_rho = V(I_in);", 
+		"bug_line": "I_rho = V(Q_in);",
+		"error_description": "I branch incorrectly uses Q input signal, causing cross-talk and incorrect modulation in the I path."
+	},
+	{
+		"original_line": "real root2x2;", 
+		"bug_line": "real root2x2 = 1;",
+		"error_description": "Initializing root2x2 to 1 instead of leaving it uninitialized causes the variable to retain the wrong value (1) instead of being correctly assigned 2*sqrt(2) (~2.828) in the initial block. This results in insufficient scaling of I and Q output signals."
+	},
+	{
+		"original_line": "Q_cmp = sqrt(pow(10,(Q_cpdb+1)/10)*2*rout*0.001)/Q_a;", 
+		"bug_line": "Q_cmp = sqrt(pow(10,(Q_cpdb+1)/20)*2*rout*0.001)/Q_a;",
+		"error_description": "The exponent divisor should be 10 for converting dBm (power) to linear scale, but 20 is incorrectly used which is appropriate for voltage ratios. This misinterprets Q_cpdb as a voltage quantity instead of power, leading to incorrect compression point calculation and distorted nonlinear behavior in the Q path."
+	},
+	{
+		"original_line": "parameter real rin = 50 from (0:inf);", 
+		"bug_line": "parameter real rin_wrong = 50 from (0:inf);",
+		"error_description": "Renaming 'rin' to 'rin_wrong' leaves the original 'rin' undeclared. This causes 'rin' to default to 0, resulting in division by zero in gain calculations (I_a, Q_a) and input resistor equations, leading to simulation failure."
+	},
+	{
+		"original_line": "real tmp;", 
+		"bug_line": "integer tmp;",
+		"error_description": "Changed 'tmp' from real to integer type. This truncates floating-point values during phase shift calculations, corrupting the AM/PM conversion by discarding fractional results from pow() operations."
+	},
+	{
+		"original_line": "tmp = pow(I_rho/I_cmp,I_shp);", 
+		"bug_line": "tmp = pow(I_rho/I_cmp,Q_shp);",
+		"error_description": "Swapped I_shp exponent for Q_shp in I-branch AM/PM calculation, causing I-branch phase distortion to incorrectly use Q-branch shaping parameter instead of its own."
+	},
+	{
+		"original_line": "          shift is only in one direction. +1 means counter-clockwise, -1", 
+		"bug_line": "          shift is only in one direction. +1 means clockwise, -1 means counter-clockwise",
+		"error_description": "Swapped the direction interpretation for phase control parameters (I_cw/Q_cw). Now +1 incorrectly indicates clockwise rotation while -1 indicates counter-clockwise, reversing the intended phase shift direction in AM/PM conversion."
+	},
+	{
+		"original_line": "parameter integer I_cw = 0 from [-1:1];", 
+		"bug_line": "parameter integer I_cw = 0 from [0:2];",
+		"error_description": "The parameter range modification excludes negative values, preventing clockwise phase shift configuration (-1). This violates the design specification requiring support for -1 (clockwise), 0 (no shift), and +1 (counter-clockwise)."
+	},
+	{
+		"original_line": "real I_rhooutmax;", 
+		"bug_line": "real I_rhooutmin;",
+		"error_description": "Renamed I_rhooutmax to I_rhooutmin causes saturation level variable for I-channel to become undefined. The initial_step calculation for I_rhooutmax writes to an undeclared variable, and the clamping logic uses an uninitialized I_rhooutmin (default 0.0), forcing output to 0 during saturation instead of proper clipping."
+	},
+	{
+		"original_line": "real I_beta;", 
+		"bug_line": "integer I_beta;",
+		"error_description": "Changing I_beta from real to integer causes truncation of its fractional value during assignment in the initial block. This breaks the phase shift calculation in the I-channel, as the fractional part of I_beta (critical for modeling AM/PM conversion) is lost."
+	},
+	{
+		"original_line": "Q_cmp = sqrt(pow(10,(Q_cpdb+1)/10)*2*rout*0.001)/Q_a;", 
+		"bug_line": "Q_cmp = sqrt(pow(10,(Q_cpdb+1)/20)*2*rout*0.001)/Q_a;",
+		"error_description": "Changed exponent denominator from 10 to 20 when converting dBm to power ratio. This incorrectly handles the logarithmic conversion by treating the compression point as a voltage ratio instead of a power ratio, resulting in miscalculated compression thresholds and gain distortion in the Q-path."
+	},
+	{
+		"original_line": "else I_rhoout = I_rhooutmax;", 
+		"bug_line": "else I_rhoout = -I_rhooutmax;",
+		"error_description": "Inverted output clamping for positive saturation: For positive I_rho exceeding I_rhoinmax, the output incorrectly sets to negative I_rhooutmax instead of positive, causing signal inversion during saturation."
+	},
+	{
+		"original_line": "I(I_in) <+ white_noise(noise_current*noise_current, "IQ_mod_BB_i");", 
+		"bug_line": "I(I_in) <+ white_noise(noise_current, "IQ_mod_BB_i");",
+		"error_description": "The white_noise function call incorrectly passes noise_current (RMS value) instead of noise_current squared (PSD). This results in noise power being underestimated by a factor of noise_current, violating the specified noise figure parameter."
+	}
+]

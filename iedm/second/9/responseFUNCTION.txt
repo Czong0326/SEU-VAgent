@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "            $finish;", 
+		"bug_line": "            vlogic_high = vlogic_low;",
+		"error_description": "Attempts to assign constant parameter vlogic_high during simulation instead of terminating, causing compilation/runtime error since parameters are read-only after elaboration."
+	},
+	{
+		"original_line": "   integer logic1, logic2;", 
+		"bug_line": "   parameter logic1 = 0, logic2 = 0;",
+		"error_description": "Changed variables to parameters with fixed values, making them unmodifiable. This prevents the analog block from updating logic states based on input voltages, permanently locking the NOR output regardless of input signals."
+	},
+	{
+		"original_line": "@ (cross(V(vin1) - vtrans, -1)) logic1 = 0;", 
+		"bug_line": "@ (cross(V(vin1) - vtrans, -1)) logic1 = 1;",
+		"error_description": "Sets logic1 to 1 (high) instead of 0 (low) when vin1 crosses below threshold, causing incorrect NOR output when vin1 transitions low while vin2 is low."
+	},
+	{
+		"original_line": "      @ ( initial_step ) begin", 
+		"bug_line": "      @ ( initial_step or cross(V(vin1) - vtrans, 1)) begin",
+		"error_description": "Added unnecessary cross event triggers during initialization. This causes the initial parameter check to execute multiple times (on every rising vin1 transition) instead of once at simulation start, potentially flooding with false error messages."
+	},
+	{
+		"original_line": "@ (cross(V(vin2) - vtrans, 1))  logic2 = 1;", 
+		"bug_line": "@ (cross(V(vin1) - vtrans, 1))  logic2 = 1;",
+		"error_description": "Triggers on vin1 instead of vin2. This causes logic2 to incorrectly update based on vin1's crossing events rather than vin2's, corrupting the NOR gate's truth table."
+	},
+	{
+		"original_line": "parameter real vtrans = 1.4;", 
+		"bug_line": "parameter real vtrans = 5;",
+		"error_description": "Threshold voltage equals logic high voltage (5V), causing inputs at 5V to be misinterpreted as low (since 5V > 5V is false). This violates NOR functionality as high inputs are not recognized."
+	},
+	{
+		"original_line": "$display("Range specification error.  vlogic_high = (%E) less than vlogic_low = (%E).\n", vlogic_high, vlogic_low );", 
+		"bug_line": "$display("Range specification error.  vlogic_high = (%E) less than vlogic_low = (%E).\n", vlogic_low, vlogic_high );",
+		"error_description": "Swaps vlogic_high and vlogic_low values in error message. When vlogic_high < vlogic_low occurs, the display shows incorrect parameter values: vlogic_high displays actual vlogic_low value, and vlogic_low displays actual vlogic_high value, misleading debugging efforts."
+	},
+	{
+		"original_line": "parameter real tfall = 1u from (0:inf);", 
+		"bug_line": "parameter real tfall = -1u from [-1:0];",
+		"error_description": "The negative fall time (-1u) violates the transition function's requirement for non-negative time constants. This causes simulation errors since the function cannot handle negative time values, breaking the gate's timing behavior."
+	},
+	{
+		"original_line": "      @ ( initial_step ) begin", 
+		"bug_line": "      @ ( final_step ) begin",
+		"error_description": "Changed initial_step to final_step. This moves critical parameter validation from simulation start to simulation end, allowing invalid parameters (e.g., vlogic_high < vlogic_low) to go undetected during operation, causing silent logic failures."
+	},
+	{
+		"original_line": "electrical vin1, vin2, vout;", 
+		"bug_line": "output vin1, vin2, vout;",
+		"error_description": "Changed electrical discipline to output direction, making all ports outputs. This violates the design as vin1/vin2 should be inputs, causing functional errors where inputs cannot receive external signals."
+	},
+	{
+		"original_line": "module nor_gate(vin1, vin2, vout);", 
+		"bug_line": "module nor_gate(vin1, vout, vin2);",
+		"error_description": "Swapped output port 'vout' with input port 'vin2'. This connects the output signal to what should be an input pin and vice versa, causing incorrect signal routing and logical corruption."
+	},
+	{
+		"original_line": "   integer logic1, logic2;", 
+		"bug_line": "   integer logic1, logic2 = 1;",
+		"error_description": "Initializes logic2 to 1 (high) instead of 0 (low). This causes incorrect NOR output (vlogic_low) at simulation start when both inputs are low, violating truth table behavior until the first input event occurs."
+	},
+	{
+		"original_line": "electrical vin1, vin2, vout;", 
+		"bug_line": "electrical vin1, vin2; magnetic vout;",
+		"error_description": "Changed output vout to magnetic discipline instead of electrical, causing the voltage assignment V(vout) to fail since magnetic nodes don't support voltage accessors."
+	},
+	{
+		"original_line": "   real vout_val;", 
+		"bug_line": "   integer vout_val;",
+		"error_description": "Changing vout_val from real to integer truncates the output voltage levels (vlogic_high/vlogic_low) to integer values during assignment, potentially altering analog output voltages."
+	},
+	{
+		"original_line": "   integer logic1, logic2;", 
+		"bug_line": "   integer logic1;",
+		"error_description": "The variable 'logic2' is undeclared, causing compilation/runtime errors when used in the analog block for input vin2 state detection and NOR logic calculation."
+	},
+	{
+		"original_line": "@ (cross(V(vin1) - vtrans, 1))  logic1 = 1;", 
+		"bug_line": "@ (cross(V(vin1) - vtrans, 1))  logic2 = 1;",
+		"error_description": "Assigns to logic2 instead of logic1 during vin1 positive transition, causing incorrect cross-coupling where vin1 triggers false updates to the other input."
+	},
+	{
+		"original_line": "   integer logic1, logic2;", 
+		"bug_line": "   integer logic1;",
+		"error_description": "Variable 'logic2' is undeclared, causing compilation errors when assigning values to it and using it in the NOR logic expression later in the code."
+	},
+	{
+		"original_line": "      logic2 = V(vin2) > vtrans;", 
+		"bug_line": "      logic2 = V(vin1) > vtrans;",
+		"error_description": "Uses vin1 instead of vin2 for logic2 assignment, causing both inputs to read from vin1. This makes the gate ignore vin2 entirely and function as a single-input inverter rather than a NOR gate."
+	},
+	{
+		"original_line": "      @ ( initial_step ) begin", 
+		"bug_line": "      @ ( above(0) ) begin",
+		"error_description": "Changed event trigger from initial_step to above(0), which never occurs because 0 is never greater than its default threshold (0). This prevents parameter validation checks from running, allowing invalid vlogic_high/vlogic_low values to go undetected."
+	},
+	{
+		"original_line": "         if (vlogic_high < vlogic_low) begin", 
+		"bug_line": "         if (vlogic_high > vlogic_low) begin",
+		"error_description": "Reversed condition fails to detect invalid parameter configuration where vlogic_high is lower than vlogic_low, allowing inconsistent voltage levels."
+	}
+]

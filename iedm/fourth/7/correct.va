@@ -1,0 +1,167 @@
+//  VerilogA for VerilogA, Chebyshev_lpf_d, veriloga
+//
+//  System level implementation of differential Chebyshev
+//  lowpass filter (order >= 2)based on laplace_zp() filter
+//   
+//  Copyright (c) 2005
+//  by Cadence Design Systems, Inc.  All rights reserved.
+//
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+// Define filter order N: must be >=2
+`define N 8
+
+//   Next filter parameters are implemented as parameters
+//   of this Verilog-A module:
+//	fupper:        upper critical frequency [Hz]
+//      flower         lower critical frequency [Hz]
+//	ripple:	       in dB // must be >0
+//   	rin:           input resistance [Ohm]
+//   	rout:          output resistance [Ohm]
+//   	gain:          voltage gain [dB]; (or loss, if gain < 0). 
+
+/* System level implementation of differential Chebyshev BP filter:
+        --------              
+inp-    | H(s) |   ---rout----outp
+   |    --------   |
+  rin            VHout
+   |			   |
+  gnd             gnd 
+
+inn-               ---rout----outn
+   |    		  |
+  rin            VHout
+   |			  |
+  gnd			 gnd
+
+Voltage source VHout = H(s)*Vin,
+where H(s) is the polynomial transfer function of Chebyshev BPF implemented
+as laplace_np(V(inp)- V(inn), zerod, poles);
+*/
+
+module BB_chebyshev_bp_laplace(inp,inn, outp,outn);
+
+   inout inp,inn, outp,outn;
+   electrical inp,inn, outp,outn;
+   
+   parameter real fupper = 1e9 from (0:inf);
+   parameter real flower = 1e6 from (0:fupper);
+   parameter real ripple= 0.1 from (0:inf);
+   parameter real rin = 50 from (0:inf);
+   parameter real rout = 50 from (0:inf);
+   parameter real gain = 0;
+   
+   // vector for all N denominator poles 
+   real  poles[0:`N*2 -1], zerod[0:`N];
+ 
+   // vectors for Re and Im of poles pairs:
+   real  ReP[0:`N/2], ImP[0:`N/2];
+    
+   real wb, real_gain, re_pole, im_pole, vout, wbn, wg, wg2, wb2;
+   real eps, nu, sinh_nu, cosh_nu, teta;
+   integer i, Npair, Np1p, k, IntegTmp;
+   real tmp, realtmp, imagtmp;
+   
+analog begin
+
+ @(initial_step) begin
+        
+   if( `N < 2 ) begin
+        $strobe("Filter order is less then 2");
+        $stop(1);
+   end // if( `N < 2 )
+
+   wb  = `M_TWO_PI * (fupper - flower);
+   wb2 = wb * wb;
+   wg2 = `M_TWO_PI * `M_TWO_PI * fupper * flower;
+   wg  = sqrt(wg2);
+
+   Npair = `N/2; Np1p = (`N+1)/2;
+   if (Npair*2==`N) real_gain = pow(10.0,(gain-ripple)/20.0);
+     else real_gain = pow(10.0,gain/20.0);
+
+   wbn = 1.0;
+   for (k=0; k<`N; k=k+1) begin
+     zerod[k]=0.0;
+     wbn = wbn * wb / wg2;
+   end
+   zerod[`N]=wbn;
+// Initialization of vectors ReP and ImP
+// using normalized Chebyshev pole locations
+// where f=1 at the ripple attenuation cutoff point
+
+   eps = sqrt(pow(10.0,ripple/10.0)-1.0);
+   nu =  asinh(1.0/eps)/`N;
+   sinh_nu = sinh(nu);
+   cosh_nu = cosh(nu);   
+          
+   for (k=1; k<=Np1p; k=k+1) begin
+   	teta = (2*k-1.0)*`M_PI/(2*`N);
+   	ReP[k-1] = - sinh_nu * sin(teta);
+   	ImP[k-1] =   cosh_nu * cos(teta);
+//   	if (abs(ImP[k-1])< 1.0e-8) ImP[k-1] = 0.0;
+   end // for (k=1; k<=Np1p; k=k+1)
+  
+// Poles of denormalized filter
+   for (i=0; i<Npair; i=i+1) begin
+        realtmp = wb2 * (ReP[i]* ReP[i] - ImP[i]* ImP[i]) - 4 * wg2;
+	imagtmp = 2 * ReP[i] * ImP[i] * wb2;
+	tmp = sqrt(realtmp*realtmp + imagtmp*imagtmp);
+        re_pole  = wb * ReP[i] / 2;
+        im_pole  = wb * ImP[i] / 2;
+	IntegTmp = 8*i;
+        if (imagtmp > 0) begin
+	  if (realtmp == 0) teta = `M_PI / 2;
+	  else if (realtmp > 0 ) teta = atan(imagtmp/realtmp);
+	  else teta = `M_PI + atan(imagtmp/realtmp);
+	end else begin
+	  if (realtmp == 0) teta = -`M_PI / 2;
+	  else if (realtmp > 0 ) teta = `M_TWO_PI + atan(imagtmp/realtmp);
+	  else teta = `M_PI + atan(imagtmp/realtmp);
+	end // it's impossible that imagtmp == 0.0
+	teta = teta / 2.0;
+	tmp = sqrt ( tmp );
+        realtmp = tmp * cos(teta) / 2;
+	imagtmp = tmp * sin(teta) / 2;
+        poles[IntegTmp]   =  re_pole + realtmp;
+        poles[IntegTmp+1] =  im_pole + imagtmp;
+        poles[IntegTmp+2] =  re_pole + realtmp;
+        poles[IntegTmp+3] = -im_pole - imagtmp;
+	poles[IntegTmp+4] =  re_pole - realtmp;
+        poles[IntegTmp+5] = -im_pole + imagtmp;
+        poles[IntegTmp+6] =  re_pole - realtmp;
+        poles[IntegTmp+7] =  im_pole - imagtmp;
+   end //for (i=0; i<Npair; i=i+1)
+  
+   if (Npair != Np1p) begin // odd `N
+        realtmp = wb2 * ReP[i]* ReP[i] - 4 * wg2;
+	re_pole = wb * ReP[i];
+	if (realtmp > 0) begin
+	  realtmp = sqrt (realtmp);
+	  imagtmp = 0.0;
+	end else begin
+	  realtmp = 0.0;
+	  imagtmp = sqrt (- realtmp);
+	end
+ 	IntegTmp = 8*i;
+        poles[IntegTmp]   =  (re_pole + realtmp)/2;
+        poles[IntegTmp+1] =  imagtmp/2;
+        poles[IntegTmp+2] =  (re_pole - realtmp)/2;
+        poles[IntegTmp+3] = -imagtmp/2;
+   end //if (Npair != Np1p)
+ end // init step 
+  
+ // input model: 
+ I(inp) <+ V(inp)/rin;
+ I(inn) <+ V(inn)/rin;
+  
+//  output model:
+ vout = real_gain * laplace_np(V(inp)- V(inn), zerod, poles);
+ 
+ I(outp) <+ (V(outp) - vout)/rout;
+ I(outn) <+ (V(outn) + vout)/rout;
+
+end // analog begin
+endmodule // Chebyshev_lpf_d

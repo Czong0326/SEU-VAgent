@@ -1,0 +1,129 @@
+//  VerilogA baseband behavioral model of a power amplifier.
+//  Copyright (c) 1999
+//  by Cadence Design Systems, Inc.  All rights reserved.
+
+// 11/14/99
+
+//Engineering release only. No passband view.
+
+/* This is a baseband behavioral model of a variable gain
+amplifier. This model contains only third order non-linear 
+amplitude effects (am/am conversion). It does not include 
+second order non-linear effects. The transfer curve saturates 
+beyond the point where the slope of the transfer curve
+is zero. The form of the am/pm conversion is
+output_phase_shift = alpha*(Vin/Vcp)^n/(1+beta*(Vin/Vcp)^n). 
+Vcp is the compression point in volts. alpha and beta are
+computed to produce zero phase shift at Vin=0, a specified
+phase shift at the 1db compression point, and a specified
+phase shift at Vin->infinity. "n" is selected by the user
+to control how sharply the onset of am/pm conversion occurs.
+
+G_in*gpv is a voltage numerically equal to the voltage gain.
+Thus, when the voltage at G_in is 1 volt, the voltage
+gain is gpv volt/volt.
+*/
+
+/* PARAMETER DEFINITIONS:
+======================
+gpv 	= voltage gain per volt on the G_in pin.
+cpdb 	= 1 db compression point, measured in dbm,
+     	  referred to the output.
+psinf 	= Output phase shift as the input power goes to infinity.
+pscp 	= Output phase shift at the 1db compression point.
+shp   	= Determines how fast the phase shift occurs with increasing
+          input power. A larger number delays the shift but makes
+          the shift rise faster as a function of input signal level.
+cw 	= Determines the direction of the phase shift. The phase
+   	  shift is only in one direction. +1 means counter-clockwise, -1
+   	  means clockwise, and 0 means no phase shift (no am/pm conversion).
+rin 	= input resistance
+rout 	= output resistance
+=====================
+*/
+
+`include "constants.h"
+`include "discipline.h"
+
+`define PI 3.1415926535897932384626433
+module VGA_BB(G_in, I_in, I_out, Q_in, Q_out);
+input G_in;
+electrical G_in;
+inout I_in;
+electrical I_in;
+inout I_out;
+electrical I_out;
+inout Q_in;
+electrical Q_in;
+inout Q_out;
+electrical Q_out;
+
+parameter real gpv = 1 from (0:inf);
+parameter real cpdb = -30;
+parameter real rin = 50 from (0:inf);
+parameter real rout = 50 from (0:inf);
+parameter real pscp = 0.7 from (0:inf);
+parameter real psinf = 2 from (pscp:inf);
+parameter real shp = 2 from [0:inf);
+parameter integer cw = 0 from [-1:1];
+parameter real nf = 0;
+
+real a;
+real b;
+real cmp;
+real rho;
+real rhooutmax;
+real rhoinmax;
+real rhoout;
+real theta;
+real beta;
+real tmp;
+real rnf;
+real noise_current;
+
+analog begin
+
+// The "initial" block converts the input parameters from engineering
+// units to implementation units.
+  @(initial_step) begin
+     beta = pscp/(psinf-pscp);
+     rnf = pow(10,nf/10);      
+  end 
+
+// Compute everything that depends on the linear gain.
+  if (V(G_in)!=0) a = gpv*abs(V(G_in));
+  else a = 1e-6;
+  cmp = sqrt(pow(10,(cpdb+1)/10)*2*rout*0.001)/a;
+  b = a*(0.108749)/(cmp*cmp);
+  rhoinmax = sqrt(a/(3*b));
+  rhooutmax = (2*a/3)*rhoinmax;
+  noise_current = sqrt(8*(rnf-1)*1.380620e-23*$temperature/rin);
+
+
+
+// Compute the input angle and radius.
+  if (V(I_in) !=0) theta = atan2(V(Q_in),V(I_in));
+  else if (V(Q_in) > 0) theta = `PI/2;
+  else theta = -`PI/2;
+  rho = hypot(V(I_in),V(Q_in));
+
+// Apply the third order non-linearity. Clamp the
+// output for extreme inputs.
+  if (rho < rhoinmax ) rhoout = (a - b*rho*rho)*rho;
+  else rhoout = rhooutmax;
+
+// Rotate the output for am/pm conversion.
+  tmp = pow(rho/cmp,shp);
+  theta = theta + cw*(1+beta)*pscp*tmp/(1+beta*tmp);
+
+  I(I_in) <+ V(I_in)/rin;
+  I(Q_in) <+ V(Q_in)/rin;
+  I(I_out) <+ (-2*rhoout*cos(theta) + V(I_out))/rout;
+  I(Q_out) <+ (-2*rhoout*sin(theta) + V(Q_out))/rout;
+
+// add the noise
+  I(I_in) <+ white_noise(noise_current*noise_current, "VGA_BB_i");
+  I(Q_in) <+ white_noise(noise_current*noise_current, "VGA_BB_q");
+
+end
+endmodule

@@ -1,0 +1,642 @@
+[
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n$strobe('Error: Negative resistance %.2eΩ at V=%.2fV', R_actual, R_actual); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n$strobe('Error: Negative resistance %.2eΩ at V=%.2fV', R_actual, v_pn);\n\n Correction Criteria：Swapped 'v_pn' with 'R_actual' in error reporting, causing the voltage value to display the resistance value instead. This misreports critical simulation data by showing resistance in both fields when negative resistance occurs."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n$strobe('Warning: %.3fV exceeds V_MAX=%.1fV at %t', V_MAX, v_pn, $realtime); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n$strobe('Warning: %.3fV exceeds V_MAX=%.1fV at %t', v_pn, V_MAX, $realtime);\n\n Correction Criteria：Swapped v_pn and V_MAX arguments cause the warning message to incorrectly display the measured voltage as the maximum limit and vice versa, misleading debug efforts by reversing critical values."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nvcoeff_quad * v_pn +  Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nvcoeff_linear * v_pn + \n\n Correction Criteria：Uses quadratic coefficient (VC2) instead of linear coefficient (VC1) for the voltage-linear term, causing incorrect scaling of the linear voltage dependence in resistance calculation."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nparameter real VC2_typo = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²] Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\n\n Correction Criteria：Parameter name changed from VC2 to VC2_typo, making VC2 undefined in the analog block. This causes the quadratic voltage coefficient term to default to zero, eliminating the non-linear resistance behavior while appearing syntactically valid."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nendgenerate real R0 = 0; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nendgenerate\n\n Correction Criteria：Declares a real variable R0 that shadows the parameter R0, forcing the resistance calculation to use 0 instead of the user-defined parameter value, causing division by zero errors and incorrect resistance behavior."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n$bound_step(0.1*(v_pn * 1e-12)); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n$bound_step(0.1*(R_actual * 1e-12));\n\n Correction Criteria：Replaced R_actual with v_pn (voltage). Step bound becomes negative during reverse bias, violating $bound_step()'s positive argument requirement and crashing simulation."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nendgenerate initial $display('Fatal Error: R0 must be positive value!'); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nendgenerate\n\n Correction Criteria：The unconditional initial statement added after endgenerate always executes the error message at time zero, regardless of R0's value. This violates the intended conditional parameter check that should only trigger when R0 ≤ 0."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  real R_actual = R0 * (1 -  Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  real R_actual = R0 * (1 + \n\n Correction Criteria：The linear voltage coefficient term is subtracted instead of added, inverting the effect of VC1 on resistance. This causes resistance to decrease when it should increase (and vice versa) for positive voltage coefficients."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\ninput p, n; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\ninout p, n;\n\n Correction Criteria：Changing port direction from bidirectional (inout) to input-only breaks the resistor's fundamental behavior by preventing current flow from n to p, violating Kirchhoff's laws and making the model non-functional for reverse voltage scenarios."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nmodule res_linear_voltage (n, p); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nmodule res_linear_voltage (p, n);\n\n Correction Criteria：Swapped port order causes voltage polarity inversion. V(p,n) becomes V(n,p) = -V(p,n), reversing sign in voltage-dependent resistance calculation and violating Ohm's Law directionality."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nreal vcoeff_linear = VC1 * 1e-3;  // 1 ppm = 1e-6 Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nreal vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n\n Correction Criteria：Changed voltage coefficient scaling from 1e-6 to 1e-3, making the linear term 1000 times larger than specified. This violates the design by incorrectly interpreting VC1 values as per-mille (%) instead of ppm, causing excessive resistance variation with voltage."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nparameter real VX = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V] Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\n\n Correction Criteria：Changed parameter name from VC1 to VX, making VC1 undefined in the analog block where it's used for resistance calculation, causing compilation/simulation failure."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n`ifdef SYNTHESIS Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n`ifdef SIMULATION\n\n Correction Criteria：Changed preprocessor condition from SIMULATION to SYNTHESIS. Since SYNTHESIS is typically undefined during simulation, this disables the $bound_step convergence helper, potentially causing numerical instability and simulation failures."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nparameter real VC1 = -1e4 from (-1e4 to 1e3);    // 1st-order voltage coefficient [ppm/V] Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\n\n Correction Criteria：Changed default VC1 to -10000 ppm/V and extended lower bound to -10000. This highly negative coefficient causes R_actual to rapidly decrease with positive voltage, leading to negative resistance at moderate voltages (e.g., ~100V), violating non-negative resistance requirements and producing non-physical behavior."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nreal vcoeff_linear = VC2 * 1e-6;  // 1 ppm = 1e-6 Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nreal vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n\n Correction Criteria：The linear voltage coefficient incorrectly uses the quadratic coefficient parameter (VC2) instead of the linear coefficient (VC1). This swaps the design parameters, causing the linear voltage effect to be controlled by the quadratic coefficient and vice versa in the resistance calculation."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nvcoeff_linear * abs(v_pn) + Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nvcoeff_linear * v_pn +\n\n Correction Criteria：Replaced v_pn with abs(v_pn), incorrectly making the linear voltage coefficient symmetric. The original design requires asymmetric dependence on voltage polarity for the linear term (VC1), while this modification forces identical resistance changes for positive and negative voltages, violating the intended behavior."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nparameter real V_MAX = -10 from (0.1 to 100);   // Maximum safe operating voltage [V] Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n Correction Criteria：Setting V_MAX to negative (-10V) violates voltage safety logic. Since absolute voltage (abs(v_pn)) is always non-negative, the condition (abs(v_pn) > V_MAX) becomes always true, triggering warnings for ALL voltages including safe ones."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nparameter real V_MAX = 0;   // Maximum safe operating voltage [V] Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n Correction Criteria：Setting V_MAX to 0 removes overvoltage warnings since abs(v_pn) > 0 triggers for any non-zero voltage, violating the intended 10V safety threshold."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nreal vcoeff_linear = VC1 * 1e-3;  // 1 ppm = 1e-6 Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nreal vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n\n Correction Criteria：Incorrect scaling factor: used 1e-3 instead of 1e-6 for ppm conversion, making the linear voltage coefficient 1000 times larger than specified. This exaggerates resistance variation with voltage, violating design specifications."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\ninitial $display('Fatal Error: R0 must be negative value!'); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\ninitial $display('Fatal Error: R0 must be positive value!');\n\n Correction Criteria：The error message incorrectly states R0 must be negative, contradicting the design requirement for positive resistance values. This misleads users to set invalid negative R0 values, causing downstream calculation errors."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\ninitial $display('Fatal Error: R0 must be positive value!); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\ninitial $display('Fatal Error: R0 must be positive value!');\n\n Correction Criteria：Missing closing double quote (') for the string literal, causing an unterminated string error. The compiler will expect the closing quote and fail to parse subsequent tokens correctly."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  initial $display('Fatal Error: R0 must be positive value! Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  initial $display('Fatal Error: R0 must be positive value!');\n\n Correction Criteria：Missing closing parenthesis and semicolon. The function call lacks termination, causing syntax errors due to unbalanced parentheses and missing statement end."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  reel R_actual = R0 * (1 +  Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  real R_actual = R0 * (1 + \n\n Correction Criteria：Misspelled keyword 'real' as 'reel', which is not a valid data type in VerilogA"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\ngenerate if (R0 <= 0 begin Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\ngenerate if (R0 <= 0) begin\n\n Correction Criteria：Missing closing parenthesis for the conditional expression in the generate if statement"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  initial $display('Fatal Error: R0 must be positive value!');; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  initial $display('Fatal Error: R0 must be positive value!');\n\n Correction Criteria：Double semicolon at statement termination creates invalid empty statement token"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\ninout p n; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\ninout p, n;\n\n Correction Criteria：Missing comma between port identifiers 'p' and 'n', violating VerilogA's port declaration syntax which requires commas to separate multiple identifiers."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n$strobe('Error: Negative resistance %.2eΩ at V=%.2fV, R_actual, v_pn); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n$strobe('Error: Negative resistance %.2eΩ at V=%.2fV', R_actual, v_pn);\n\n Correction Criteria：Unterminated string literal due to missing closing double quote after the format string, causing the comma and variables to be included in the string and breaking the argument structure."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  `end Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  `endif\n\n Correction Criteria：Changed 'endif' to 'end', which is an invalid compiler directive. The conditional compilation block requires 'endif' to terminate the `ifdef section, and 'end' alone is unrecognized syntax."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nreal vcoeff_linear = VC1 * 1e-6  // 1 ppm = 1e-6 Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nreal vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n\n Correction Criteria：Missing semicolon at the end of the statement causes unterminated declaration, leading to syntax errors when combined with the next line."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  if (R_actual =< 0) begin Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  if (R_actual <= 0) begin\n\n Correction Criteria：Invalid operator '=<' for less-than-or-equal comparison. Correct operator is '<=' in VerilogA."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  real vcoeff_linear = VC1 1e-6;  // 1 ppm = 1e-6 Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n\n Correction Criteria：Missing multiplication operator (*) between VC1 and 1e-6, resulting in invalid consecutive expressions without an operator"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nelectrical p, n Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nelectrical p, n;\n\n Correction Criteria：Missing semicolon at the end of the discipline declaration"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  if (R_actual <= 0 begin Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  if (R_actual <= 0) begin\n\n Correction Criteria：Missing closing parenthesis for the condition in the if statement"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nparameter real V_MAX = 10 from (0.1 to 100)   // Maximum safe operating voltage [V] Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n Correction Criteria：Missing semicolon at the end of the parameter declaration statement. VerilogA requires all statements to terminate with a semicolon."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  real vcoeff_quad   = VC2 * 1e-6 Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  real vcoeff_quad   = VC2 * 1e-6;\n\n Correction Criteria：Missing semicolon at the end of the statement, causing unterminated assignment"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nparameter real R0 = 1e3 from (1e-3 to 1e9;    // Nominal resistance [Ω] Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\n\n Correction Criteria：Missing closing parenthesis for the range expression in the parameter declaration, causing unbalanced parentheses."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n$strobe('Warning: %.3fV exceeds V_MAX=%.1fV at %t', v_pn, V_MAX, $realtime; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n$strobe('Warning: %.3fV exceeds V_MAX=%.1fV at %t', v_pn, V_MAX, $realtime);\n\n Correction Criteria：Missing closing parenthesis for the $strobe function call, causing unmatched parentheses syntax error."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n$bound_step(0.1*(R_actual * 1e-12); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n$bound_step(0.1*(R_actual * 1e-12));\n\n Correction Criteria：Missing closing parenthesis for the function call. The inner expression parentheses are properly closed, but the outer function call lacks its required closing parenthesis before the semicolon."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n$strobe('Warning: %.3fV exceeds V_MAX=%.1fV at %t', v_pn, V_MAX, $realtime Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n$strobe('Warning: %.3fV exceeds V_MAX=%.1fV at %t', v_pn, V_MAX, $realtime);\n\n Correction Criteria：Missing closing parenthesis for the $strobe function call and missing semicolon at the end of the statement"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Compliant Resistor Model with Voltage Coefficient\n`include \"disciplines.vams\"\n\nmodule res_linear_voltage (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with manufacturing constraints\nparameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]\nparameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]\nparameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]\nparameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]\n\n// Parameter safety checks\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive value!\");\nend\nendgenerate\n\n// Core resistance calculation\nanalog begin\n  // Get instantaneous voltage across terminals\n  real v_pn = V(p,n);\n  \n  // Voltage stress monitoring\n  if (abs(v_pn) > V_MAX) begin\n    $strobe(\"Warning: %.3fV exceeds V_MAX=%.1fV at %t\", v_pn, V_MAX, $realtime);\n  end\n\n  // Convert ppm coefficients to absolute values\n  real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6\n  real vcoeff_quad   = VC2 * 1e-6;\n\n  // Calculate voltage-dependent resistance\n  real R_actual = R0 * (1 + \n                      vcoeff_linear * v_pn + \n                      vcoeff_quad * v_pn*v_pn);\n\n  // Dynamic resistance validation\n  if (R_actual <= 0) begin\n    $strobe(\"Error: Negative resistance %.2eΩ at V=%.2fV\", R_actual, v_pn);\n  end\n\n  // Implement non-linear Ohm's Law\n  I(p,n) <+ v_pn / R_actual;  // I = V/R\n  \n  // Simulation convergence helper\n  `ifdef SIMULATION\n  $bound_step(0.1*(R_actual * 1e-12));\n  `endif\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  real R_actual = R0 * (1 ; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  real R_actual = R0 * (1 + \n\n Correction Criteria：Semicolon prematurely terminates the assignment expression, leaving subsequent lines (vcoeff_linear ...) as invalid tokens outside any statement."
+      }
+    ]
+  }
+]

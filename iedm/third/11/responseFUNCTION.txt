@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "      q_input_data[i] = 0;", 
+		"bug_line": "      q_input_data[i] = filter_taps[i];",
+		"error_description": "Initializes Q channel data array with filter coefficients instead of zeros, causing the Q channel to process corrupted data from startup due to incorrect convolution inputs."
+	},
+	{
+		"original_line": "middle = floor(taps / 2.0);", 
+		"bug_line": "middle = floor(taps / 3.0);",
+		"error_description": "Changed divisor from 2.0 to 3.0, causing incorrect center index calculation for the symmetric filter taps. This breaks the FIR filter's symmetry and shifts the main tap position, distorting the pulse-shaping behavior."
+	},
+	{
+		"original_line": "if ( upflag ==  0 ) begin", 
+		"bug_line": "if ( upflag >=  0 ) begin",
+		"error_description": "Changed condition from equality (== 0) to always true (>= 0) since upflag is non-negative. This causes input sampling at every oversample interval instead of only the first, corrupting the filter's input data sequence."
+	},
+	{
+		"original_line": "@(timer(start_time, period)) begin", 
+		"bug_line": "@(timer(period, start_time)) begin",
+		"error_description": "The timer arguments are swapped, causing the first event to occur at the intended period (delayed start) and subsequent events to repeat at the very small start_time interval (excessive updates). This violates the intended sampling rate and filter operation timing."
+	},
+	{
+		"original_line": "upflag = upflag + 1;", 
+		"bug_line": "upflag = upflag + over_samples;",
+		"error_description": "Incrementing by 'over_samples' instead of 1 causes upflag to immediately jump to or exceed the reset threshold (over_samples) every event cycle. This prevents proper staggered sampling of I_in/Q_in (only captured once every over_samples events) and forces immediate reset to 0 each cycle, violating the intended zero-insertion sequence between samples."
+	},
+	{
+		"original_line": "parameter integer over_samples = 4;", 
+		"bug_line": "parameter integer over_samples = 0;",
+		"error_description": "Setting over_samples to zero causes division by zero in period calculation (frame_time/0) and creates undersized arrays (size=1) that cannot hold filter data, crashing simulation during initialization."
+	},
+	{
+		"original_line": "analog begin", 
+		"bug_line": "initial begin",
+		"error_description": "Replaced 'analog' with 'initial' block, converting continuous-time analog processing to single-run digital initialization. This prevents RC filter execution, timer events, and output updates, violating transmitter functionality."
+	},
+	{
+		"original_line": "q_out = q_out + q_input_data[0] * filter_taps[0];", 
+		"bug_line": "q_out = q_out + i_input_data[0] * filter_taps[0];",
+		"error_description": "The Q channel output incorrectly uses I channel input data instead of Q channel data, causing cross-talk between I and Q channels and corrupting the quadrature signal processing."
+	},
+	{
+		"original_line": "i_input_data[0:(2*group_delay*over_samples+1)],", 
+		"bug_line": "i_input_data[0:(group_delay*over_samples+1)],",
+		"error_description": "The array size for i_input_data is reduced from (2*group_delay*over_samples+2) elements to (group_delay*over_samples+2) elements. This causes out-of-bound accesses during the FIR filter processing since the code later accesses indices up to (2*group_delay*over_samples+1), leading to undefined behavior or simulation crashes."
+	},
+	{
+		"original_line": "j = 0 ;", 
+		"bug_line": "upflag = over_samples;",
+		"error_description": "Initializes upflag to the value of over_samples instead of 0. This prevents the condition (upflag == 0) from ever being true, causing the input to always be set to zero and resulting in no signal transmission."
+	},
+	{
+		"original_line": "k = 0 ;", 
+		"bug_line": "upflag = over_samples;",
+		"error_description": "Assigning over_samples to upflag instead of initializing k causes upflag to start beyond its reset threshold. This prevents the (upflag == over_samples) condition from ever being true, disabling input data loading and forcing permanent zero outputs."
+	},
+	{
+		"original_line": "`include "constants.vams"", 
+		"bug_line": "`include "wrong_constants.vams"",
+		"error_description": "Changed the include filename to a non-existent file, causing the constant `M_PI` to be undefined. This results in incorrect filter coefficient calculations (treated as 0), distorting the root-raised-cosine filter response and corrupting the output signal."
+	},
+	{
+		"original_line": "    if ( upflag == over_samples )", 
+		"bug_line": "    if ( upflag == over_samples + 1 )",
+		"error_description": "Changes condition to reset upflag one cycle too late. This causes the input data to be held for an extra cycle beyond the intended oversampling period, introducing timing errors in the filter processing and distorting the output signal."
+	},
+	{
+		"original_line": "if( ceil(tmp) ==  floor(tmp) )", 
+		"bug_line": "if( ceil(tmp) !=  floor(tmp) )",
+		"error_description": "The condition is reversed, incorrectly setting filter_taps to zero for non-integer tmp values (where they should be calculated) and performing calculations for integer tmp values (which should be zero). This corrupts the raised cosine filter response by eliminating necessary non-integer taps."
+	},
+	{
+		"original_line": "integer tmpInteger, middle, taps;", 
+		"bug_line": "integer tmpInteger, middle, delay;",
+		"error_description": "Renaming 'taps' to 'delay' causes variable name collision with the existing real 'delay' variable. This redefines 'delay' as an integer in the current scope, corrupting the filter calculations that rely on the original real-valued delay parameter."
+	},
+	{
+		"original_line": "output I_out, Q_out;", 
+		"bug_line": "output I_out, Q_in;",
+		"error_description": "Changed output port Q_out to Q_in, reusing the input port name. This creates a name conflict and functional error since Q_in is already declared as an input, and the module attempts to drive Q_in as an output port."
+	},
+	{
+		"original_line": "q_out = 0;", 
+		"bug_line": "q_out = V(Q_in);",
+		"error_description": "Sets q_out to the current Q_in voltage instead of initializing to 0, introducing an extra unfiltered sample in the Q channel output. This violates the convolution logic as the sample is added again during subsequent processing, causing signal distortion."
+	},
+	{
+		"original_line": "start_time = frame_time / numChipsOut ;", 
+		"bug_line": "start_time = frame_time * numChipsOut ;",
+		"error_description": "Changed division to multiplication, causing start_time to be excessively large. This delays the first sampling event far beyond the intended chip duration, resulting in missed input data processing during initial operation periods."
+	},
+	{
+		"original_line": "i_input_data[i] =  i_input_data[i-1];", 
+		"bug_line": "i_input_data[i] =  i_input_data[i+1];",
+		"error_description": "Shifting direction error: using i+1 index causes reverse shifting that reads uninitialized future data (array overflow at high indices) and breaks the FIR filter delay line propagation for I-channel data."
+	},
+	{
+		"original_line": "start_time = frame_time / numChipsOut ;", 
+		"bug_line": "start_time = frame_time * numChipsOut ;",
+		"error_description": "Changed division to multiplication, causing start_time to be incorrectly scaled by numChipsOut^2 instead of divided. This delays the first sampling event significantly, disrupting the filter timing and potentially missing input data processing."
+	}
+]

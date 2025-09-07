@@ -1,0 +1,202 @@
+[
+	{
+		"original_line": "Rs          =        1.0e-4 * contactR / W;", 
+		"bug_line": "Rs          =        1.0e-4 * contactR * W;",
+		"error_description": "Changed division to multiplication - makes source resistance INCREASE with device width instead of decrease, violating width scaling requirements and creating incorrect RF impedance matching. Design specifies R should be inversely proportional to W for proper multi-finger layout support."
+	},
+	{
+		"original_line": "I(gi, ss)   <+       ddt(Cgse*V(gi,ss));", 
+		"bug_line": "I(gi, ss)   <+       ddt(Cgse*V(ss,gi));",
+		"error_description": "Reversed voltage polarity in gate-source extrinsic capacitance (V(ss,gi) instead of V(gi,ss)), creating negative capacitance effect that violates energy conservation and causes instability in RF simulations."
+	},
+	{
+		"original_line": "        Cpg         =        13.653f;", 
+		"bug_line": "        Cpg         =        13.653f * 126e-4 / W;",
+		"error_description": "Incorrectly scales gate parasitic capacitance (Cpg) inversely with transistor width W, violating the design's requirement for width-scalable RF parasitics. Proper scaling should be proportional to W (Cpg * W/126e-4), but this modification reduces capacitance for wider transistors, distorting high-frequency behavior."
+	},
+	{
+		"original_line": "parameter real       W           =    126e-4     from(0:inf);                 // width in cm", 
+		"bug_line": "parameter real       W           =    50e-6     from(0:inf);                 // width in cm",
+		"error_description": "Reduces default width to 0.5μm (50e-6 cm), violating minimum width constraint (W < 0.1μm triggers convergence errors) per design critical errors. Causes invalid scaling of Rgext/Cgd/Cds parameters that depend on W normalization."
+	},
+	{
+		"original_line": "module NMOSRF(g,d,s);", 
+		"bug_line": "module NMOSRF(g,s,d);",
+		"error_description": "Swapped drain/source port order reverses terminal connections, inverting Vds polarity and corrupting all voltage-dependent calculations (Vgsi, Vdsi) while maintaining incorrect current direction through the device."
+	},
+	{
+		"original_line": "Id          =        Qinv * vx0 * Fsat * W;", 
+		"bug_line": "Id          =        Qinv * vx0 * Fsat * LG;",
+		"error_description": "Replaced width (W) with gate length (LG) in current calculation. The drain current should scale proportionally with transistor width according to the VS model, but this error makes current scale incorrectly with gate length instead, violating width-dependent current scaling requirements and producing unrealistic I_ds values."
+	},
+	{
+		"original_line": "real Cpd, Cpg, Cps;", 
+		"bug_line": "real Cps, Cpg, Cpd;",
+		"error_description": "Swapped drain/source parasitic capacitance parameters (Cpd/Cps) reverses terminal associations - drain now uses source's capacitance value and vice versa, corrupting RF response and S-parameter calculations."
+	},
+	{
+		"original_line": "I(g, gnd)   <+       ddt(Cpg*V(g, gnd));", 
+		"bug_line": "I(g, gnd)   <+       idt(Cpg*V(g, gnd));",
+		"error_description": "Replaced ddt (time derivative) with idt (time integral) for gate capacitance current, converting capacitive behavior to inductive integration. This inverts phase response in AC analysis and creates non-physical transient voltage accumulation at gate node."
+	},
+	{
+		"original_line": "parameter real       ks          =    0.5        from(0:inf);                 // shot noise suppression factor", 
+		"bug_line": "parameter real       ks          =    -0.5       from(0:inf);                 // shot noise suppression factor",
+		"error_description": "Negative shot noise suppression factor violates physical implementation (0 ≤ ks ≤ 1). This inverts noise correlation mechanisms, causing unphysical noise enhancement instead of suppression in channel current."
+	},
+	{
+		"original_line": "        Cgd         =        47.1212f * W / 126e-4;", 
+		"bug_line": "        Cgd         =        47.1212f * 126e-4 / W;",
+		"error_description": "Inverted width scaling makes gate-drain capacitance (Cgd) decrease with larger W, violating design requirement for scalable RF parasitics. Correct behavior requires Cgd proportional to W, but error causes 1/W dependence, distorting high-frequency characteristics for different device sizes."
+	},
+	{
+		"original_line": "        Cpg         =        13.653f;", 
+		"bug_line": "        Cpg         =        13.653f * W / 126e-4;",
+		"error_description": "Incorrectly makes gate parasitic capacitance width-dependent. Cpg should remain fixed per validation requirements (S21 match <0.5dB requires fixed RF parasitics), but scaling with W creates non-physical capacitance scaling and violates 1/W dependence in port definition Rgext."
+	},
+	{
+		"original_line": "I(gi, dd)   <+       ddt(Cgd*V(gi,dd));", 
+		"bug_line": "I(gi, dd)   <+       ddt(Cgd*V(dd,gi));",
+		"error_description": "Reversed voltage polarity in Cgd capacitance model. Incorrectly uses V(dd,gi) instead of V(gi,dd), inverting the capacitive current direction and corrupting gate-drain coupling effects critical for Miller capacitance and RF stability."
+	},
+	{
+		"original_line": "V(g, gi)    <+       white_noise(4*`P_K*$temperature*Rgext,"thermal");", 
+		"bug_line": "V(g, gi)    <+       white_noise(4*`P_K*$temperature*Rgext,"shot");",
+		"error_description": "Incorrectly models gate resistance thermal noise as shot noise type, violating design specification that requires extrinsic resistance contributions to use thermal noise while shot noise is reserved for channel current."
+	},
+	{
+		"original_line": "        Ld          =        35.371p;", 
+		"bug_line": "        Ld          =        35.371n;",
+		"error_description": "Changed drain inductance from 35.371pH to 35.371nH (1000x increase). This violates RF validation requirements by creating excessive drain impedance at high frequencies, degrading f_T below 200GHz and causing S21 mismatch >0.5dB due to incorrect parasitic modeling."
+	},
+	{
+		"original_line": "        Cds         =        37.2017f * W / 126e-4;", 
+		"bug_line": "        Cds         =        37.2017f * W * 126e-4;",
+		"error_description": "Inverted scaling factor changes capacitance dependence on width - multiplies by normalization factor (126e-4) instead of dividing, causing Cds to shrink with larger W instead of growing. Violates width-scalable RF parasitics requirement and creates incorrect capacitance values for non-default widths."
+	},
+	{
+		"original_line": "parameter real       DIBL        =    0.1568     from[0:inf);                 // drain induced barrier lowering", 
+		"bug_line": "parameter real       DIBL        =    0.1568     from(-inf:inf);                 // drain induced barrier lowering",
+		"error_description": "Changed DIBL parameter range to allow negative values, which incorrectly permits drain-induced barrier lowering to increase threshold voltage with higher drain bias (Vtp = Vt0 - negative_DIBL*Vds), contrary to physical device behavior where DIBL should only reduce threshold voltage."
+	},
+	{
+		"original_line": "real Ls, Ld, Lg;", 
+		"bug_line": "integer Ls, Ld, Lg;",
+		"error_description": "Changing inductance variables to integer type truncates pico-scale values (e.g., 44.549p becomes 44), introducing critical errors in RF parasitic modeling where fractional precision is required for high-frequency characteristics."
+	},
+	{
+		"original_line": "I(gNs, ss)  <+       V(gNs,ss)/Ri;", 
+		"bug_line": "I(gNs, ss)  <+       V(ss,gNs)/Ri;",
+		"error_description": "Reverses voltage polarity in Ri branch, creating inverted current flow that disrupts the self-heating model's thermal network and introduces negative impedance instability in substrate coupling."
+	},
+	{
+		"original_line": "V(d, dd)    <+       ddt(Ld*I(d,dd));", 
+		"bug_line": "V(d, dd)    <+       idt(Ld*I(d,dd));",
+		"error_description": "Replaced time derivative (ddt) with integral (idt), converting drain inductance into erroneous capacitive behavior. This violates the RF parasitic architecture by fundamentally altering energy storage elements, making Ld act as a capacitor instead of inductor, which disrupts S-parameter validation and f_T requirements."
+	},
+	{
+		"original_line": "parameter real       DIBL        =    0.1568     from[0:inf);                 // drain induced barrier lowering", 
+		"bug_line": "parameter real       DIBL        =    0.1568     from(-inf:inf);                 // drain induced barrier lowering",
+		"error_description": "Changed DIBL parameter range to allow negative values, enabling unphysical threshold voltage INCREASE with drain bias (inverted DIBL effect) instead of barrier lowering."
+	},
+	{
+		"original_line": "parameter real       Temp        =    298        from(0:inf);                 // temperature in C", 
+		"bug_line": "parameter real       Temp        =    25        from(0:inf);                 // temperature in C",
+		"error_description": "Changes ambient temperature from 298°C to 25°C, causing incorrect thermal voltage (phit) calculation as $vt() expects Kelvin. Results in severely underestimated phit (25K instead of 298K), corrupting subthreshold current and mobility models."
+	},
+	{
+		"original_line": "        Ls          =        44.549p;                                   ", 
+		"bug_line": "        Ls          =        44.549n;                                   ",
+		"error_description": "Changed source inductance from 44.549pH to 44.549nH (1000x larger). This violates RF validation requirements by creating unrealistic source impedance, distorting S-parameters and frequency response beyond 10GHz due to excessive inductive reactance at high frequencies."
+	},
+	{
+		"original_line": "electrical gi, di, dd, si, ss, gNs;", 
+		"bug_line": "electrical gi, dd, di, si, ss, gNs;",
+		"error_description": "Swapped di/dd node declarations reverses internal/external drain connections. This corrupts Vdsi calculation (now using pre-Rd node voltage) and miscomputes channel current Id, violating DC characteristics validation requiring 12mA/μm @ Vds=1.2V."
+	},
+	{
+		"original_line": "        garmaGS     =        0.0;", 
+		"bug_line": "        garmaGS     =        1.5;",
+		"error_description": "Setting garmaGS > 1 creates negative Cgse capacitance (Cgs*(1-1.5)=-0.5Cgs), producing non-physical negative capacitance that violates capacitance network requirements and causes simulation instability."
+	},
+	{
+		"original_line": "I(ss, gnd)  <+       ddt(Csgnd*V(ss, gnd));", 
+		"bug_line": "I(ss, gnd)  <+       V(ss, gnd)/Ri;",
+		"error_description": "Replaces capacitive coupling with resistive path to ground through Ri (899Ω), creating unintended high source impedance that violates low-impedance reference requirement and distorts S-parameters/noise performance."
+	},
+	{
+		"original_line": "        Vdsi        =        V(di) - V(si);", 
+		"bug_line": "        Vdsi        =        V(si) - V(di);",
+		"error_description": "Reversed drain-source voltage polarity by subtracting V(di) from V(si) instead of vice versa. This inverts the channel voltage gradient calculation, causing inverted current direction and incorrect saturation regime detection in DC characteristics."
+	},
+	{
+		"original_line": "inout g,d,s;", 
+		"bug_line": "inout g,d; input s;",
+		"error_description": "Changed source terminal 's' from bidirectional inout to input-only, violating transistor operation fundamentals where source must sink/source current. This creates connection errors when instantiated in circuits requiring bidirectional source terminal."
+	},
+	{
+		"original_line": "parameter real       alpha       =    3.5        from(0:inf);", 
+		"bug_line": "parameter real       alpha       =    0.0        from(0:inf);",
+		"error_description": "Setting alpha=0 creates division by zero in Ff calculation (alphaphit=0) when evaluating exp((Vgsi - (Vtp - 0.5*alphaphit))/alphaphit), causing simulation failure."
+	},
+	{
+		"original_line": "        garmaGS     =        0.0;", 
+		"bug_line": "        garmaGS     =        1.0;",
+		"error_description": "Sets gate-source capacitance partitioning factor to 1.0 instead of 0, incorrectly routing entire Cgs capacitance to ground (Cggnd = Cgs) rather than maintaining gate-source coupling (Cgse = Cgs), disrupting RF input impedance matching."
+	},
+	{
+		"original_line": "real garmaDS, garmaGS;", 
+		"bug_line": "real alpha, garmaGS;",
+		"error_description": "Introduces variable shadowing by declaring 'alpha' as a local real variable, overriding the parameter alpha=3.5. This causes alphaphit calculation to use local alpha (0.0 default) instead of the design parameter, corrupting DC characteristics."
+	},
+	{
+		"original_line": "I(di, si)   <+       Id + white_noise(1.2 * `P_Q * Id, "shot");", 
+		"bug_line": "I(di, si)   <+       Id + white_noise(`P_K * $temperature * Id, "thermal");",
+		"error_description": "Replaced shot noise with incorrect thermal noise formula using Boltzmann constant instead of charge, violating the design's specified combined shot-thermal noise model with shot suppression factor ks."
+	},
+	{
+		"original_line": "I(dd, ss)   <+       ddt(Cdsi*V(dd,ss));", 
+		"bug_line": "I(ss, dd)   <+       ddt(Cdsi*V(dd,ss));",
+		"error_description": "Reversed current direction for drain-source capacitance creates negative impedance effect, inverting capacitor's phase response in RF simulations and causing instability in high-frequency AC analysis."
+	},
+	{
+		"original_line": "I(gi, dd)   <+       ddt(Cgd*V(gi,dd));", 
+		"bug_line": "I(gi, dd)   <+       ddt(Cgd*V(dd,gi));",
+		"error_description": "Reversed voltage polarity in gate-drain capacitance model creates inverted displacement current flow. This reverses Miller capacitance effects, causing incorrect AC gain characteristics and instability in RF simulations by improperly calculating charge storage dynamics between gate and drain."
+	},
+	{
+		"original_line": "V(g, gi)    <+       white_noise(4*`P_K*$temperature*Rgext,"thermal");", 
+		"bug_line": "V(g, gi)    <+       white_noise(4*`P_K*$temperature*Rgext,"shot");",
+		"error_description": "Changed noise type from thermal to shot for gate resistance. Gate extrinsic resistance (Rgext) should exhibit thermal noise (4kTR), not shot noise which is current-dependent. This violates noise physics and design specs requiring proper thermal noise modeling in resistive elements."
+	},
+	{
+		"original_line": "Qinv        =        Cinv * nphit * ln(1.0 + exp((Vgsi - (Vtp - alphaphit * Ff)) / nphit));", 
+		"bug_line": "Qinv        =        Cinv * nphit * ln(1.0 + exp((Vgsi - (Vtp + alphaphit * Ff)) / nphit));",
+		"error_description": "Inverts the threshold voltage adjustment by adding instead of subtracting alphaphit*Ff term, artificially increasing effective threshold voltage and reducing inversion charge density in moderate inversion regime."
+	},
+	{
+		"original_line": "I(d, gnd)   <+       ddt(Cpd*V(d, gnd));", 
+		"bug_line": "I(d, gnd)   <+       ddt(Cpg*V(d, gnd));",
+		"error_description": "Substitutes drain parasitic capacitance (Cpd) with gate capacitance (Cpg), creating incorrect RF coupling between drain and ground. This violates the port definition where drain should have independent parasitic capacitance, causing erroneous high-frequency S-parameter responses and broken scalability."
+	},
+	{
+		"original_line": "parameter real       alpha       =    3.5        from(0:inf);", 
+		"bug_line": "parameter real       alpha       =    -0.5       from(0:inf);",
+		"error_description": "Negative alpha value violates parameter range (0:inf) and inverts the threshold voltage calculation in Ff expression, causing erroneous subthreshold current behavior."
+	},
+	{
+		"original_line": "Cgsi        =        18.645f * W / 126e-4;", 
+		"bug_line": "Cgsi        =        18.645f * 126e-4 / W;",
+		"error_description": "Inverted width scaling makes gate capacitance decrease with larger W instead of increasing, violating the critical width-dependent capacitance scaling requirement for RF modeling. This breaks multi-finger layout compatibility and produces incorrect AC characteristics for devices wider than 126μm."
+	},
+	{
+		"original_line": "parameter real       Lov         =    1.2e-6     from(0:inf);                 // gate overlap length in cm", 
+		"bug_line": "parameter real       Lov         =    5e-6     from(0:inf);                 // gate overlap length in cm",
+		"error_description": "Sets gate overlap length (5e-6 cm = 50nm) greater than nominal gate length LG (4e-6 cm = 40nm). Causes negative effective channel length Leff = LG - Lov = -10nm, making Vdsats = vx0*Leff/mu0 negative and collapsing DC current model."
+	},
+	{
+		"original_line": "real Cpd, Cpg, Cps;", 
+		"bug_line": "real Cpg, Cpd, Cps;",
+		"error_description": "Swapped Cpg/Cpd declaration order causes subsequent capacitance assignments (Cpg=13.653f, Cpd=12.113f) to incorrectly map to reversed variables, corrupting gate/drain parasitic capacitance values and violating RF scaling requirements."
+	}
+]

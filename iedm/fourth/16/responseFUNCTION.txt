@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "real symbol_period;", 
+		"bug_line": "integer symbol_period;",
+		"error_description": "Changing symbol_period to integer truncates the symbol period calculation (1/symbol_rate) to an integer value, causing incorrect timing in eye diagram generation and histogram sampling due to loss of fractional precision."
+	},
+	{
+		"original_line": "real ii_ref, qq_ref;", 
+		"bug_line": "real ii_ref_invalid, qq_ref_invalid;",
+		"error_description": "Changed variable names to ii_ref_invalid and qq_ref_invalid, making subsequent assignments and references to ii_ref/qq_ref use implicitly declared variables (defaulting to 0), breaking EVM and reference signal computations."
+	},
+	{
+		"original_line": "Iref_scatter		= I-output of the reference for the scatter plot.", 
+		"bug_line": "Iref_scatter		= Q-output of the reference for the scatter plot.",
+		"error_description": "Mislabeling I-output as Q-output causes functional inconsistency between documentation and implementation. The port name 'Iref_scatter' implies I-channel reference output, but the description incorrectly labels it as Q-output, misleading users about signal mapping in scatter plots."
+	},
+	{
+		"original_line": "      accum_var = 0;", 
+		"bug_line": "      accum_var = accum_ave;",
+		"error_description": "Initializes variance accumulator with average value instead of 0, corrupting variance calculation from the first sample by introducing artificial bias and making root-mean-square eye opening computation invalid."
+	},
+	{
+		"original_line": "@(timer(0, total_period)) begin", 
+		"bug_line": "@(timer(0, symbol_period)) begin",
+		"error_description": "Changed timer period from total_period (multiple symbols) to symbol_period (single symbol). This causes the blanking signal to trigger at every symbol boundary instead of at the full eye diagram period, incorrectly resetting the trace display mid-eye formation."
+	},
+	{
+		"original_line": "        accum_cycles = accum_cycles + 1;", 
+		"bug_line": "        accum_cycles = accum_cycles - 1;",
+		"error_description": "Changed increment to decrement. This causes the sample counter to decrease instead of increase, making statistics calculations (average/variance) invalid due to negative/zero counts and reversed accumulation logic."
+	},
+	{
+		"original_line": "V(eye_count_hist) <+ count_var;", 
+		"bug_line": "V(eye_count_hist) <+ bin[0];",
+		"error_description": "The output now incorrectly shows the count of the first histogram bin (bin[0]) for all bins instead of the actual count for each bin. This makes the histogram display the count of bin[0] uniformly across all bins, destroying the distribution visualization."
+	},
+	{
+		"original_line": "bin[j] = 0;", 
+		"bug_line": "bin[0] = 0;",
+		"error_description": "Initializes only bin[0] to zero in each loop iteration, leaving bins 1 to num_of_bins uninitialized. This causes undefined values in the histogram bins and corrupts the eye-opening statistics."
+	},
+	{
+		"original_line": "real ii_ref, qq_ref;", 
+		"bug_line": "real qq_ref, ii_ref;",
+		"error_description": "Swapped variable names in declaration. This causes ii_ref to be incorrectly assigned to qq_ref's memory location and vice versa, corrupting I/Q reference signal storage and invalidating EVM calculations."
+	},
+	{
+		"original_line": "integer shift_reg[1:20], coeff_reg[1:20];", 
+		"bug_line": "integer shift_reg[1:19], coeff_reg[1:19];",
+		"error_description": "Reduced array size from 20 to 19 elements. This causes potential out-of-bounds access if index 20 is used later, violating the design's register length requirement defined by `REG_LENGTH 20."
+	},
+	{
+		"original_line": "   I(Q_ref) <+ V(Q_ref)/rin;", 
+		"bug_line": "   I(Q_ref) <+ V(I_ref)/rin;",
+		"error_description": "Incorrectly uses I_ref voltage instead of Q_ref voltage for Q_ref current calculation, causing cross-coupling between I and Q reference channels and corrupting Q_ref loading behavior."
+	},
+	{
+		"original_line": "real eye;", 
+		"bug_line": "real eye = 0.0;",
+		"error_description": "Initializing 'eye' to 0.0 prevents proper sampling of I-input voltage. This forces all eye statistics (average, variance, histogram) to be computed based on 0V instead of actual signal values, corrupting all downstream measurements."
+	},
+	{
+		"original_line": "ii = V(I_in) + I_rv;", 
+		"bug_line": "ii = V(I_in) + Q_rv;",
+		"error_description": "Adds Q-channel noise to I-channel signal instead of I-channel noise, cross-contaminating the noise sources and corrupting I-signal measurements."
+	},
+	{
+		"original_line": "real rms_ref;", 
+		"bug_line": "real rms_ref = 0;",
+		"error_description": "Initializing rms_ref to 0 causes the condition 'if (rms_ref != 0)' to always fail during early simulation stages. This prevents EVM calculation updates when reference magnitude is non-zero but RMS reference is below 1, violating the requirement for continuous EVM tracking."
+	},
+	{
+		"original_line": "ave = accum_ave/accum_cycles;", 
+		"bug_line": "ave = accum_ave * accum_cycles;",
+		"error_description": "Multiplication replaces division, causing the average eye opening to scale incorrectly with sample count. Instead of computing the mean, it produces a product that grows quadratically with time, violating statistical requirements."
+	},
+	{
+		"original_line": "@(timer(I_del, symbol_period)) begin", 
+		"bug_line": "@(timer(I_del, symbol_period/2)) begin",
+		"error_description": "Changed sampling period to half the symbol period, causing incorrect symbol timing that samples transitional data points instead of stable symbol values. This corrupts eye statistics and EVM calculations by doubling the sampling rate."
+	},
+	{
+		"original_line": "bin_size = (max_voltage-min_voltage)/num_of_bins;", 
+		"bug_line": "bin_size = (min_voltage - max_voltage)/num_of_bins;",
+		"error_description": "Swapped min_voltage and max_voltage results in negative bin_size. This causes descending bin borders, making the binning condition (bin_borders[i] <= eye && eye < bin_borders[i+1]) always false since borders are inverted. Consequently, histogram counts remain zero and eye_count_hist output is invalid."
+	},
+	{
+		"original_line": "root_var_eye		= variance of the I-output at the sampling time.", 
+		"bug_line": "root_var_eye		= average eye opening at the sampling time.",
+		"error_description": "The design description incorrectly states that root_var_eye outputs the average eye opening. In reality, this output represents the standard deviation (root variance) of the I-signal, while ave_eye outputs the average. This misdirects users to misinterpret the statistical outputs."
+	},
+	{
+		"original_line": "rms_evm_out = 0;", 
+		"bug_line": "rms_evm_out = 50;",
+		"error_description": "Initialized rms_evm_out to 50 instead of 0. This causes the output to show 50% EVM until the first symbol is processed, producing incorrect transient results and potentially misleading measurements during startup."
+	},
+	{
+		"original_line": "reference signal and is given as a percent.", 
+		"bug_line": "reference signal and is given as a ratio.",
+		"error_description": "Changed EVM output from percentage to ratio, violating the design specification that requires EVM as a percentage. This creates a functional error where downstream systems expecting percentage values will receive fundamentally incorrect scaled data (100x smaller)."
+	}
+]

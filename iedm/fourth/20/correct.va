@@ -1,0 +1,263 @@
+// VerilogA for sources_modules, gfsk, veriloga
+// Cadence Design System, Inc. 2006
+
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+`ifdef FILTER_ORDER
+`undef FILTER_ORDER
+`endif
+`define FILTER_ORDER 64
+
+`ifdef MAXLENGTH
+`undef MAXLENGTH
+`endif
+`define MAXLENGTH 30
+
+(* instrument_module *)
+module gfsk(iout, qout, inbit);
+output iout, qout;
+input inbit;
+voltage iout, qout, inbit;
+
+parameter real BT = 0.5;
+parameter real initial_phase = 0;
+parameter real Ec = -116;
+parameter real frame_time = 0.000625 from (0:inf);
+parameter integer frame_size = 625;
+parameter integer pulse_length = 1 from [1:inf];
+parameter integer samples = 100 from [1:inf];
+parameter integer initial_syms[0:pulse_length-1] = {1 };
+parameter integer seed = 21;
+parameter integer enable_input = 1 from [0:1];
+parameter real index = 0.32;
+// for bluetooth voice test, we have to activate/deactivate sometimes.
+parameter integer need_deactivate = 0 from [0:1];
+parameter integer enable_start    = 4;
+parameter integer enable_stop    = 5;
+
+  real Xk[0:`FILTER_ORDER ], Ak[0:`FILTER_ORDER];
+  integer loopBit[0: `MAXLENGTH];
+  real tmpArray[0: pulse_length*samples-1];
+  real scale, HalfT, OneOversqrtPI;
+  real Sum, CurrentPhase;
+  real point, bminuxa1_, bminuxa2_, bminuxa1, bminuxa2;
+  real period , T, tt, initial_t, stop_trig, trig;
+  integer sample, theSeed, count, frames, samples1;
+  integer n, i, mm;
+  real ampl, tmpI, tmpQ, inputbit;
+
+  analog begin
+    @(initial_step) begin
+      theSeed   = seed;
+      samples1 = samples - 1;
+      T              = frame_time / frame_size;
+      period      = T / samples;
+      scale       = `M_TWO_PI * BT / sqrt( ln(2) / 2 ) / T / 2;
+      OneOversqrtPI = sqrt(`M_1_PI) / 2;
+      ampl    =  2 * sqrt ( pow(10, Ec / 20 ) / T );
+      HalfT   = T / 2; Sum = 0;
+      point    = - HalfT * pulse_length - period / 2.0;
+      Xk[0]   = 1.049293522079643300;
+      Xk[1]   = 0.951892351425945420;
+      Xk[2]   = 1.151314239403926600;
+      Xk[3]   = 0.859341752252730350;
+      Xk[4]   = 1.257678855063602900;
+      Xk[5]   = 0.771827577879120930;
+      Xk[6]   = 1.368068070228978300;
+      Xk[7]   = 0.689490388533006700;
+      Xk[8]   = 1.482120328337195500;
+      Xk[9]   = 0.612425753377167310;
+      Xk[10] = 1.599433618255665200;
+      Xk[11] = 0.540684969420595520; 
+      Xk[12] = 1.719567674604655300; 
+      Xk[13] = 0.474276186643811270; 
+      Xk[14] = 1.842046558198125100; 
+      Xk[15] = 0.413165924847452350;
+      Xk[16] = 1.966361595916357800; 
+      Xk[17] = 0.357280964060391610; 
+      Xk[18] = 2.091974655865648000; 
+      Xk[19] = 0.306510586851791670; 
+      Xk[20] = 2.218321730442064600; 
+      Xk[21] = 0.260709147613853050; 
+      Xk[22] = 2.344816796929055400; 
+      Xk[23] = 0.219698940849477300; 
+      Xk[24] = 2.470855922550796900; 
+      Xk[25] = 0.183273337740260330; 
+      Xk[26] = 2.595821578500681100; 
+      Xk[27] = 0.151200157811107630; 
+      Xk[28] = 2.719087125390093900; 
+      Xk[29] = 0.123225240371464820; 
+      Xk[30] = 2.840021430836626100; 
+      Xk[31] = 0.099076178619692645; 
+      Xk[32] = 2.957993578549723300; 
+      Xk[33] = 0.078466177863279848; 
+      Xk[34] = 3.072377627288819900; 
+      Xk[35] = 0.061097998246692029; 
+      Xk[36] = 3.182557377473870000; 
+      Xk[37] = 0.046667941700504534; 
+      Xk[38] = 3.287931103027378100; 
+      Xk[39] = 0.034869842536188106; 
+      Xk[40] = 3.387916206223269300; 
+      Xk[41] = 0.025399021212947809; 
+      Xk[42] = 3.481953753911436200; 
+      Xk[43] = 0.017956161295065356; 
+      Xk[44] = 3.569512854475716400; 
+      Xk[45] = 0.012251070495260495; 
+      Xk[46] = 3.650094836267009600; 
+      Xk[47] = 0.008006287952998238; 
+      Xk[48] = 3.723237190041939200; 
+      Xk[49] = 0.004960501514180358; 
+      Xk[50] = 3.788517240178177900; 
+      Xk[51] = 0.002871740744566627; 
+      Xk[52] = 3.845555512312788700; 
+      Xk[53] = 0.001520313704573682; 
+      Xk[54] = 3.894018769275393100; 
+      Xk[55] = 0.000711458115749065; 
+      Xk[56] = 3.933622695973101500; 
+      Xk[57] = 0.000277680434597643; 
+      Xk[58] = 3.964134245399191700; 
+      Xk[59] = 0.000080759492214993; 
+      Xk[60] = 3.985373861833063600; 
+      Xk[61] = 0.000013394745242923; 
+      Xk[62] = 3.997220649910078200; 
+      Xk[63] = 0.000000482966989019;
+      Ak[0]   = 0.048690957009139724;
+      Ak[1]   = 0.048690957009139724;
+      Ak[2]   = 0.048575467441503428;
+      Ak[3]   = 0.048575467441503428;
+      Ak[4]   = 0.048344762234802954;
+      Ak[5]   = 0.048344762234802954;
+      Ak[6]   = 0.047999388596458310;
+      Ak[7]   = 0.047999388596458310;
+      Ak[8]   = 0.047540165714830308;
+      Ak[9]   = 0.047540165714830308;
+      Ak[10] = 0.046968182816210020;
+      Ak[11] = 0.046968182816210020;
+      Ak[12] = 0.046284796581314416;
+      Ak[13] = 0.046284796581314416;
+      Ak[14] = 0.045491627927418142;
+      Ak[15] = 0.045491627927418142;
+      Ak[16] = 0.044590558163756566;
+      Ak[17] = 0.044590558163756566;
+      Ak[18] = 0.043583724529323450;
+      Ak[19] = 0.043583724529323450;
+      Ak[20] = 0.042473515123653591;
+      Ak[21] = 0.042473515123653591;
+      Ak[22] = 0.041262563242623528; 
+      Ak[23] = 0.041262563242623528;
+      Ak[24] = 0.039953741132720343; 
+      Ak[25] = 0.039953741132720343;
+      Ak[26] = 0.038550153178615626; 
+      Ak[27] = 0.038550153178615626;
+      Ak[28] = 0.037055128540240047;
+      Ak[29] = 0.037055128540240047; 
+      Ak[30] = 0.035472213256882386;
+      Ak[31] = 0.035472213256882386;
+      Ak[32] = 0.033805161837141606;
+      Ak[33] = 0.033805161837141606; 
+      Ak[34] = 0.032057928354851550; 
+      Ak[35] = 0.032057928354851550; 
+      Ak[36] = 0.030234657072402478; 
+      Ak[37] = 0.030234657072402478; 
+      Ak[38] = 0.028339672614259483; 
+      Ak[39] = 0.028339672614259483; 
+      Ak[40] = 0.026377469715054658; 
+      Ak[41] = 0.026377469715054658; 
+      Ak[42] = 0.024352702568710874; 
+      Ak[43] = 0.024352702568710874; 
+      Ak[44] = 0.022270173808383253; 
+      Ak[45] = 0.022270173808383253; 
+      Ak[46] = 0.020134823153530209; 
+      Ak[47] = 0.020134823153530209; 
+      Ak[48] = 0.017951715775697343; 
+      Ak[49] = 0.017951715775697343; 
+      Ak[50] = 0.015726030476024718; 
+      Ak[51] = 0.015726030476024718; 
+      Ak[52] = 0.013463047890718642; 
+      Ak[53] = 0.013463047890718642; 
+      Ak[54] = 0.011168139460131128;
+      Ak[55] = 0.011168139460131128; 
+      Ak[56] = 0.008846759826363947; 
+      Ak[57] = 0.008846759826363947; 
+      Ak[58] = 0.006504457968978363; 
+      Ak[59] = 0.006504457968978363; 
+      Ak[60] = 0.004147033260562468; 
+      Ak[61] = 0.004147033260562468; 
+      Ak[62] = 0.001783280721696433;
+      Ak[63] = 0.001783280721696433;
+      for ( n = 0; n < pulse_length ; n = n + 1 ) begin
+        loopBit[ n]   = initial_syms[n]; sample = n;
+        for ( i = 0; i < samples; i = i + 1 ) begin
+          point          =    point + period;
+	  bminuxa1   =   scale * (point -  HalfT);
+	  bminuxa2   =   scale * (point + HalfT);
+	  bminuxa1_ = - bminuxa1 * bminuxa1;
+	  bminuxa2_ = - bminuxa2 * bminuxa2;
+	  tmpI = 0; tmpQ = 0;
+	  for ( mm = 0; mm < `FILTER_ORDER; mm = mm + 1) begin
+	    tmpI  = tmpI    + Ak[mm] * exp ( bminuxa1_ * Xk[mm] );
+	    tmpQ = tmpQ  + Ak[mm] * exp ( bminuxa2_ * Xk[mm] );
+	  end
+	  tmpArray[sample] = (tmpQ * bminuxa2 - tmpI * bminuxa1) * OneOversqrtPI;
+	  Sum = Sum + tmpArray[sample];
+	  sample = pulse_length  + sample;
+        end
+      end
+      Sum = `M_PI * index / Sum;
+      for ( i = 0; i < samples * pulse_length; i = i + 1 )
+        tmpArray[i]    = tmpArray[i]  * Sum;
+      Sum = 0; tmpI = 0; tmpQ = 0;
+      sample            = samples - 1;
+      tt                     = period/10000 ;
+      trig                  = enable_stop - enable_start;
+      initial_t               = period / 4;
+      stop_trig         = (1+enable_stop) *  frame_time ;
+      CurrentPhase = initial_phase;
+      if ( need_deactivate ) begin
+	count   = 0;
+	frames = 0;
+	initial_t    = initial_t + enable_start * frame_time;
+      end
+    end  /* end of initial_step  */
+
+    @(timer(initial_t , period , tt)) begin
+      sample = sample + 1;
+      if ( samples == sample ) begin
+        for ( n = pulse_length - 1; n > 0 ; n = n - 1 )
+          loopBit[n] = loopBit[n - 1];
+        if ( enable_input ) inputbit = V(inbit);
+        else inputbit = $rdist_uniform( theSeed, 0, 1 );
+        if ( inputbit > 0.5 ) loopBit[0]  = 1;
+        else loopBit[0]  = -1;
+	sample = 0;
+      end else if ( samples1 == sample ) begin
+	if ( need_deactivate ) begin
+	  count = count + 1;
+	  if ( count == frame_size ) begin
+            frames = frames + 1;
+            if ( frames == trig ) begin
+	      frames = 0;
+	      initial_t = initial_t + stop_trig;
+	    end
+	    count = 0;
+	  end
+	end
+      end
+      mm = sample * pulse_length;
+      CurrentPhase =  CurrentPhase + Sum; Sum = 0;
+      for (n = 0; n < pulse_length; n = n + 1 )
+        Sum = Sum + tmpArray[mm+n] * loopBit[n];
+      mm = CurrentPhase / `M_TWO_PI;
+      if (mm != 0 ) // if not in ( -2* PI,  2 * PI)
+        CurrentPhase = CurrentPhase - mm * `M_TWO_PI;
+      tmpI  = ampl * cos( CurrentPhase );
+      tmpQ = ampl * sin( CurrentPhase );
+    end /* end of timer */
+
+    /* baseband output */
+    V(iout)  <+ tmpI ;
+    V(qout) <+ tmpQ ;
+  end
+endmodule

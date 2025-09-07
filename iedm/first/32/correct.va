@@ -1,0 +1,155 @@
+// Look-up table based model for N & P FINFET
+
+`include "disciplines.vams"
+`include "constants.vams"
+
+module N_FINFET (d,g,s,b);
+
+inout d,g,s,b;     // drain, gate, source, dummy bulk
+electrical d,g,s,b;
+
+//Parameters
+parameter real Nfin = 1 from (0:inf);
+parameter real dVth = 0 from (-inf:inf);
+parameter real dVth0 = 0 from (-inf:inf);
+
+// Variables
+real Vgs,Vds;    
+real Id,Is,Ifg,Ibg;    
+real Cgs,Cgd,Cds,Cj;    
+real Id_tmp,Is_tmp,Cgs_tmp,Cgd_tmp; 
+real Hfin, tsin;
+//string ecsId = "1L,1L";
+//string ecsC = "1C,1C";
+parameter string ecsId = "1L,1L";
+parameter string ecsC = "1C,1C";
+
+analog begin : finfet_module
+
+tsin = 2.725e-3;   // in um
+
+Hfin = 4*2.725e-3;//tsin;
+Cj = 0.15e-15; //0.15fF/um (estimate)
+
+if(V(s,d)>0) begin
+    Vds=V(s,d);
+    Vgs=V(g,d)-dVth-dVth0;
+    //Vgsb=V(bg,d);
+    Id_tmp=$table_model(Vds,Vgs,"Idn_LUT.tbl",ecsId);
+    Is_tmp=$table_model(Vds,Vgs,"Isn_LUT.tbl",ecsId);
+    Ifg=$table_model(Vds,Vgs,"Ifgn_LUT.tbl",ecsId);
+    Ibg=$table_model(Vds,Vgs,"Ibgn_LUT.tbl",ecsId);
+
+    Cgs_tmp=1e-15*$table_model(Vds,Vgs,"Cgsn_LUT.tbl",ecsC);
+    Cgd_tmp=1e-15*$table_model(Vds,Vgs,"Cgdn_LUT.tbl",ecsC);
+    Cds=1e-15*$table_model(Vds,Vgs,"Cdsn_LUT.tbl",ecsC);
+end
+else begin
+    Vds=V(d,s);
+    Vgs=V(g,s)-dVth-dVth0;
+    //Vgsb=V(bg,s);
+    Id_tmp=$table_model(Vds,Vgs,"Idn_LUT.tbl",ecsId);
+    Is_tmp=$table_model(Vds,Vgs,"Isn_LUT.tbl",ecsId);
+    Ifg=$table_model(Vds,Vgs,"Ifgn_LUT.tbl",ecsId);
+    Ibg=$table_model(Vds,Vgs,"Ibgn_LUT.tbl",ecsId);
+
+    Cgs_tmp=1e-15*$table_model(Vds,Vgs,"Cgsn_LUT.tbl",ecsC);
+    Cgd_tmp=1e-15*$table_model(Vds,Vgs,"Cgdn_LUT.tbl",ecsC);
+    Cds=1e-15*$table_model(Vds,Vgs,"Cdsn_LUT.tbl",ecsC);
+end
+
+if(V(s,d)>0) begin
+	Id=Is_tmp;
+	Is=Id_tmp;
+	Cgs=Cj+Cgd_tmp;
+	Cgd=Cj+Cgs_tmp;
+end
+else begin
+	Id=Id_tmp;
+	Is=Is_tmp;
+	Cgs=Cj+Cgs_tmp;
+	Cgd=Cj+Cgd_tmp;
+end
+
+I(d)<+Nfin*Hfin*(Id-(Ifg+Ibg)*0.5+Cgd*ddt(V(d,g))+Cds*ddt(V(d,s)));
+I(s)<+Nfin*Hfin*(-Id-(Ifg+Ibg)*0.5+Cgs*ddt(V(s,g))+Cds*ddt(V(s,d)));
+I(g)<+Nfin*Hfin*(Ifg+Ibg+Cgs*ddt(V(g,s))+Cgd*ddt(V(g,d)));
+
+end
+endmodule
+
+
+module P_FINFET (d,g,s,b);
+
+inout d,g,s,b;     // drain, gate, source, dummy bulk
+electrical d,g,s,b;
+
+//Parameters
+parameter real Nfin = 1 from (0:inf);
+parameter real dVth = 0 from (-inf:inf);
+parameter real dVth0 = 0 from (-inf:inf);
+
+// Variables
+real Vgs,Vds;
+real Id,Is,Ifg,Ibg; 
+real Cgs,Cgd,Cds,Cj;  
+real Id_tmp,Is_tmp,Cgs_tmp,Cgd_tmp; 
+real Hfin, tsin;
+//string ecsId = "1L,1L";
+//string ecsC = "1C,1C";
+parameter string ecsId = "1L,1L";
+parameter string ecsC = "1C,1C";
+
+analog begin : finfet_module
+
+tsin = 2.725e-3;   // in um
+
+Hfin = 4*2.725e-3;//tsin;
+Cj = 0.15e-15; //0.15fF/um (estimate)
+
+if(V(s,d)<0) begin
+    Vds=V(s,d);
+    Vgs=V(g,d)-dVth-dVth0;
+    //Vgsb=V(bg,d);	
+    Id_tmp=$table_model(Vds,Vgs,"Idp_LUT.tbl",ecsId);
+    Is_tmp=$table_model(Vds,Vgs,"Isp_LUT.tbl",ecsId);
+    Ifg=$table_model(Vds,Vgs,"Ifgp_LUT.tbl",ecsId);
+    Ibg=$table_model(Vds,Vgs,"Ibgp_LUT.tbl",ecsId);
+
+    Cgs_tmp=1e-15*$table_model(Vds,Vgs,"Cgsp_LUT.tbl",ecsC);
+    Cgd_tmp=1e-15*$table_model(Vds,Vgs,"Cgdp_LUT.tbl",ecsC);
+    Cds=1e-15*$table_model(Vds,Vgs,"Cdsp_LUT.tbl",ecsC);
+end
+else begin
+    Vds=V(d,s);
+    Vgs=V(g,s)-dVth-dVth0;
+    //Vgsb=V(bg,s);
+    Id_tmp=$table_model(Vds,Vgs,"Idp_LUT.tbl",ecsId);
+    Is_tmp=$table_model(Vds,Vgs,"Isp_LUT.tbl",ecsId);
+    Ifg=$table_model(Vds,Vgs,"Ifgp_LUT.tbl",ecsId);
+    Ibg=$table_model(Vds,Vgs,"Ibgp_LUT.tbl",ecsId);
+
+    Cgs_tmp=1e-15*$table_model(Vds,Vgs,"Cgsp_LUT.tbl",ecsC);
+    Cgd_tmp=1e-15*$table_model(Vds,Vgs,"Cgdp_LUT.tbl",ecsC);
+    Cds=1e-15*$table_model(Vds,Vgs,"Cdsp_LUT.tbl",ecsC);
+end
+
+if(V(s,d)<0) begin
+	Id=Is_tmp;
+	Is=Id_tmp;
+	Cgs=Cj+Cgd_tmp;
+	Cgd=Cj+Cgs_tmp;
+end
+else begin
+	Id=Id_tmp;
+	Is=Is_tmp;
+	Cgs=Cj+Cgs_tmp;
+	Cgd=Cj+Cgd_tmp;
+end
+
+I(d)<+Nfin*Hfin*(Id-(Ifg+Ibg)*0.5+Cgd*ddt(V(d,g))+Cds*ddt(V(d,s)));
+I(s)<+Nfin*Hfin*(-Id-(Ifg+Ibg)*0.5+Cgs*ddt(V(s,g))+Cds*ddt(V(s,d)));
+I(g)<+Nfin*Hfin*(Ifg+Ibg+Cgs*ddt(V(g,s))+Cgd*ddt(V(g,d)));	
+
+end
+endmodule

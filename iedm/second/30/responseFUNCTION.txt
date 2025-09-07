@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "real global_shift = GLOBAL_VAR *", 
+		"bug_line": "real global_shift = GLOBAL_VAR +",
+		"error_description": "Changed multiplication operator to addition, causing global_shift to incorrectly add the normal distribution value to GLOBAL_VAR instead of scaling it. This results in excessive resistance variation (orders of magnitude larger than intended) since $dist_normal() returns values around ±3 rather than fractional percentages."
+	},
+	{
+		"original_line": "I(p,n) <+ white_noise(noise_pwr, "thermal");", 
+		"bug_line": "I(n,p) <+ white_noise(noise_pwr, "thermal");",
+		"error_description": "The current direction for thermal noise is reversed. Using I(n,p) instead of I(p,n) inverts the noise current flow relative to the resistor's terminal convention, causing incorrect noise polarity in circuit simulations."
+	},
+	{
+		"original_line": "parameter real LOCAL_VAR = 0.05 from [0:0.15]; // Local mismatch (σ/R0) [0-15%]", 
+		"bug_line": "parameter real GLOBAL_VAR = 0.05 from [0:0.15]; // Local mismatch (σ/R0) [0-15%]",
+		"error_description": "Changed parameter name from LOCAL_VAR to GLOBAL_VAR, causing name collision with existing global parameter. This eliminates local variation in resistance calculations since the module now incorrectly uses the global parameter for both global and local variations, violating the design specification for independent process variation modeling."
+	},
+	{
+		"original_line": "                  GLOBAL_VAR, LOCAL_VAR);", 
+		"bug_line": "                  LOCAL_VAR, GLOBAL_VAR);",
+		"error_description": "Swapped GLOBAL_VAR and LOCAL_VAR arguments in $error call. This misreports the actual negative variation values (global shown as local and vice-versa), leading to incorrect debugging information."
+	},
+	{
+		"original_line": "parameter real V_MAX = 10 from (0.1 to 100);   // Max operating voltage [V]", 
+		"bug_line": "parameter real V_MAX = -10 from [-100:100];   // Max operating voltage [V]",
+		"error_description": "V_MAX default value is negative (-10) and range includes negative voltages. This causes the voltage stress warning (line 52) to always trigger since abs(v_pn) >= 0 > V_MAX, flooding warnings even at safe voltages."
+	},
+	{
+		"original_line": "initial $error("[Fatal] R0=%.1e: Must be positive", R0);", 
+		"bug_line": "initial $warning("R0=%.1e: Must be positive", R0);",
+		"error_description": "Replacing $error with $warning reduces severity, allowing simulation to continue with invalid non-positive R0 values. This violates fundamental resistance requirements and risks division-by-zero errors in I(p,n) <+ v_pn / R_actual."
+	},
+	{
+		"original_line": "  real local_shift = LOCAL_VAR *", 
+		"bug_line": "  real local_shift = GLOBAL_VAR *",
+		"error_description": "Replaced LOCAL_VAR with GLOBAL_VAR, causing the local mismatch variation to incorrectly scale with global wafer-level variation instead of independent per-device variation. This violates the design specification requiring distinct scaling factors for global and local variations."
+	},
+	{
+		"original_line": "endgenerate", 
+		"bug_line": "endgenerate initial $finish;",
+		"error_description": "Added $finish terminates simulation immediately after parameter checks, preventing resistor functionality from ever executing."
+	},
+	{
+		"original_line": "real noise_pwr = 4 * `P_K * $temperature / R_actual;", 
+		"bug_line": "real noise_pwr = 4 * `P_K * $temperature * R_actual;",
+		"error_description": "Changed division to multiplication, incorrectly calculating thermal noise power as proportional to resistance instead of inversely proportional. Thermal noise follows Johnson-Nyquist formula (4kT/R), but this modification makes it 4kT·R, reversing the physical relationship and magnitude."
+	},
+	{
+		"original_line": "parameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]", 
+		"bug_line": "parameter real R1 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω]",
+		"error_description": "Renaming the nominal resistance parameter from R0 to R1 causes all subsequent references to R0 in the generate block (line 21) and analog block (line 45) to become undefined, resulting in compilation errors since R0 is no longer declared."
+	},
+	{
+		"original_line": "analog begin", 
+		"bug_line": "analog begin if (0) begin",
+		"error_description": "Wraps the entire analog block in 'if(0)', conditionally disabling all resistor functionality. This creates an open circuit (infinite resistance) as the Ohm's law and noise calculations are never executed."
+	},
+	{
+		"original_line": "inout p, n;", 
+		"bug_line": "input p, n;",
+		"error_description": "Changing port direction to input prevents driving current, violating resistor behavior which requires bidirectional current flow (I(p,n) contribution becomes illegal)."
+	},
+	{
+		"original_line": "                  R_actual, 100*(process_factor-1));", 
+		"bug_line": "                  R0, 100*(process_factor-1));",
+		"error_description": "Displays nominal resistance (R0) instead of actual resistance (R_actual) in debug output, hiding process variation effects in simulation messages."
+	},
+	{
+		"original_line": "$dist_normal(LOCAL_SEED, 0, 1, 3);  // 3σ mismatch", 
+		"bug_line": "$dist_normal(GLOBAL_SEED, 0, 1, 3);  // 3σ mismatch",
+		"error_description": "Local mismatch variation incorrectly uses global seed instead of local seed, causing identical 'random' mismatch values across all resistor instances and eliminating device-to-device variation."
+	},
+	{
+		"original_line": "                  R_actual, 100*(process_factor-1));", 
+		"bug_line": "                  R_actual, 100*(R_actual - R0));",
+		"error_description": "The variation percentage is incorrectly calculated using absolute resistance difference (R_actual - R0) instead of relative difference. This outputs values 100 times larger than actual variation (e.g., 8000% instead of 8% for an 80Ω increase on 1000Ω nominal)."
+	},
+	{
+		"original_line": "generate", 
+		"bug_line": "generate if (0) begin",
+		"error_description": "The conditional 'if(0)' disables the entire parameter validation block. This prevents critical checks for invalid R0 values, negative variations, and illegal corners, allowing simulations to proceed with fatal parameter errors undetected."
+	},
+	{
+		"original_line": "I(p,n) <+ v_pn / R_actual;  // I = V/R", 
+		"bug_line": "I(p,n) <+ v_pn * R_actual;  // I = V/R",
+		"error_description": "Changed division operator to multiplication, incorrectly implementing Ohm's law as I = V*R instead of I = V/R, fundamentally violating resistor behavior by making current proportional to resistance instead of inversely proportional."
+	},
+	{
+		"original_line": "electrical p, n;", 
+		"bug_line": "electrical p; current n;",
+		"error_description": "Port n is incorrectly declared as a current node instead of an electrical node. This violates the resistor design by making the voltage difference V(p,n) undefined, breaking Ohm's law implementation since voltage probes require consistent electrical disciplines."
+	},
+	{
+		"original_line": "generate", 
+		"bug_line": "generate if (0)",
+		"error_description": "Added conditional 'if (0)' that disables the entire parameter validation block. This prevents critical safety checks (e.g., negative resistance detection) from executing, allowing invalid parameters to propagate silently through simulations."
+	},
+	{
+		"original_line": "$dist_normal(GLOBAL_SEED, 0, 1, 3);  // 3σ variation", 
+		"bug_line": "$dist_normal(LOCAL_SEED, 0, 1, 3);  // 3σ variation",
+		"error_description": "Replaced GLOBAL_SEED with LOCAL_SEED for global variation calculation, causing wafer-level process variation to become instance-specific. This breaks the correlation of global variations across devices on the same chip, violating the design requirement for spatially correlated global variations."
+	}
+]

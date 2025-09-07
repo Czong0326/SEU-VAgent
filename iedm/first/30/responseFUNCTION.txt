@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "V(vout_p,vout_n) <+  max( ( V(vin_p,vin_n) - vdrop_rect), 0);", 
+		"bug_line": "V(vout_p,vout_n) <+  max( ( V(vin_n,vin_p) - vdrop_rect), 0);",
+		"error_description": "Swapped input pins (vin_p and vin_n), causing the rectifier to respond to inverted input polarity. Now triggers on negative half-waves instead of positive, violating the positive rectification design intent."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* no_instrument *)",
+		"error_description": "The 'no_instrument' attribute prevents simulation tools from applying necessary instrumentation for accurate analog behavior analysis, causing incorrect simulation results without triggering syntax errors."
+	},
+	{
+		"original_line": "switch_p_until = $abstime + switch_time;", 
+		"bug_line": "switch_p_until = $abstime - switch_time;",
+		"error_description": "Using subtraction instead of addition causes switch_p_until to be set to a past time, immediately triggering the timer event and prematurely resetting switching_p to 0. This prevents the rectifier from maintaining ON state during the required switch_time interval."
+	},
+	{
+		"original_line": "parameter real ihold = 10m from (0:inf);", 
+		"bug_line": "parameter real ihold = 0 from (0:inf);",
+		"error_description": "Setting ihold to 0 causes the rectifier to turn off immediately after firing since the condition (-I(vout_p,vout_n) < 0) is always true for positive current flow. This violates the intended holding current behavior where the rectifier should stay on until current drops below the specified threshold (10mA)."
+	},
+	{
+		"original_line": "parameter real vdrop_rect = 1.3 from (0:inf);", 
+		"bug_line": "parameter real vdrop_rect = -0.5 from (-inf:inf);",
+		"error_description": "Negative voltage drop value causes the rectifier to add voltage instead of dropping it, fundamentally inverting the component's behavior. The range extension to negative values permits this invalid configuration."
+	},
+	{
+		"original_line": "V(vout_p,vout_n) <+  max( ( V(vin_p,vin_n) - vdrop_rect), 0);", 
+		"bug_line": "V(vout_p,vout_n) <+  min( ( V(vin_p,vin_n) - vdrop_rect), 0);",
+		"error_description": "Changed max() to min() function, causing incorrect output voltage calculation. Instead of passing positive voltages above the drop threshold, it now clamps the output to the lower value between (input - drop) and zero, inverting the rectification behavior."
+	},
+	{
+		"original_line": "if (rect_dir_p == `OFF) begin", 
+		"bug_line": "if (rect_dir_p == `ON) begin",
+		"error_description": "Condition reversal causes rectifier to output 0V when ON (should output rectified voltage) and rectified voltage when OFF (should output 0V), inverting normal operation."
+	},
+	{
+		"original_line": "@ ( timer(tfire_dir_p)) begin", 
+		"bug_line": "@ ( timer(ihold)) begin",
+		"error_description": "Changed timer event trigger from dynamic firing time (tfire_dir_p) to fixed parameter ihold. This causes the rectifier to fire at a constant time (holding current value) rather than synchronizing with zero-crossing events, breaking phase-sensitive rectification."
+	},
+	{
+		"original_line": "switch_p_until = $abstime + switch_time;", 
+		"bug_line": "switch_p_until = $abstime - switch_time;",
+		"error_description": "Using subtraction instead of addition sets switch_p_until to a past time value. This causes the '@(timer(switch_p_until))' event to trigger immediately, prematurely resetting switching_p to 0 and preventing the rectifier from maintaining its ON state for the required switch_time duration."
+	},
+	{
+		"original_line": "electrical tfire;", 
+		"bug_line": "current tfire;",
+		"error_description": "Changes discipline from electrical to current. This causes V(tfire) to access undefined voltage potential since current discipline nodes require I() access, resulting in incorrect firing time calculations."
+	},
+	{
+		"original_line": "`define OFF 0", 
+		"bug_line": "`define OFF 1",
+		"error_description": "Defining `OFF as 1 (same value as `ON) causes state confusion. The rectifier's state machine cannot distinguish between ON/OFF states, preventing proper rectification. Initialization sets rect_dir_p=1 (OFF), firing attempts set it to 1 (ON) - identical states. Current drop condition always triggers 'turn off' to 1 (same state), forcing output to 0 permanently."
+	},
+	{
+		"original_line": "parameter real vdrop_rect = 1.3 from (0:inf);", 
+		"bug_line": "parameter real vdrop_rect = -1.3;",
+		"error_description": "The negative voltage drop value inverts the rectification behavior, causing the output to add voltage instead of dropping it, fundamentally violating the rectifier design principle."
+	},
+	{
+		"original_line": "input tfire;", 
+		"bug_line": "output tfire;",
+		"error_description": "Changing port direction from input to output violates signal flow requirements. The 'tfire' signal is externally driven but now incorrectly designated as an output. This causes contention when external circuits drive this output port, leading to undefined voltage values at V(tfire) and disrupting the firing delay calculation."
+	},
+	{
+		"original_line": "`define ON 1", 
+		"bug_line": "`define ON 0",
+		"error_description": "Setting `ON to 0 instead of 1 causes the rectifier state to be inverted. When the module attempts to turn ON the rectifier (rect_dir_p = `ON), it actually sets it to 0 (OFF state). This prevents voltage output when rectification should occur and keeps the output at 0V, violating the rectification functionality."
+	},
+	{
+		"original_line": "electrical vin_p, vout_p, vin_n, vout_n;", 
+		"bug_line": "electrical vin_p, vout_p, vout_n;",
+		"error_description": "The input pin vin_n is missing from the discipline declaration. This causes vin_n to be treated as an untyped net, leading to incorrect voltage sensing in the differential input stage. The cross() event and output driving logic will malfunction due to undefined voltage references."
+	},
+	{
+		"original_line": "integer switching_p;  // boolean: true if trying to switch on pos. dir.", 
+		"bug_line": "integer switching_n;  // boolean: true if trying to switch on pos. dir.",
+		"error_description": "Changed variable name from 'switching_p' to 'switching_n'. This creates an uninitialized variable 'switching_n' that remains 0, while assignments to 'switching_p' create an implicit real net. The condition '!switching_p' always evaluates true since 'switching_n' remains 0, causing premature rectifier turn-off regardless of the timer state."
+	},
+	{
+		"original_line": "      @ ( initial_step ) begin", 
+		"bug_line": "      @ ( intial_step ) begin",
+		"error_description": "Typo in event name ('intial_step' instead of 'initial_step') prevents the initialization block from executing, leaving critical variables uninitialized and causing undefined behavior throughout the simulation."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed 'analog' to 'initial', converting continuous-time behavior to one-time initialization. This prevents the rectifier from dynamically responding to input signals after t=0, freezing all switching logic and output states."
+	},
+	{
+		"original_line": "electrical tfire;", 
+		"bug_line": "ground tfire;",
+		"error_description": "The input 'tfire' is incorrectly declared as ground discipline instead of electrical. This forces its voltage to always be 0V, making the delay calculation '$abstime + V(tfire)' always equal to the current time. Consequently, the rectifier fires immediately at zero-crossing events, ignoring any intended delay from the 'tfire' input signal."
+	},
+	{
+		"original_line": "tfire_dir_p = $abstime + V(tfire);", 
+		"bug_line": "tfire_dir_p = $abstime - V(tfire);",
+		"error_description": "Subtraction replaces addition, causing negative firing delays. This schedules rectifier activation in the past rather than future, violating the required delay after zero-crossing and disrupting phase timing."
+	}
+]

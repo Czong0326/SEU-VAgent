@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real rbt_rhoB    = `RBT_RHOB    from (0:inf); // Density for material B", 
+		"bug_line": "parameter real rbt_rhoB    = `RBT_RHOB    from [0:inf); // Density for material B",
+		"error_description": "Changed density range to include zero. Allows rbt_rhoB=0, causing division-by-zero errors in mechanical equations since density appears in denominators."
+	},
+	{
+		"original_line": "parameter real rbt_LDTC   = `RBT_LDTC from [0:inf); // Driving dielectric expansion coefficient", 
+		"bug_line": "parameter real rbt_LDTC   = `RBT_LDTC from (-inf:0]; // Driving dielectric expansion coefficient",
+		"error_description": "The range constraint for rbt_LDTC was changed to (-inf:0] instead of [0:inf). This forces the driving dielectric expansion coefficient to accept only non-positive values, which is physically incorrect since expansion coefficients must be positive. Thermal expansion effects would be modeled in reverse."
+	},
+	{
+		"original_line": "parameter real          mvss_version    = 1.10;                                 // MVS model mvss_version = 1.0.1", 
+		"bug_line": "parameter real          mvss_version    = 1.00;                                 // MVS model mvss_version = 1.0.1",
+		"error_description": "Version downgraded from 1.10 to 1.00 while the comment specifies version 1.0.1. This mismatch causes the MVS model to use outdated equations, introducing simulation inaccuracies in threshold voltage and mobility calculations."
+	},
+	{
+		"original_line": "parameter real rbt_rhoTCB  = `RBT_RHOTCB;               // Density TC for material B", 
+		"bug_line": "parameter real rbt_rhoTCB  = `RBT_RHOTC;               // Density TC for material B",
+		"error_description": "Assigned the thermal coefficient macro for material A (`RBT_RHOTC`) to material B's density thermal coefficient (rbt_rhoTCB) instead of the correct macro for material B (`RBT_RHOTCB`). This causes material B to inherit material A's temperature scaling behavior, violating the design requirement for separate thermal modeling of different materials."
+	},
+	{
+		"original_line": ".rbt_rhoB(rbt_rhoB), .rbt_YB(rbt_YB), .rbt_nuB(rbt_nuB), .rbt_fQB(rbt_fQB),", 
+		"bug_line": ".rbt_rhoB(rbt_YB), .rbt_YB(rbt_rhoB), .rbt_nuB(rbt_nuB), .rbt_fQB(rbt_fQB),",
+		"error_description": "Swapped density (rhoB) and Young's modulus (YB) parameters for material B. This incorrectly maps material B's density value to its stiffness property and vice versa, violating mechanical property relationships in the resonator model."
+	},
+	{
+		"original_line": ".rbt_L(rbt_L), .rbt_Rth(rbt_Rth), .rbt_cm(rbt_cm),", 
+		"bug_line": ".rbt_L(rbt_L), .rbt_Rth(rbt_cm), .rbt_cm(rbt_Rth),",
+		"error_description": "Swapped rbt_Rth and rbt_cm connections in the thermal module, incorrectly passing heat capacity as thermal resistance and vice versa, corrupting temperature calculations."
+	},
+	{
+		"original_line": "`include "rbtParasitics.va"", 
+		"bug_line": "`include "rbtParasitics_WRONG.va"",
+		"error_description": "Changed include filename to a non-existent file, causing the parasitics module to be undefined. This breaks the parasitic capacitance/resistance modeling and leads to compilation failure."
+	},
+	{
+		"original_line": "parameter real rbt_fQB     = `RBT_FQB     from (0:inf); // Resonator Quality factor for material B", 
+		"bug_line": "parameter real rbt_fQB     = `RBT_FQB     from [0:inf); // Resonator Quality factor for material B",
+		"error_description": "Changed range from (0:inf) to [0:inf), allowing zero quality factor. This permits unphysical zero damping (infinite loss) in material B resonator calculations, causing division-by-zero errors in energy loss computations."
+	},
+	{
+		"original_line": "parameter real rbt_cm     = `RBT_CM   from (0:inf); // Mass heat capacity", 
+		"bug_line": "parameter real rbt_cm     = `RBT_CM   from [0:inf); // Mass heat capacity",
+		"error_description": "Changed parameter range to include zero. Mass heat capacity cannot be zero (causes division by zero in thermal equations), violating physical constraints."
+	},
+	{
+		"original_line": "parameter real rbt_rhoB    = `RBT_RHOB    from (0:inf); // Density for material B", 
+		"bug_line": "parameter real rbt_rhoB    = 0; // Density for material B",
+		"error_description": "Density parameter rbt_rhoB is set to 0 instead of using the macro-defined value, causing division-by-zero errors in mass-dependent calculations and violating the physical requirement for positive density."
+	},
+	{
+		"original_line": "        .rbt_Rfnb(rbt_Rfnb), .rbt_Tnom(rbt_Tnom)", 
+		"bug_line": "        .rbt_Rfnb(rbt_Tnom), .rbt_Tnom(rbt_Rfnb)",
+		"error_description": "Swapped parameter connections: resistance value rbt_Rfnb passed as nominal temperature rbt_Tnom and vice versa. This causes incorrect temperature compensation in parasitics and wrong resistance modeling."
+	},
+	{
+		"original_line": ".mvss_Cg(mvss_Cg), .mvss_etov(mvss_etov), .mvss_delta(mvss_delta), .mvss_n0(mvss_n0), .mvss_Rs0(mvss_Rs0),", 
+		"bug_line": ".mvss_Cg(mvss_Cg), .mvss_etov(mvss_etov), .mvss_delta(mvss_n0), .mvss_n0(mvss_delta), .mvss_Rs0(mvss_Rs0),",
+		"error_description": "Swapped mvss_delta and mvss_n0 parameter connections. mvss_delta controls drain-induced barrier lowering (DIBL) while mvss_n0 sets subthreshold swing factor. Incorrect assignment distorts FET threshold behavior and subthreshold conduction characteristics in the sensing circuit."
+	},
+	{
+		"original_line": "parameter real          mvss_gamma      = 0.0           from [0:inf);           // Body factor  [sqrt(V)]", 
+		"bug_line": "parameter real          mvss_gamma      = 0.0           from (inf:0];           // Body factor  [sqrt(V)]",
+		"error_description": "Inverted range specification changes valid interval from [0, ∞) to (∞, 0], making all values invalid. Simulators will flag range errors since no numerical value can satisfy ∞ < value ≤ 0."
+	},
+	{
+		"original_line": "parameter real          mvss_vxo        = 0.765e7       from (0:inf);           // Virtual source injection velocity [cm/s]", 
+		"bug_line": "parameter real          mvss_vxo        = 0.765e-7       from (0:inf);           // Virtual source injection velocity [cm/s]",
+		"error_description": "The virtual source injection velocity is reduced by 14 orders of magnitude (from 7.65e6 cm/s to 7.65e-8 cm/s). This extremely low velocity causes the sensing transistor to have negligible current, breaking the sensing functionality while remaining within the parameter range."
+	},
+	{
+		"original_line": "parameter real rbt_QotherB = `RBT_QOTHERB from (0:inf); // Other losses for material B", 
+		"bug_line": "parameter real rbt_QotherB = `RBT_QOTHERB from [0:0]; // Other losses for material B",
+		"error_description": "Changed parameter range from (0:inf) to [0:0], forcing rbt_QotherB to be exactly zero. This prevents setting any positive loss values for material B, violating the design requirement that allows configurable positive loss values."
+	},
+	{
+		"original_line": "parameter real rbt_driveMSF = `RBT_DRIVEMSF from (0:inf);       // Mode shape factor for driving", 
+		"bug_line": "parameter real rbt_driveMSF = `RBT_DRIVEMSF from [0:inf);       // Mode shape factor for driving",
+		"error_description": "Changed range from (0:inf) to [0:inf), allowing zero drive mode shape factor. This permits invalid configurations where no driving force is generated, breaking resonator functionality when set to zero."
+	},
+	{
+		"original_line": "parameter real rbt_fQ      = `RBT_FQ      from (0:inf); // Resonator Quality factor", 
+		"bug_line": "parameter real rbt_fQ      = `RBT_FQ      from (-inf:inf); // Resonator Quality factor",
+		"error_description": "The quality factor range is changed from (0:inf) to (-inf:inf), allowing negative values. Negative quality factors violate physical resonator behavior by implying energy gain instead of loss, causing unphysical oscillation growth and simulation instability."
+	},
+	{
+		"original_line": "parameter real rbt_Cfpg = `RBT_CFPG from [0:inf); // p to g series R", 
+		"bug_line": "parameter real rbt_Cfpg = `RBT_CFPG from (-inf:inf); // p to g series R",
+		"error_description": "Changed valid range to include negative values, allowing non-physical negative capacitance which violates fundamental circuit principles."
+	},
+	{
+		"original_line": "parameter real          mvss_beta       = `MVSS_BETA    from (0:inf);           // Saturation factor. Typ. nFET=1.8, pFET=1.6", 
+		"bug_line": "parameter real          mvss_beta       = `MVSS_BETA    from [0:1.0];           // Saturation factor. Typ. nFET=1.8, pFET=1.6",
+		"error_description": "The saturation factor range is incorrectly reduced to [0:1.0] instead of (0:inf). This caps the maximum value at 1.0, while typical values are 1.8 (nFET) and 1.6 (pFET), causing the MVS model to use clamped values and compute incorrect drain current in saturation mode."
+	},
+	{
+		"original_line": "`include "constants.vams"", 
+		"bug_line": "`include "wrong_constants.vams"",
+		"error_description": "Changed include filename to a non-existent file, causing undefined constant errors during compilation and breaking all physical constant references."
+	}
+]

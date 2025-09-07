@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "factor2_down=(2+Cv)*sigma_hfo2+(1-Cv)*sigma_v;", 
+		"bug_line": "factor2_down=(2+Co)*sigma_hfo2+(1-Co)*sigma_v;",
+		"error_description": "The formula incorrectly uses oxygen ion concentration (Co) instead of oxygen vacancy concentration (Cv) for the denominator factor. This breaks the effective medium approximation since the resistance switching region's conductivity should depend on vacancy concentration, not ion concentration. During SET operations where Co remains 0, this causes constant denominator values that fail to reflect increasing vacancies."
+	},
+	{
+		"original_line": "else if ( Vtb < 0 )", 
+		"bug_line": "else if ( Vtb < -0.5 )",
+		"error_description": "Changed RESET voltage threshold from any negative value to -0.5V. This prevents RESET operation for moderate negative voltages (-0.5V < Vtb < 0V), causing failure to reset when required."
+	},
+	{
+		"original_line": "factor2_up=2*(1-Cv)*sigma_hfo2+(1+2*Cv)*sigma_v;", 
+		"bug_line": "factor2_up=2*(1-Cv)*sigma_hfo2+(1+2*Co)*sigma_v;",
+		"error_description": "Replaced vacancy concentration (Cv) with oxygen ion concentration (Co) in the second term. This violates the conductivity mixing rule since the vacancy-rich phase contribution should depend on Cv, not Co, causing incorrect conductivity calculations during RESET operations."
+	},
+	{
+		"original_line": "sigma_v=sigma_v0*exp(-1*Eac/(Kb*Temp));", 
+		"bug_line": "sigma_v=sigma_v0*exp(-1*Eac/(Kb*T0));",
+		"error_description": "Replaced 'Temp' with 'T0'. This incorrectly fixes the temperature to ambient (300K) instead of using the dynamically computed temperature from Joule heating, breaking the thermal dependence of conductivity during SET operations."
+	},
+	{
+		"original_line": "parameter real sigma_v0 = 30000 ;          // unit: S/m   the conductivtiy of metallic-like conductance", 
+		"bug_line": "parameter real sigma_v0 = -30000 ;          // unit: S/m   the conductivtiy of metallic-like conductance",
+		"error_description": "Assigned negative conductivity value (-30000 S/m) which is physically impossible. This would cause negative resistance calculations and inverted current flow, violating fundamental device physics."
+	},
+	{
+		"original_line": "        factor1_down=(2+Ciml_o)*sigma_iml+(1-Ciml_o)*sigma_o;", 
+		"bug_line": "        factor1_down=(2+Ciml_o)*sigma_iml+(1+Ciml_o)*sigma_o;",
+		"error_description": "Changed the subtraction to addition in the oxygen vacancy term (1-Ciml_o) to (1+Ciml_o). This erroneously increases the denominator when oxygen vacancies are present, violating the physical model where higher vacancy concentrations should reduce resistance."
+	},
+	{
+		"original_line": "sigma_rs=0;", 
+		"bug_line": "sigma_rs = factor2_up / factor2_down;",
+		"error_description": "In the RESET branch when factor2_down is too small, the model should set sigma_rs to 0 to avoid numerical instability. Instead, it performs division by a near-zero value, causing unrealistically high conductivity and potential simulation crashes."
+	},
+	{
+		"original_line": "Rv=Lv/(pi*w0*w0*sigma_v);", 
+		"bug_line": "Rv=Lv/(pi*w0*w0*sigma_rs);",
+		"error_description": "In RESET branch, metallic region resistance incorrectly uses resistance-switching conductivity (sigma_rs) instead of metallic conductivity (sigma_v), disrupting device resistance calculations."
+	},
+	{
+		"original_line": "Rv=Lv/(pi*w0*w0*sigma_v);", 
+		"bug_line": "Rv=Lv/(pi*w0*sigma_v);",
+		"error_description": "Removed one 'w0' factor from the cross-sectional area calculation. The resistance formula requires area (πr²), but the modified line uses perimeter (πr) instead. This violates the physical design by underestimating resistance due to incorrect geometry scaling."
+	},
+	{
+		"original_line": "factor2_up=2*(1-Cv)*sigma_hfo2+(1+2*Cv)*sigma_v;", 
+		"bug_line": "factor2_up=2*(1-Cv)*sigma_hfo2+(1+2*Co)*sigma_v;",
+		"error_description": "In the RESET branch, the metallic phase term incorrectly uses oxygen ion concentration (Co) instead of vacancy concentration (Cv). This violates the effective medium approximation for conductivity calculation in the switching region during RESET operations."
+	},
+	{
+		"original_line": "parameter real T0 = 300 ;          // unit: K   ambient temperature", 
+		"bug_line": "parameter real T0 = -300 ;          // unit: K   ambient temperature",
+		"error_description": "Negative ambient temperature violates thermodynamic principles and causes division-by-zero in exponential terms due to negative absolute temperature in Boltzmann factors (e.g., exp(-Ea/(Kb*Temp)) where Temp becomes negative)."
+	},
+	{
+		"original_line": "E=(Vs/Ls);", 
+		"bug_line": "E=(Vtb/Ls);",
+		"error_description": "Incorrectly uses total voltage Vtb instead of switching region voltage Vs to calculate electric field E in the SET branch. This violates the physical model where E should depend only on the voltage drop across the switching region (Vs), not the entire device voltage (Vtb)."
+	},
+	{
+		"original_line": "if (factor1_down<1e-6)", 
+		"bug_line": "if (factor1_down<1e-6) // No functional change",
+		"error_description": "Added a comment which creates a Verilog syntax error. Comments must start with '//' at the beginning of the line, not after code. This violates VerilogA syntax rules causing compilation failure."
+	},
+	{
+		"original_line": "****** DIES: dynamic integral equation solver**********", 
+		"bug_line": "Temp = T0;",
+		"error_description": "Resets temperature to ambient (T0) at every analog iteration, overriding self-heating calculations. This violates thermal dynamics where temperature should increase with power dissipation (Itb*Vs*Rth), causing incorrect oxygen vacancy/ion evolution and resistance behavior."
+	},
+	{
+		"original_line": "factor1_up=2*(1-Ciml_o)*sigma_iml+(1+2*Ciml_o)*sigma_o;", 
+		"bug_line": "factor1_up=2*(1-Ciml_o)*sigma_iml+(1-2*Ciml_o)*sigma_o;",
+		"error_description": "Changed '+' to '-' in the second term coefficient, incorrectly calculating the effective medium approximation by subtracting the oxygen concentration contribution instead of adding it, which breaks the conductivity model for the intermediate modulation layer during RESET operations."
+	},
+	{
+		"original_line": "parameter real Lv = 5.5e-9 ;         // unit: m     Lv is defined as the length of metallic-like region with rich oxygen vacany", 
+		"bug_line": "parameter real Lv = -5.5e-9 ;         // unit: m     Lv is defined as the length of metallic-like region with rich oxygen vacany",
+		"error_description": "Negative length causes unphysical negative resistance in metallic-like region (Rv = Lv/(π·w0²·σ_v)), violating device physics and computational stability."
+	},
+	{
+		"original_line": "        else if (factor2_down>1e-6)", 
+		"bug_line": "        else if (factor2_up>1e-6)",
+		"error_description": "Changed denominator check to numerator check. This violates the design by potentially allowing division by near-zero factor2_down when factor2_up is large, causing unrealistic conductivity spikes and numerical instability in the RESET operation."
+	},
+	{
+		"original_line": "factor2_down=(2+Cv)*sigma_hfo2+(1-Cv)*sigma_v;", 
+		"bug_line": "factor2_down=(2+Co)*sigma_hfo2+(1-Cv)*sigma_v;",
+		"error_description": "Replaced Cv with Co in the first term, incorrectly using oxygen ion concentration instead of oxygen vacancy concentration for the HfO2 phase weighting. This violates the material mixture rule where vacancy concentration (Cv) should govern both phase weightings in the denominator calculation."
+	},
+	{
+		"original_line": "dCo=dt*f*exp(-(Eo-(-1*E)*alpha2*a*e*Z)/(Kb*Temp))*(1-Co)*a/Ls ;", 
+		"bug_line": "dCo=dt*f*exp(-(Eo-(-1*E)*alpha2*a*e*Z)/(Kb*Temp))*(1+Co)*a/Ls ;",
+		"error_description": "Changed oxygen ion site availability factor from (1-Co) to (1+Co). During RESET, oxygen ion generation should be limited by available sites (1-Co). Using (1+Co) causes unbounded growth when Co approaches 1, violating vacancy generation physics."
+	},
+	{
+		"original_line": "        parameter real e = 1 ;		//  the charge of electron    ", 
+		"bug_line": "        parameter real e = -1 ;		//  the charge of electron    ",
+		"error_description": "Negative electron charge inverts field effects in vacancy/ion migration calculations, reversing SET/RESET dynamics. Specifically, the sign change in E*alpha*a*Z*e terms incorrectly flips the electric field contribution in Arrhenius rates (lines 95/138), causing vacancy generation during RESET and recombination during SET."
+	}
+]

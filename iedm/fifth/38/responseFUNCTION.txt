@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "else begin", 
+		"bug_line": "else if (0) begin",
+		"error_description": "Changed 'else begin' to 'else if (0) begin', causing the block for VE = -m to never execute. This skips the critical B parameter calculation for the back interface when VE equals -m, violating the model's design specifications."
+	},
+	{
+		"original_line": "parameter real beta_Vbr   =   8.8e-4      from [0:1];         // temperature dependence of breakdown voltage              [1/K]", 
+		"bug_line": "parameter real beta_Vbr   =   -8.8e-4      from [0:1];         // temperature dependence of breakdown voltage              [1/K]",
+		"error_description": "The sign of beta_Vbr is reversed from positive to negative. This inverts the temperature dependence of breakdown voltage, causing incorrect behavior where breakdown voltage increases with temperature instead of decreasing as designed."
+	},
+	{
+		"original_line": "alphaf      =       1 / ( (limexp(VE)-1)/VE + bf );                                      // (T3.7.1 in the manual)", 
+		"bug_line": "alphaf      =       1 / ( (limexp(VE)-1)/VE - bf );                                      // (T3.7.1 in the manual)",
+		"error_description": "Changed '+' to '-' in denominator, reversing the sign of bf term. This inverts the interface recombination effect and violates the physical model where both terms should be additive per boundary condition equations."
+	},
+	{
+		"original_line": "VE          =       (V_i-Vbi)/kT;                                                        // (T3.6 in the manual)", 
+		"bug_line": "VE          =       (V_i+Vbi)/kT;                                                        // (T3.6 in the manual)",
+		"error_description": "Changed subtraction to addition in voltage difference calculation. This makes VE = (V_i + Vbi)/kT instead of (V_i - Vbi)/kT, reversing the voltage polarity in diode/photocurrent calculations and causing significant errors in current-voltage characteristics."
+	},
+	{
+		"original_line": "real  fs1, fs2;", 
+		"bug_line": "real  fs1;",
+		"error_description": "Removed declaration of fs2 variable. This causes fs2 to be implicitly undeclared, breaking the smooth function calculation (fs2 = 0.5*(1+tanh(...))) and subsequent breakdown function that relies on both smooth functions."
+	},
+	{
+		"original_line": "parameter real gsh2       =   1e-4        from (0:10];        // shunt conductance parameter 2                            [S/m2]", 
+		"bug_line": "parameter real gsh2       =   -1e-4        from (0:10];        // shunt conductance parameter 2                            [S/m2]",
+		"error_description": "Changed gsh2 from positive to negative value. Negative conductance violates physical reality, causing unidirectional current flow and potential simulation instability since conductance must be non-negative."
+	},
+	{
+		"original_line": "analog begin", 
+		"bug_line": "analog begin I(i_b) <+ 1e9;",
+		"error_description": "An extra constant current of 1e9 amperes is added to the intrinsic branch, dominating the solar cell's output and violating the design by introducing an unrealistic current offset that masks all photovoltaic behavior."
+	},
+	{
+		"original_line": "parameter real shading_P  =   0           from [0:100];       // shading percentage                                       [%]    ", 
+		"bug_line": "parameter real shading_P  =   100         from [0:100];       // shading percentage                                       [%]    ",
+		"error_description": "Changed default shading percentage from 0% to 100%, causing zero photocurrent by default. This violates the design specification of no shading under normal conditions."
+	},
+	{
+		"original_line": "VE          =       (V_i-Vbi)/kT;                                                        // (T3.6 in the manual)", 
+		"bug_line": "VE          =       (V_i+Vbi)/kT;                                                        // (T3.6 in the manual)",
+		"error_description": "Changed subtraction to addition. This inverts the sign of the voltage difference, causing incorrect calculation of normalized voltage VE. Subsequent exponential functions (limexp) will produce erroneous results for photocurrent and diode current due to the inverted voltage relationship."
+	},
+	{
+		"original_line": "Vbr         =       Vbr_REF*(1+beta_Vbr*(T_Cell-T_REF));                                 // breakdown voltage (T3.11 in the manual)             [V]", 
+		"bug_line": "Vbr         =       Vbr_REF*(1+beta_Vbr*(T_REF-T_Cell));                                 // breakdown voltage (T3.11 in the manual)             [V]",
+		"error_description": "Reversed temperature dependence in breakdown voltage calculation. Swapped T_Cell and T_REF, causing incorrect temperature compensation where breakdown voltage decreases instead of increases with rising temperature."
+	},
+	{
+		"original_line": "real  j_diode, j_photo, j_shunt, f_br, I_tot;", 
+		"bug_line": "real  j_diode, j_photo, j_shunt, f_br, I_total;",
+		"error_description": "Changed variable name from 'I_tot' to 'I_total' while keeping references to 'I_tot' in later calculations (lines 95-96), creating an undefined variable error during simulation."
+	},
+	{
+		"original_line": "alphab      =       1 / ( 1 + bb );                                                      // (T3.7.4 in the manual)", 
+		"bug_line": "alphab      =       1 / ( 1 + bf );                                                      // (T3.7.4 in the manual)",
+		"error_description": "Incorrectly used front interface parameter 'bf' instead of back interface parameter 'bb' in alphab calculation. This swaps the recombination parameters for the back interface, corrupting the back surface recombination current model."
+	},
+	{
+		"original_line": "parameter real n_sh       =   3           from (0:5);         // shunt conductance index", 
+		"bug_line": "parameter real n_sh       =   -1          from (0:5);         // shunt conductance index",
+		"error_description": "Changed default value from 3 to -1. Negative exponent causes pow(abs(V_i), n_sh) to become 1/abs(V_i) instead of |V_i|^3, reversing shunt current behavior and creating singularity at V_i=0."
+	},
+	{
+		"original_line": "parameter real beta_Vbr   =   8.8e-4      from [0:1];         // temperature dependence of breakdown voltage              [1/K]", 
+		"bug_line": "parameter real beta_Vbr   =   -8.8e-4      from [-1:1];         // temperature dependence of breakdown voltage              [1/K]",
+		"error_description": "Changed sign of temperature coefficient from positive to negative and expanded range to include negatives. This inverts the temperature dependence of breakdown voltage (Vbr decreases with increasing temperature instead of increasing), causing incorrect breakdown behavior simulations at different temperatures."
+	},
+	{
+		"original_line": "fs1         =       0.5*(1-tanh(smoothP2*V_i));                                          // smooth function #1 (T3.12 in the manual)", 
+		"bug_line": "fs1         =       0.5*(1+tanh(smoothP2*V_i));                                          // smooth function #1 (T3.12 in the manual)",
+		"error_description": "Changed subtraction to addition in the smooth function, inverting its behavior. Now fs1 approaches 0 for large negative voltages and 1 for large positive voltages, opposite to its intended design. This error propagates to the breakdown function f_br, corrupting voltage-dependent modeling of breakdown effects."
+	},
+	{
+		"original_line": "parameter real smoothP1   =   1e5         from [1e3:inf);     // smooth parameter for a continuous step function", 
+		"bug_line": "parameter real smoothP1   =   0         from [0:inf);     // smooth parameter for a continuous step function",
+		"error_description": "Changed smoothP1 from 1e5 to 0 and range from [1e3:inf) to [0:inf). This makes the tanh(smoothP1*V_i) term in the shunt current calculation always return 0, eliminating the nonlinear shunt component and violating the model's intended behavior."
+	},
+	{
+		"original_line": "fs2         =       0.5*(1+tanh(smoothP2*(V_i - Vbr)));                                  // smooth function #2 (T3.13 in the manual)", 
+		"bug_line": "fs2         =       0.5*(1+tanh(smoothP2*(Vbr - V_i)));                                  // smooth function #2 (T3.13 in the manual)",
+		"error_description": "Reversed voltage terms in tanh argument (Vbr - V_i instead of V_i - Vbr), causing incorrect breakdown behavior where fs2 approaches 1 when V_i < Vbr instead of V_i > Vbr."
+	},
+	{
+		"original_line": "if  (VE != m ) begin", 
+		"bug_line": "if  (VE == m ) begin",
+		"error_description": "Condition inversion swaps the calculation branches for parameter A. The complex formula (requiring VE≠m) is now incorrectly executed when VE=m, causing division by zero. The simplified formula (for VE=m) runs when VE≠m, producing invalid A values."
+	},
+	{
+		"original_line": "alphaf      =       1 / ( 1 + bf );                                                      // (T3.7.3 in the manual)", 
+		"bug_line": "alphaf      =       1 + bf;                                                      // (T3.7.3 in the manual)",
+		"error_description": "Changed division operator to addition, making alphaf = 1 + bf instead of 1/(1+bf). This miscalculation overestimates the front interface recombination coefficient when VE=0, leading to excessive diode current and incorrect voltage characteristics."
+	},
+	{
+		"original_line": "parameter real RS         =   1e-6        from (0:100];       // series resistance                                        [Ohms/square]", 
+		"bug_line": "parameter real RS         =   0.0        from (0:100];       // series resistance                                        [Ohms/square]",
+		"error_description": "Changed series resistance value from 1e-6 to 0.0, causing division-by-zero in the expression V_re/RS at line 73 since RS=0 results in undefined current calculation."
+	}
+]

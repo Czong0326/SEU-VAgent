@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "Pwr(T) <+ Temp(T) / rbt_Rth;", 
+		"bug_line": "Pwr(T) <+ Temp(T) * rbt_Rth;",
+		"error_description": "Replaced division with multiplication, violating Ohm's law for thermal systems. The power is now incorrectly proportional to resistance instead of inversely proportional, causing non-physical heating behavior."
+	},
+	{
+		"original_line": "parameter real rbt_THK = `RBT_THK from (0:inf);	// Thickness of the bar", 
+		"bug_line": "parameter real rbt_THK = `RBT_THK from [-inf:inf];	// Thickness of the bar",
+		"error_description": "Changed valid range from positive-only (0:inf) to [-inf:inf], allowing negative thickness values which are physically impossible and would cause negative thermal capacitance in calculations."
+	},
+	{
+		"original_line": "module rbtThermal(T);", 
+		"bug_line": "module rbtThermal();",
+		"error_description": "Removed thermal port T, disconnecting the module from external temperature/power networks. This isolates the internal thermal equations, preventing heat exchange with the system."
+	},
+	{
+		"original_line": "`include "rbtConst.vams"", 
+		"bug_line": "`include "wrong_rbtConst.vams"",
+		"error_description": "Changed include filename to a non-existent file, causing undefined constants (RBT_RTH, RBT_CM, etc.) used in parameter initialization. This leads to compilation errors and prevents simulation."
+	},
+	{
+		"original_line": "parameter real version = 1.00;", 
+		"bug_line": "parameter real rbt_Rth = 0;",
+		"error_description": "Redefines thermal resistance parameter 'rbt_Rth' with incorrect value (0) before its original declaration, causing parameter redefinition error and invalid thermal modeling."
+	},
+	{
+		"original_line": "Pwr(T) <+ ddt( Cth * Temp(T) );", 
+		"bug_line": "Pwr(T) <+ ddt( Cth ) * Temp(T);",
+		"error_description": "Derivative incorrectly applied only to thermal capacitance (Cth) instead of the full product (Cth*Temp). Since Cth is constant, its derivative is zero, effectively removing the thermal capacitance term from the model and disrupting transient thermal behavior."
+	},
+	{
+		"original_line": "parameter real rbt_rho = `RBT_RHO from (0:inf); // Density", 
+		"bug_line": "parameter real rbt_rho = `RBT_RHO from (inf:0); // Density",
+		"error_description": "Swapped range boundaries (inf:0) instead of (0:inf) causes negative density values to be permitted, violating physical laws and breaking thermal capacitance calculation."
+	},
+	{
+		"original_line": "analog begin", 
+		"bug_line": "initial begin",
+		"error_description": "Changed analog block to initial block. Analog operators (ddt, Pwr, Temp) are invalid in initial blocks, causing compilation failure. Thermal equations won't execute continuously."
+	},
+	{
+		"original_line": "inout T;", 
+		"bug_line": "input T;",
+		"error_description": "Changing thermal port direction from bidirectional (inout) to unidirectional (input) breaks power dissipation capability. Thermal ports require bidirectional flow to handle both temperature sensing and power dissipation. This modification prevents the module from properly sinking/sourcing thermal power, violating energy conservation."
+	},
+	{
+		"original_line": "analog begin", 
+		"bug_line": "initial begin",
+		"error_description": "Changed 'analog' to 'initial', converting the continuous thermal behavior block to a one-time initialization block. This prevents dynamic thermal updates during simulation since the equations execute only once at time zero."
+	},
+	{
+		"original_line": "real Cth; // Thermal capacitance", 
+		"bug_line": "real Cth = 0; // Thermal capacitance",
+		"error_description": "Initialized Cth to 0, causing incorrect thermal capacitance calculation. Since Cth is reassigned in the analog block, this creates a race condition where the value oscillates between 0 and the calculated value during simulation, breaking the energy conservation principle."
+	},
+	{
+		"original_line": "parameter real rbt_Rth = `RBT_RTH from (0:inf);	// Thermal resistance", 
+		"bug_line": "parameter real rbt_Rth = `RBT_RTH from (inf:0);	// Thermal resistance",
+		"error_description": "Reversed the range limits (inf:0) instead of (0:inf), allowing negative thermal resistance values which violate physical laws and cause simulation instability."
+	},
+	{
+		"original_line": "thermal T;", 
+		"bug_line": "input T;",
+		"error_description": "Changing the thermal port direction from bidirectional (inout) to input violates thermal modeling requirements. The module needs to both sense temperature (input) and dissipate power (output), but an input-only port prevents power dissipation calculations, breaking the thermal simulation."
+	},
+	{
+		"original_line": "Pwr(T) <+ ddt( Cth * Temp(T) );", 
+		"bug_line": "Pwr(T) <+ ddt( Cth ) * Temp(T);",
+		"error_description": "The derivative is incorrectly applied only to the thermal capacitance (Cth) instead of the entire energy term (Cth*Temp). Since Cth is constant, ddt(Cth)=0, effectively removing the thermal mass term from the model."
+	},
+	{
+		"original_line": "Cth = rbt_cm * rbt_rho * rbt_W * rbt_L * rbt_THK;", 
+		"bug_line": "Cth = rbt_cm * rbt_rho * rbt_W * rbt_L / rbt_THK;",
+		"error_description": "Changed multiplication of thickness (rbt_THK) to division, making thermal capacitance inversely proportional to thickness instead of proportional. This violates the physical relationship where capacitance increases with larger volume."
+	},
+	{
+		"original_line": "thermal T;", 
+		"bug_line": "electrical T;",
+		"error_description": "Changed discipline from thermal to electrical, causing Pwr() and Temp() contributions to fail since these are thermal-specific access functions incompatible with electrical nodes."
+	},
+	{
+		"original_line": "thermal T;", 
+		"bug_line": "thermal T = 300;",
+		"error_description": "Added incorrect initial temperature assignment (300) to thermal node T. VerilogA thermal nodes should not have initial values assigned in discipline declarations, as temperature initialization should be handled via simulator settings or analog processes."
+	},
+	{
+		"original_line": "real Cth; // Thermal capacitance", 
+		"bug_line": "real Cth = 0; // Thermal capacitance",
+		"error_description": "Initializing Cth to 0 creates a constant thermal capacitance value, overriding the correct calculation in the analog block and violating the dynamic thermal behavior specification."
+	},
+	{
+		"original_line": "real Cth; // Thermal capacitance", 
+		"bug_line": "real Cth = 0; // Thermal capacitance",
+		"error_description": "Initializing Cth to 0 causes incorrect thermal capacitance calculation. The analog block overwrites Cth at runtime, but initializing it to 0 creates a temporary zero-value state during simulation startup, introducing incorrect initial conditions for thermal dynamics."
+	},
+	{
+		"original_line": "inout T;", 
+		"bug_line": "output T;",
+		"error_description": "Changing port direction to output prevents the module from reading ambient temperature values, breaking thermal network conservation since the module can only drive temperature but not sense external thermal inputs."
+	}
+]

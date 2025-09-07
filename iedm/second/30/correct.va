@@ -1,0 +1,107 @@
+// IEEE 1801-2015 Standard Compliant Linear Resistor with Process Variation
+`include "disciplines.vams"
+`include "constants.vams"
+
+module res_linear_process (p, n);
+inout p, n;
+electrical p, n;
+
+//=======================//
+//  Process Parameters   //
+//=======================//
+parameter real R0 = 1e3 from (1e-3 to 1e9);    // Nominal resistance [Ω] 
+parameter real GLOBAL_VAR = 0.08 from [0:0.2]; // Global variation (σ/R0) [0-20%]
+parameter real LOCAL_VAR = 0.05 from [0:0.15]; // Local mismatch (σ/R0) [0-15%]
+parameter integer CORNER = 0 from [-1:1];      // Process corner: -1=SS,0=TT,1=FF
+parameter real V_MAX = 10 from (0.1 to 100);   // Max operating voltage [V]
+
+//=======================//
+//  Random Seed Control  //
+//=======================//
+parameter integer GLOBAL_SEED = 314159;        // Global Monte Carlo seed
+parameter integer LOCAL_SEED = 271828;         // Local instance seed
+
+//=======================//
+//  Parameter Validation //
+//=======================//
+generate
+  // Fundamental parameter checks
+  if (R0 <= 0) begin
+    initial $error("[Fatal] R0=%.1e: Must be positive", R0);
+  end
+  if (GLOBAL_VAR < 0 || LOCAL_VAR < 0) begin
+    initial $error("[Fatal] Negative variation: G=%.2f/L=%.2f", 
+                  GLOBAL_VAR, LOCAL_VAR);
+  end
+  if (abs(CORNER) > 1) begin
+    initial $error("[Fatal] Invalid CORNER=%0d", CORNER);
+  end
+endgenerate
+
+//=======================//
+//  Core Implementation  //
+//=======================//
+analog begin
+  // Voltage monitoring
+  real v_pn = V(p,n);  // Get instantaneous voltage
+  
+  // Process variation calculation
+  real process_factor;
+  begin
+    // 1. Corner-based systematic shift (3σ coverage)
+    real corner_shift = 0.12 * CORNER;  // ±12% shift for SS/FF corners
+    
+    // 2. Global wafer-level variation (correlated across devices)
+    real global_shift = GLOBAL_VAR * 
+                       $dist_normal(GLOBAL_SEED, 0, 1, 3);  // 3σ variation
+    
+    // 3. Local mismatch variation (device-to-device)
+    real local_shift = LOCAL_VAR *
+                      $dist_normal(LOCAL_SEED, 0, 1, 3);  // 3σ mismatch
+    
+    // Total process variation effect
+    process_factor = 1 + corner_shift + global_shift + local_shift;
+  end
+
+  // Final resistance calculation
+  real R_actual = R0 * process_factor;
+
+  //=======================//
+  //  Operational Checks  //
+  //=======================//
+  // Resistance positivity check
+  if (R_actual <= 0) begin
+    $strobe("[Error] Negative R=%.2eΩ at %t", R_actual, $realtime);
+    R_actual = 1e-3;  // Fail-safe minimum value
+  end
+
+  // Voltage stress monitoring
+  if (abs(v_pn) > V_MAX) begin
+    $strobe("[Warning] %.2fV exceeds V_MAX=%.1fV @%t", 
+           v_pn, V_MAX, $realtime);
+  end
+
+  //=======================//
+  //  Physical Behavior    //
+  //=======================//
+  // Implement Ohm's Law
+  I(p,n) <+ v_pn / R_actual;  // I = V/R
+
+  // Noise contribution (thermal noise)
+  real noise_pwr = 4 * `P_K * $temperature / R_actual;
+  I(p,n) <+ white_noise(noise_pwr, "thermal");
+
+  //=======================//
+  //  Simulation Aids      //
+  //=======================//
+  `ifdef SIMULATION
+  // Adaptive time-stepping for nonlinear effects
+  $bound_step(0.1 * R_actual * 1e-12);
+  
+  // Process variation debug output
+  initial $display("Final R: %.2fΩ (Variation: %.1f%%)", 
+                  R_actual, 100*(process_factor-1));
+  `endif
+end
+
+endmodule

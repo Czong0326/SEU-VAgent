@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "real vout_symm;	// output voltage is with respect to this", 
+		"bug_line": "real vout_symm = 0;	// output voltage is with respect to this",
+		"error_description": "Adding an incorrect initial value (0) to vout_symm overrides the correct calculation (vout_high + vout_low)/2 in the initial_step block, causing incorrect output centering and violating the design specification for symmetric output limits."
+	},
+	{
+		"original_line": "parameter real vout_low = -10;", 
+		"bug_line": "parameter real vout_low = 10;",
+		"error_description": "Sets vout_low (10) equal to default vout_high (10), violating the requirement that vout_high must be greater than vout_low. This triggers a fatal error in the initial_step block during simulation."
+	},
+	{
+		"original_line": "if (vout_high <= vout_low) begin", 
+		"bug_line": "if (vout_high == vout_low) begin",
+		"error_description": "Changed range check from 'vout_high <= vout_low' to equality check. This fails to detect cases where vout_high is less than vout_low, allowing invalid parameter configurations that cause reversed clamping behavior in the amplifier output."
+	},
+	{
+		"original_line": "output vout;", 
+		"bug_line": "input vout;",
+		"error_description": "Port direction changed from output to input. This violates the design specification where vout must be an output port. The module will now incorrectly accept external signals on vout instead of driving the amplified signal, causing functional failure."
+	},
+	{
+		"original_line": "parameter real vout_low = -10;", 
+		"bug_line": "parameter real vout_low = 10;",
+		"error_description": "Sets vout_low equal to vout_high (10V), violating the requirement that vout_high must be greater than vout_low. This triggers the initial_step condition error and halts simulation during initialization."
+	},
+	{
+		"original_line": "      if (vout_val > vout_high) begin", 
+		"bug_line": "      if (vout_val < vout_high) begin",
+		"error_description": "Changed '>' to '<', reversing the clamping logic. Now incorrectly clamps the output to vout_high when the computed value is below the upper limit instead of above it, while the lower clamping condition becomes unreachable."
+	},
+	{
+		"original_line": "parameter real vin_offset = 0;", 
+		"bug_line": "parameter real vin_offset = 1;",
+		"error_description": "Default input offset voltage changed from 0V to 1V, introducing an unintended fixed offset that violates the design specification of no offset by default. This causes the amplifier to process (V(vin_p, vin_n) - 1) instead of the pure differential input."
+	},
+	{
+		"original_line": "vout_symm = (vout_high + vout_low)/2;", 
+		"bug_line": "vout_symm = (vout_high - vout_low)/2;",
+		"error_description": "Incorrectly calculates symmetric output voltage as half the output range instead of the midpoint. This biases the output toward vout_high when input is zero, violating the design requirement for symmetric clipping around (vout_high + vout_low)/2."
+	},
+	{
+		"original_line": "V(vout) <+ vout_val;", 
+		"bug_line": "V(vout) <+ V(vin_p, vin_n);",
+		"error_description": "Output incorrectly driven by input differential voltage instead of the computed amplified signal, bypassing gain and control voltage processing."
+	},
+	{
+		"original_line": "parameter real gain_const= 1;", 
+		"bug_line": "parameter real gain_const= 0;",
+		"error_description": "Setting gain_const to zero causes the amplifier to always output vout_symm regardless of input signals, violating the variable gain functionality where output should scale with input and control voltage difference."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( initial_step ) ;",
+		"error_description": "Added semicolon after initial_step event, terminating the event handler prematurely. This prevents the subsequent begin-end block from executing during initialization, skipping critical setup of vout_symm and range validation for vout_high/vout_low."
+	},
+	{
+		"original_line": "parameter real vout_low = -10;", 
+		"bug_line": "parameter real vout_low = 10;",
+		"error_description": "Sets default vout_low equal to vout_high (10V), causing the initial condition check (vout_high <= vout_low) to trigger simulation abort since 10 <= 10 evaluates as true. This violates the requirement that vout_low must be strictly less than vout_high."
+	},
+	{
+		"original_line": "V(vout) <+ vout_val;", 
+		"bug_line": "V(vout) <+ vout_symm;",
+		"error_description": "Outputs constant midpoint voltage (vout_symm) instead of amplified signal, eliminating gain functionality and clamping behavior."
+	},
+	{
+		"original_line": "vout_symm = (vout_high + vout_low)/2;", 
+		"bug_line": "vout_symm = (vout_high + vout_low)/2.0;",
+		"error_description": "Changing integer division (2) to floating-point division (2.0) introduces a syntax error since VerilogA requires integer division operators. The decimal point makes it an invalid real number constant."
+	},
+	{
+		"original_line": "vout_symm = (vout_high + vout_low)/2;", 
+		"bug_line": "vout_symm = (vout_high - vout_low)/2;",
+		"error_description": "The symmetric output voltage is incorrectly calculated as half the difference between vout_high and vout_low instead of half their sum. This shifts the output bias point to an incorrect value, causing asymmetric clipping and violating the design specification that requires the output to be centered between vout_high and vout_low when input signals are zero."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed analog block to initial block. This causes the amplifier logic to execute only once during initialization instead of continuously, making the output unresponsive to input changes after t=0."
+	},
+	{
+		"original_line": "V(vout) <+ vout_val;", 
+		"bug_line": "V(vin_p) <+ vout_val;",
+		"error_description": "Drives output voltage to input terminal vin_p instead of output terminal vout, causing incorrect signal flow and potential circuit damage by forcing voltage onto an input node."
+	},
+	{
+		"original_line": "output vout;", 
+		"bug_line": "input vout;",
+		"error_description": "Changing port direction from output to input creates a functional error because the module attempts to drive an input port (V(vout) <+ ...), violating Verilog-A port direction rules and causing compilation failure."
+	},
+	{
+		"original_line": "input vin_p, vin_n, vctrl_p, vctrl_n;", 
+		"bug_line": "input vin_p, vin_n; output vctrl_p, vctrl_n;",
+		"error_description": "Changed vctrl_p/vctrl_n from inputs to outputs. This incorrectly makes the control voltage terminals driven outputs instead of read inputs, preventing external gain control signals from being read and violating the amplifier's intended behavior."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed 'analog' block to 'initial' block, causing the amplifier logic to execute only once at simulation start instead of continuously. This prevents output voltage from updating during transient analysis, freezing at initial values."
+	}
+]

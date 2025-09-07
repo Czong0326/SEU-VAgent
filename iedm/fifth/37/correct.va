@@ -1,0 +1,60 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright @ 2016 Purdue University.
+//  
+// The terms under which the software and associated documentation (the Software) is provided are as the following:
+//  
+// The Software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, 
+// fitness for a particular purpose and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages or other 
+// liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the Software or the use or other dealings
+// in the Software.
+//   
+// Purdue grants, free of charge, to any users the right to modify, copy, and redistribute the Software, both within the user's 
+// organization and externally, subject to the following restrictions:
+//  
+// 1. The users agree not to charge for the code itself but may charge for additions, extensions, or support.
+//  
+// 2. In any product based on the Software, the users agree to acknowledge the Research Group that developed the software. This acknowledgment shall 
+//    appear in the product documentation.
+//  
+// 3. The users agree to obey all U.S. Government restrictions governing redistribution or export of the software.
+//  
+// 4. The users agree to reproduce any copyright notice which appears on the software on any copy or modification of such made available to others.
+// 
+// Agreed to by 
+// Yanfei Shen, Scott Calvert, Jeffrey F. Rhoads, Saeed Mohammadi, Purdue University
+// Feb. 17, 2016
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// modue for piezoresistive modulation
+
+`include "constants.vams"
+`include "disciplines.vams"
+module piezoResVA(a,b,z);
+
+        parameter real L = 4.0e-6                     from (0:inf);         // length of the beam [m]
+        parameter real W = 180.0e-9                   from (0:inf);         // width of the beam [m]
+        parameter real H = 110.0e-9                   from (0:inf);         // height of the beam [m]
+        parameter real RESIS = 0.00022535527511173582 from [0:inf);         // resistivity of the doped Si
+        parameter real POIS  = 0.17                   from [0:inf);         // poisson's ratio for Si in <111> dir
+        parameter real piEff = 1.403e-9               from [0:inf);         // effective longitudinal piezoresistive coefficient
+
+        `define   E        (1.875e11)                                       // Young's modulus for Si [N/m]
+        
+        inout a,b;
+        input z;
+        electrical a,b;
+        kinematic z;
+
+        real Strain;
+        real R0;
+        real Rbeam;
+
+        analog begin
+        
+	       Strain = 2.44*pow(Pos(z)/L,2.0);
+	       R0 = RESIS*(L/2.0)/W/H;
+	       Rbeam = R0 + R0*Strain*(piEff*`E+1.0+2.0*POIS);
+	
+	       V(a,b) <+ Rbeam*I(a,b);	
+        end
+endmodule 

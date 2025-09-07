@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real smoothP1   =   1e5         from [1e3:inf);     // smooth parameter for a continuous step function", 
+		"bug_line": "parameter real smoothP1   =   1e2         from [1e3:inf);     // smooth parameter for a continuous step function",
+		"error_description": "Default smoothP1 value violates parameter range [1e3, inf). This reduces tanh(smoothP1*V_i) sharpness, causing incorrect shunt current calculation and invalid step function approximation in j_shunt equation."
+	},
+	{
+		"original_line": "VE          =       (V_i-Vbi)/kT;                                                        // (T3.6 in the manual)", 
+		"bug_line": "VE          =       (Vbi-V_i)/kT;                                                        // (T3.6 in the manual)",
+		"error_description": "Reversed voltage differential (Vbi-V_i) instead of (V_i-Vbi) inverts the operating point calculation. This swaps forward/reverse bias characteristics, causing incorrect recombination current polarity and photocurrent scaling."
+	},
+	{
+		"original_line": "parameter real gsh1       =   1e-4        from (0:10];        // shunt conductance parameter 1                            [S/m2]", 
+		"bug_line": "parameter real gsh1       =   1e-4        from (-0.1:10];        // shunt conductance parameter 1                            [S/m2]",
+		"error_description": "Negative gsh1 values allowed (-0.1 to 10) create non-physical negative shunt conductance, reversing current direction in the shunt path and causing erroneous power generation in reverse bias."
+	},
+	{
+		"original_line": "parameter real smoothP2   =   10          from [0:1e5];       // smooth parameter                                         [V]", 
+		"bug_line": "parameter real smoothP2   =   0           from [0:1e5];       // smooth parameter                                         [V]",
+		"error_description": "Setting smoothP2=0 disables voltage-dependent smoothing functions (fs1/fs2 become constants 0.5), eliminating critical breakdown voltage transitions and causing convergence failures near Vbr."
+	},
+	{
+		"original_line": "if  (VE != 0 ) begin", 
+		"bug_line": "if  (VE == 0 ) begin",
+		"error_description": "Inverted condition makes non-zero VE cases use simplified alpha calculation intended only for VE=0, causing incorrect interface recombination parameters (alphaf/alphab) and diode current errors."
+	},
+	{
+		"original_line": "branch (vpi,vn)   i_b;                                                                   // intrinsic branch", 
+		"bug_line": "branch (vn,vpi)   i_b;                                                                   // intrinsic branch",
+		"error_description": "Reversed branch direction inverts voltage polarity for intrinsic node calculation. This flips the sign of V_i = V(i_b), causing diode current to flow backwards and photocurrent to subtract instead of add, fundamentally inverting the cell's IV characteristics."
+	},
+	{
+		"original_line": "`include "disciplines.vams"", 
+		"bug_line": "`include "discipline.vams"",
+		"error_description": "Changed filename from 'disciplines.vams' to 'discipline.vams' (missing 's'), causing missing electrical discipline definitions for 'electrical' nodes and branches, which breaks all port declarations and analog behavior modeling."
+	},
+	{
+		"original_line": "parameter real T_Cell     =   300         from [250:400];     // cell temperature", 
+		"bug_line": "parameter real T_Cell     =   300         from [200:400];     // cell temperature",
+		"error_description": "Expands valid temperature range below design specification (250K minimum), allowing unvalidated low-temperature operation that violates critical error constraints and impacts breakdown voltage calculations."
+	},
+	{
+		"original_line": "parameter real Vbr_REF    =   -20         from [-100:0];      // breakdown voltage for reference                          [V]", 
+		"bug_line": "parameter real Vbr_REF    =   20         from [-100:0];      // breakdown voltage for reference                          [V]",
+		"error_description": "Changed breakdown reference voltage from -20V to +20V, creating invalid positive breakdown threshold. This inverts the breakdown condition polarity, preventing proper avalanche modeling in reverse bias while keeping parameter range validation negative, causing silent model failure."
+	},
+	{
+		"original_line": "Vbr         =       Vbr_REF*(1+beta_Vbr*(T_Cell-T_REF));                                 // breakdown voltage (T3.11 in the manual)             [V]", 
+		"bug_line": "Vbr         =       Vbr_REF*(1+beta_Vbr*(T_REF-T_Cell));                                 // breakdown voltage (T3.11 in the manual)             [V]",
+		"error_description": "Reversed temperature dependence in breakdown voltage calculation. The original formula correctly implements Vbr = Vbr_REF[1 + β(T_Cell-T_REF)] for positive temperature coefficient, but swapping T_Cell and T_REF inverts the temperature relationship, causing Vbr to decrease with rising temperature instead of increasing as designed."
+	},
+	{
+		"original_line": "branch (vp,vpi)   rs_b;                                                                  // series resistance branch", 
+		"bug_line": "branch (vpi,vp)   rs_b;                                                                  // series resistance branch",
+		"error_description": "Reversed branch direction introduces negative series resistance effect by inverting voltage polarity across RS, causing instability in IV characteristics and violating Kirchhoff's laws."
+	},
+	{
+		"original_line": "parameter real bf         =   5.79        from (0:1e7];       // beta for front interface                             ", 
+		"bug_line": "parameter real bf         =   -5.79        from (0:1e7];       // beta for front interface                             ",
+		"error_description": "Negative beta front interface (bf) violates physical constraints by inverting recombination dynamics, causing unphysical diode current reduction and Voc miscalculation."
+	},
+	{
+		"original_line": "parameter real smoothP1   =   1e5         from [1e3:inf);     // smooth parameter for a continuous step function", 
+		"bug_line": "parameter real smoothP1   =   1e2         from [1e3:inf);     // smooth parameter for a continuous step function",
+		"error_description": "Reduces smoothP1 below minimum allowed range [1e3], causing insufficient smoothing in shunt current calculation. This violates the shunt model's requirement for sharp transition approximation, leading to convergence failures and incorrect IV curve modeling near V=0."
+	},
+	{
+		"original_line": "fs1         =       0.5*(1-tanh(smoothP2*V_i));                                          // smooth function #1 (T3.12 in the manual)", 
+		"bug_line": "fs1         =       0.5*(1-tanh(-smoothP2*V_i));",
+		"error_description": "Reversed smooth function polarity by negating smoothP2 in tanh argument. This inverts the transition direction of fs1, causing incorrect breakdown condition triggering as V_i increases. The original design requires fs1=1 at low V_i and 0 at high V_i, but modified version shows opposite behavior, leading to miscalculations in f_br breakdown function."
+	},
+	{
+		"original_line": "parameter real shading_P  =   0           from [0:100];       // shading percentage                                       [%]    ", 
+		"bug_line": "parameter real shading_P  =   0           from [0:200];       // shading percentage                                       [%]    ",
+		"error_description": "Expanding shading_P range to 200% violates the physical constraint that shading percentage cannot exceed 100%. This allows invalid parameter values that invert the (100-shading_P) term in photocurrent calculation, creating non-physical negative photogeneration when shading_P>100%."
+	},
+	{
+		"original_line": "if  (VE != m ) begin", 
+		"bug_line": "if  (VE == m ) begin",
+		"error_description": "Inverted condition checks for VE equal to m instead of not equal, causing division by zero when VE=m by executing the (VE-m) denominator case during singularity."
+	},
+	{
+		"original_line": "kT          =       T_Cell * 8.617e-5;                                                   // thermal voltage (T3.10 in the manual)", 
+		"bug_line": "kT          =       T_REF * 8.617e-5;                                                   // thermal voltage (T3.10 in the manual)",
+		"error_description": "Calculates thermal voltage using reference temperature T_REF instead of actual cell temperature T_Cell, breaking temperature-dependent diode characteristics and violating the model's core temperature scaling requirements."
+	},
+	{
+		"original_line": "parameter real n_sh       =   3           from (0:5);         // shunt conductance index", 
+		"bug_line": "parameter real n_sh       =   0           from [0:5);         // shunt conductance index",
+		"error_description": "Setting n_sh=0 with [0:5) range converts the nonlinear shunt term (V^n_sh) to a constant 1, fundamentally altering current-voltage characteristics. The model requires n_sh>0 for proper voltage-dependent shunt leakage modeling."
+	},
+	{
+		"original_line": "parameter real RS         =   1e-6        from (0:100];       // series resistance                                        [Ohms/square]", 
+		"bug_line": "parameter real RS         =   1e6         from (0:100];       // series resistance                                        [Ohms/square]",
+		"error_description": "Changed series resistance from 1e-6 to 1e6 Ω/square, creating 12 orders-of-magnitude error. This catastrophic parameter error causes unrealistic voltage drop across RS, collapsing output power and violating IEC 62804 shunt requirements."
+	},
+	{
+		"original_line": "B           =       alphab*( -1 - bb );                                                  // (T3.9.2 in the manual)", 
+		"bug_line": "B           =       alphab*( -1 - bf );                                                  // (T3.9.2 in the manual)",
+		"error_description": "Substituted back interface beta (bb) with front interface beta (bf) in breakdown calculation, incorrectly using front recombination parameter for back interface when VE = -m."
+	}
+]

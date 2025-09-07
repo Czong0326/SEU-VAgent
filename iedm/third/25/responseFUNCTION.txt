@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter integer seed1 = 0 from [0:inf);", 
+		"bug_line": "parameter integer seed1 = -1 from [-1:inf);",
+		"error_description": "Changed default seed1 value to -1 and expanded range to include negative numbers. This causes $random() to receive an invalid negative seed during initialization, resulting in undefined behavior and potential simulation failure since Verilog's random functions require non-negative seeds."
+	},
+	{
+		"original_line": "parameter integer show_val = 0;", 
+		"bug_line": "parameter integer show_val = -1;",
+		"error_description": "Changed default value to -1 which violates the intended behavior of show_val (expected 0 or 1). The condition 'if (show_val == 1)' will never trigger since -1 != 1, permanently disabling the $strobe output regardless of user settings."
+	},
+	{
+		"original_line": "parameter integer seed1 = 0 from [0:inf);", 
+		"bug_line": "parameter integer seedx = 0 from [0:inf);",
+		"error_description": "Changed parameter name from seed1 to seedx, making the seed1 variable undeclared. This causes a compilation error when 'iseed1 = seed1' is executed since seed1 no longer exists."
+	},
+	{
+		"original_line": "integer iseed1, iseed2;", 
+		"bug_line": "real iseed1, iseed2;",
+		"error_description": "Changing seed variables from integer to real causes type mismatch in $random calls, as $random requires integer seed references. This breaks random number generation during initialization."
+	},
+	{
+		"original_line": "parameter integer seed1 = 0 from [0:inf);", 
+		"bug_line": "parameter integer seed1 = 0 from [1:inf);",
+		"error_description": "Changed the valid range of seed1 from [0,inf) to [1,inf). The default value 0 is now out of range, causing a parameter validation error during simulation initialization when seed1 is not explicitly set."
+	},
+	{
+		"original_line": "v2 = abs($random(iseed2)/`MAXINT);", 
+		"bug_line": "v2 = abs($random(iseed1)/`MAXINT);",
+		"error_description": "Using iseed1 instead of iseed2 for v2 generation breaks seed independence, causing correlated random values for v1 and v2. This violates the Box-Muller transform's requirement for independent uniform variables, resulting in non-Gaussian capacitance distribution."
+	},
+	{
+		"original_line": "inout vp, vn;", 
+		"bug_line": "input vp, vn;",
+		"error_description": "Changing port direction to input prevents the capacitor from sinking/sourcing current (I<+ddt). Bidirectional (inout) ports are required for current flow in both terminals."
+	},
+	{
+		"original_line": "v1 = abs($random(iseed1)/`MAXINT);", 
+		"bug_line": "v1 = abs($random(iseed1)) / `MAXINT;",
+		"error_description": "Extra closing parenthesis after $random causes syntax error by breaking the expression structure, making the division operation invalid and preventing proper random number generation."
+	},
+	{
+		"original_line": "electrical vp, vn;", 
+		"bug_line": "electrical vp, vp;",
+		"error_description": "Changed second terminal name to 'vp' instead of 'vn', creating a name conflict and short-circuiting both capacitor terminals. This violates the fundamental requirement of a capacitor needing two distinct nodes."
+	},
+	{
+		"original_line": "c = c_mean + c_dev * gasdev(v1, v2);", 
+		"bug_line": "c = c_mean + c_dev;",
+		"error_description": "Removed the Gaussian random component, making capacitance fixed at c_mean + c_dev instead of having a Gaussian distribution around c_mean with c_dev standard deviation."
+	},
+	{
+		"original_line": " if (show_val == 1) $strobe("capacitance of %M = %e \n",c);", 
+		"bug_line": " if (show_val == 1) $strobe("capacitance of %M = %e \n",c_mean);",
+		"error_description": "The strobe statement incorrectly prints the mean capacitance (c_mean) instead of the actual generated capacitance value (c). This violates the design requirement to display the instance-specific capacitance value, misleading users by showing the design parameter rather than the computed random value."
+	},
+	{
+		"original_line": "c = c_mean + c_dev * gasdev(v1, v2);", 
+		"bug_line": "c = c_dev + c_mean * gasdev(v1, v2);",
+		"error_description": "Swapped c_mean and c_dev parameters, making c_dev the base capacitance and c_mean the multiplier for deviation. This inverts the roles: c_dev becomes the mean value while c_mean scales the random deviation, violating the Gaussian distribution specification where c_mean should be the center value and c_dev the standard deviation."
+	},
+	{
+		"original_line": "parameter real c_mean = 10K from (0:inf);", 
+		"bug_line": "parameter real c_mean = -10K from (0:inf);",
+		"error_description": "Sets negative default capacitance (-10K) while range constraint (0:inf) forbids negative values. This violates physical capacitor requirements and causes simulator errors during initialization."
+	},
+	{
+		"original_line": "parameter real c_dev = 1K from (0:inf);", 
+		"bug_line": "parameter real c_dev = -1K from (0:inf);",
+		"error_description": "The default value of c_dev is changed to -1000, which violates the range constraint (0,inf). This causes initialization errors since negative standard deviation is mathematically invalid and breaks the Gaussian distribution calculation."
+	},
+	{
+		"original_line": "gasdev = sqrt(-2.0*log(v1))*cos(2*`PI*v2);", 
+		"bug_line": "gasdev = sqrt(-log(v1))*cos(2*`PI*v2);",
+		"error_description": "Removed the multiplicative factor 2.0 in the logarithm argument. This breaks the Box-Muller transform by altering the variance of the generated Gaussian distribution. The resulting capacitance values will have incorrect standard deviation (approximately 70.7% of specified c_dev) due to improper scaling."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( initial_step ) initial_step; begin",
+		"error_description": "Added 'initial_step;' which creates an invalid event list syntax. The extra identifier breaks the event control structure, causing compilation failure and preventing capacitance initialization."
+	},
+	{
+		"original_line": "c = c_mean + c_dev * gasdev(v1, v2);", 
+		"bug_line": "c = c_dev + c_mean * gasdev(v1, v2);",
+		"error_description": "Swapped mean and deviation terms. Now uses c_dev as the base value and scales the random deviation by c_mean instead of c_dev. This inverts the intended distribution - c_dev becomes the new mean while c_mean incorrectly scales the random component, corrupting the statistical properties."
+	},
+	{
+		"original_line": "I(vp, vn) <+ ddt(c*V(vp, vn));", 
+		"bug_line": "I(vp, vn) <+ ddt(V(vp, vn));",
+		"error_description": "The capacitance multiplier 'c' was removed, making the capacitor value fixed at 1 Farad instead of using the randomly generated value. This ignores the Gaussian distribution parameters (c_mean, c_dev) and seed-based initialization."
+	},
+	{
+		"original_line": "real  v1,v2;", 
+		"bug_line": "integer  v1,v2;",
+		"error_description": "Changing data type from real to integer causes truncation of input values (0-1 range) to 0. This makes log(0) compute -inf during Gaussian calculation, resulting in infinite capacitance and simulation failure."
+	},
+	{
+		"original_line": "parameter integer seed1 = 0 from [0:inf);", 
+		"bug_line": "parameter integer seed1 = -1 from [0:inf);",
+		"error_description": "Changed default seed value to -1 which violates the [0,inf) range constraint. This causes simulation failure during initialization due to invalid parameter value."
+	}
+]

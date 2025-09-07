@@ -1,0 +1,58 @@
+// IEEE 1801-2015 Standard Process-Variation Resistor Model
+`include "disciplines.vams"
+
+module res_linear_process (p, n);
+inout p, n;
+electrical p, n;
+
+// Manufacturing variation parameters
+parameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance [Ω]
+parameter real R_SIGMA = 0.1 from [0:0.2];      // Process variation (σ/R0) [0-20%]
+parameter integer CORNER = 0 from [-1:1];       // Process corner: -1=SS, 0=TT, 1=FF
+parameter real V_MAX = 5 from (0.1 to 50);      // Maximum operating voltage [V]
+
+// Process variation safety checks
+generate begin
+  if (R0 <= 0) $error("Invalid R0=%.1e: Must be positive", R0);
+  if (R_SIGMA < 0) $error("Negative R_SIGMA=%.2f", R_SIGMA);
+  if (abs(CORNER) > 1) $error("Invalid CORNER=%0d", CORNER);
+end
+endgenerate
+
+// Monte Carlo distribution seed
+integer seed = 3421;  // Fixed seed for reproducibility
+
+// Core resistance calculation with process variation
+analog begin
+  // Calculate process-induced variation
+  real process_shift;
+  begin
+    // Corner-based deterministic shift
+    real corner_shift = 0.15 * CORNER;  // ±15% shift for SS/FF corners
+    
+    // Random variation component (3σ coverage)
+    real random_shift = R_SIGMA * $dist_normal(seed, 0, 1, 3);
+    
+    // Total process variation effect
+    process_shift = 1 + corner_shift + random_shift;
+  end
+
+  // Final resistance with process variation
+  real R_actual = R0 * process_shift;
+
+  // Voltage stress monitoring
+  real v_pn = V(p,n);
+  if (abs(v_pn) > V_MAX) begin
+    $strobe("WARNING: %.2fV exceeds V_MAX=%.1fV @%t", v_pn, V_MAX, $realtime);
+  end
+
+  // Implement Ohm's Law with process variation
+  I(p,n) <+ v_pn / R_actual;  // I = V/R
+
+  // Simulation stability condition
+  `ifdef SIMULATION
+  $bound_step(0.1*R_actual*1e-12);
+  `endif
+end
+
+endmodule

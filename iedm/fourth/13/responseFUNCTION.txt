@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "V(fq,Q_out) <+ rout*I(fq,Q_out);", 
+		"bug_line": "V(fq,Q_out) <+ rout*I(fi,I_out);",
+		"error_description": "The output voltage for the Q channel incorrectly uses the current from the I branch instead of its own, causing cross-talk between I and Q channels and violating the design specification for independent signal paths."
+	},
+	{
+		"original_line": "`CAP(di,ei,dq,eq,ci,fcr);", 
+		"bug_line": "`CAP(di,eq,dq,ei,ci,fcr);",
+		"error_description": "Swapped the negative nodes (ei/eq) between I and Q paths, causing incorrect cross-coupling in the capacitor network by connecting the negative terminal of I-path to Q-path and vice versa."
+	},
+	{
+		"original_line": "V(fi) <+ V(ei) + V(bi);", 
+		"bug_line": "V(fi) <+ V(ei) - V(bi);",
+		"error_description": "Changed the addition operation to subtraction, incorrectly inverting the contribution of the bi node voltage. This violates the design requirement for constructive summation of I-path signals, causing destructive interference in the output."
+	},
+	{
+		"original_line": "V(fq,Q_out) <+ rout*I(fq,Q_out);", 
+		"bug_line": "V(fq,Q_out) <+ rin*I(fq,Q_out);",
+		"error_description": "Replaced output impedance parameter 'rout' with input impedance 'rin', causing incorrect output resistance at Q_out port."
+	},
+	{
+		"original_line": "@( initial_step) begin", 
+		"bug_line": "@( timer(0, 1/freq)) begin",
+		"error_description": "Changed event trigger from initial_step to periodic timer. Parameters ri/ci now recalculate continuously instead of initializing once, causing incorrect impedance/capacitance values during simulation."
+	},
+	{
+		"original_line": "I(lead_I) <+ V(lead_I)/rin;", 
+		"bug_line": "I(lead_I) <+ V(lead_Q)/rin;",
+		"error_description": "Input current at lead_I incorrectly uses voltage from lead_Q instead of its own voltage, causing cross-coupling between I and Q channels and violating input impedance isolation."
+	},
+	{
+		"original_line": "   parameter real rin = 50 from (0:inf);", 
+		"bug_line": "   parameter real rin = -50 from (-inf:inf);",
+		"error_description": "Changed input impedance to negative value (-50) and allowed negative range. This creates negative resistance at input ports, causing instability and non-physical behavior during simulation."
+	},
+	{
+		"original_line": "I(lead_Q) <+ V(lead_Q)/rin;", 
+		"bug_line": "I(lead_Q) <+ V(lead_Q)/rout;",
+		"error_description": "The input current calculation incorrectly uses output impedance 'rout' instead of input impedance 'rin'. This violates the design specification where input terminals should have impedance 'rin', causing port impedance mismatch and signal reflection errors."
+	},
+	{
+		"original_line": "I(lag_I) <+ V(lag_I)/rin;", 
+		"bug_line": "I(lag_I) <+ V(lead_I)/rin;",
+		"error_description": "The input current for terminal lag_I is incorrectly driven by the voltage at lead_I instead of its own voltage. This violates the independent input impedance specification by cross-coupling unrelated terminals."
+	},
+	{
+		"original_line": "I(lag_I) <+ V(lag_I)/rin;", 
+		"bug_line": "I(lag_I) <+ V(lag_I)/rout;",
+		"error_description": "Input impedance incorrectly uses output resistance parameter 'rout' instead of input resistance 'rin', causing impedance mismatch at lag_I terminal."
+	},
+	{
+		"original_line": "I(lead_Q) <+ V(lead_Q)/rin;", 
+		"bug_line": "I(lead_Q) <+ V(lead_Q)/rout;",
+		"error_description": "Replaced 'rin' with 'rout', causing incorrect input impedance calculation for lead_Q terminal. This violates impedance matching requirements since rout (output resistance) is used instead of rin (input resistance), leading to signal reflection and gain errors."
+	},
+	{
+		"original_line": "I(lead_I) <+ V(lead_I)/rin;", 
+		"bug_line": "I(lead_I) <+ V(lead_I)/rout;",
+		"error_description": "Changed input impedance parameter from 'rin' to 'rout'. This violates the design specification by using the output impedance value for input terminal current calculation instead of the dedicated input impedance parameter 'rin', causing incorrect input loading."
+	},
+	{
+		"original_line": "I(lag_Q) <+ V(lag_Q)/rin;", 
+		"bug_line": "I(lag_Q) <+ V(lead_Q)/rin;",
+		"error_description": "Incorrectly used lead_Q voltage for lag_Q input impedance, causing cross-talk between input terminals and incorrect impedance modeling at lag_Q."
+	},
+	{
+		"original_line": "I(lead_Q) <+ V(lead_Q)/rin;", 
+		"bug_line": "I(lead_Q) <+ V(lead_I)/rin;",
+		"error_description": "Incorrect voltage reference creates cross-coupling: lead_Q current now depends on lead_I voltage, violating port isolation and causing signal mixing."
+	},
+	{
+		"original_line": "  electrical lag_I, lag_Q, lead_I, lead_Q, I_out, Q_out;", 
+		"bug_line": "  electrical lag_I, lag_Q, lead_I, lead_Q, I_out;",
+		"error_description": "Missing declaration for Q_out port causes references to Q_out in the analog block (e.g., V(fq,Q_out)) to be undefined, breaking the output functionality for the Q channel."
+	},
+	{
+		"original_line": "I(eq) <+ (1/ri)*V(eq);", 
+		"bug_line": "I(eq) <+ (1/ri)*V(ei);",
+		"error_description": "Incorrectly sets the current at node 'eq' (Q branch) proportional to voltage at 'ei' (I branch) instead of its own voltage, causing unintended cross-coupling between I and Q branches."
+	},
+	{
+		"original_line": "	V(di) <+ V(lead_I)*gain;", 
+		"bug_line": "	V(di) <+ V(lead_Q)*gain;",
+		"error_description": "The voltage at node di (I branch of lead) is incorrectly assigned from lead_Q (Q input) instead of lead_I (I input). This swaps I/Q channels for the lead path, causing signal phase corruption in the shifter output."
+	},
+	{
+		"original_line": "   parameter real fcr = 1e9 from (0:inf);", 
+		"bug_line": "   parameter real fcr_wrong = 1e9 from (0:inf);",
+		"error_description": "Changed parameter name to 'fcr_wrong', making the variable 'fcr' undefined in the analog block. This causes the carrier frequency term (2*`M_PI*fcr) in the CAP/CAPG macros to evaluate to zero, eliminating the intended phase shift functionality."
+	},
+	{
+		"original_line": "I(lag_I) <+ V(lag_I)/rin;", 
+		"bug_line": "I(lag_I) <+ V(lag_I)/r;",
+		"error_description": "Uses internal resistor parameter 'r' instead of input impedance 'rin' for input current calculation, causing incorrect input impedance modeling at lag_I port."
+	},
+	{
+		"original_line": "endmodule // BB_shifter-combiner", 
+		"bug_line": "endmodule BB_shifter_combiner_wrong; // BB_shifter-combiner",
+		"error_description": "Module name mismatch between declaration (BB_shifter_combiner) and endmodule statement (BB_shifter_combiner_wrong) causes compilation failure, preventing simulation."
+	}
+]

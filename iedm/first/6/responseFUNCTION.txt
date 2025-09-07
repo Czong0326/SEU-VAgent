@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "out_scaled = out_scaled + ((V(vd7) > vtrans) ? (bit_var[7]/2) : 0);", 
+		"bug_line": "out_scaled = out_scaled + ((V(vd7) < vtrans) ? (bit_var[7]/2) : 0);",
+		"error_description": "Changed condition from 'greater than' to 'less than', causing the MSB to activate when input voltage is below transition voltage instead of above it. This inverts the logic for the most significant bit."
+	},
+	{
+		"original_line": "                    half_dist_range))", 
+		"bug_line": "                    dist_range))",
+		"error_description": "Changed 'half_dist_range' to 'dist_range', doubling the subtraction term in the mismatch calculation. This shifts the mismatch range asymmetrically below 1.0 (1 - mismatch_fact*dist_range to 1) instead of being centered at 1.0 (1 ± mismatch_fact*half_dist_range), causing systematic underestimation of bit weights."
+	},
+	{
+		"original_line": "out_scaled = out_scaled + ((V(vd1) > vtrans) ? (bit_var[1]/128) : 0);", 
+		"bug_line": "out_scaled = out_scaled + ((V(vd0) > vtrans) ? (bit_var[1]/128) : 0);",
+		"error_description": "The input voltage check incorrectly uses vd0 instead of vd1, causing the second LSB to be controlled by the LSB input pin instead of its own designated input."
+	},
+	{
+		"original_line": "parameter real vref=1 from [0:inf);", 
+		"bug_line": "parameter real vref=0 from [0:inf);",
+		"error_description": "Sets default reference voltage to 0V, causing the DAC output to always be 0 regardless of input bits, violating the conversion functionality where output should scale with digital inputs."
+	},
+	{
+		"original_line": "                               + bit_var[1]/128 + bit_var[0]/256;", 
+		"bug_line": "                               + bit_var[1]/128 + bit_var[0]/128;",
+		"error_description": "Changed LSB denominator from 256 to 128, eliminating the 1/256 weight. This merges the two least significant bits into identical weights, destroying the binary progression and causing non-monotonic DAC behavior where bit 0 now has double its intended impact."
+	},
+	{
+		"original_line": "parameter real mismatch_fact=0 from [0:inf);", 
+		"bug_line": "parameter real mismatch_fact=0 from (-inf:inf);",
+		"error_description": "The range for mismatch_fact now allows negative values, violating the design constraint that mismatch percentage must be non-negative. Negative mismatch factors would cause invalid weight calculations in the DAC bit scaling, leading to incorrect analog output."
+	},
+	{
+		"original_line": "   real full_scaled;", 
+		"bug_line": "   integer full_scaled;",
+		"error_description": "Declaring full_scaled as integer instead of real causes truncation of fractional values during bit weight calculations. This eliminates the fractional resolution needed for accurate DAC normalization, resulting in quantization errors and incorrect analog output voltage."
+	},
+	{
+		"original_line": "parameter real vtrans=2.5;", 
+		"bug_line": "parameter real vtrans=-2.5;",
+		"error_description": "Negative transition voltage causes all non-negative digital inputs to always register as logic high (1). This forces maximum DAC output regardless of actual input bits."
+	},
+	{
+		"original_line": "out_scaled = out_scaled + ((V(vd5) > vtrans) ? (bit_var[5]/8) : 0);", 
+		"bug_line": "out_scaled = out_scaled + ((V(vd5) < vtrans) ? (bit_var[5]/8) : 0);",
+		"error_description": "Changed the comparison operator from '>' to '<', causing bit 5 (vd5) to contribute its weight when the input voltage is LOW instead of HIGH. This inverts the logic for this bit, making the DAC interpret low signals as active for this bit position."
+	},
+	{
+		"original_line": "`define MAXINT  2_147_483_647.0", 
+		"bug_line": "`define MAXINT  2_147_483_647",
+		"error_description": "Removing the decimal point changes MAXINT to an integer constant, causing integer division in the mismatch calculation. This truncates fractional values (abs($random)/MAXINT becomes 0 for nearly all cases), eliminating random mismatch effects and creating a systematic -1% error in bit weights."
+	},
+	{
+		"original_line": "out_scaled = 0;", 
+		"bug_line": "out_scaled = 1.0;",
+		"error_description": "Initializing out_scaled to 1.0 instead of 0 introduces a constant offset error in the DAC output, causing incorrect analog conversion even when all digital inputs are low."
+	},
+	{
+		"original_line": "real bit_var[0:`NUM_DAC_BITS-1];", 
+		"bug_line": "real bit_var[0:`NUM_DAC_BITS-2];",
+		"error_description": "The array 'bit_var' is defined with only 7 elements (indices 0-6) instead of 8. This causes an out-of-bounds access for index 7 (MSB) during initialization and analog processing, corrupting the most significant bit's contribution to the output voltage."
+	},
+	{
+		"original_line": "module dac_8bit(vd7, vd6, vd5, vd4, vd3, vd2, vd1, vd0, vout);", 
+		"bug_line": "module dac_8bit(vd7, vd6, vd5, vd4, vd3, vd2, vd1, vout);",
+		"error_description": "The least significant bit input port (vd0) is missing, causing incorrect digital-to-analog conversion. The output will ignore the LSB value, leading to 50% voltage errors in half of all input combinations since the LSB contribution is unconnected and treated as floating."
+	},
+	{
+		"original_line": "`define FRAC_MM(I) (1.0 + mismatch_fact*(dist_range*abs($random(I)/`MAXINT) - \", 
+		"bug_line": "`define FRAC_MM(I) (1.0 + mismatch_fact*(dist_range*abs($random(0)/`MAXINT) - \",
+		"error_description": "Replaced variable seed 'I' with fixed seed '0', causing identical random mismatches for all DAC bits instead of independent per-bit variations."
+	},
+	{
+		"original_line": "parameter real trise=1u from (0:inf);", 
+		"bug_line": "parameter real trise=1u from [0:inf);",
+		"error_description": "The range for trise incorrectly includes zero. This allows instantaneous transitions (zero rise time), causing simulation issues and violating the design requirement for finite transition times."
+	},
+	{
+		"original_line": "out_scaled = out_scaled + ((V(vd1) > vtrans) ? (bit_var[1]/128) : 0);", 
+		"bug_line": "out_scaled = out_scaled + ((V(vd1) < vtrans) ? (bit_var[1]/128) : 0);",
+		"error_description": "Inverted logic condition: the bit value is now added when input voltage is BELOW the transition voltage (vtrans) instead of above it. This causes the bit to be active-low instead of active-high, corrupting the digital-to-analog conversion for this bit."
+	},
+	{
+		"original_line": "real full_scaled;", 
+		"bug_line": "real full_scaled = 0;",
+		"error_description": "Initializing full_scaled to zero prevents correct calculation of the normalization factor in the initial_step block, causing division by near-zero when all bits are high and resulting in output voltage saturation."
+	},
+	{
+		"original_line": "`define NUM_DAC_BITS 8", 
+		"bug_line": "`define NUM_DAC_BITS 7",
+		"error_description": "Reducing the bit count to 7 causes array index errors. The 'bit_var' array becomes size [0:6], but the code accesses indices 0-7 during initialization and analog computations, leading to undefined values for bit 7 (MSB) and incorrect DAC output scaling."
+	},
+	{
+		"original_line": "real dist_range, half_dist_range;", 
+		"bug_line": "real dist_range; integer half_dist_range;",
+		"error_description": "Changed half_dist_range to integer type. When assigned 0.01 in the initial_step block, it truncates to 0 instead of 0.01. This removes the centering offset in the mismatch calculation, causing bit weights to be always overweighted by 1% of mismatch_fact."
+	},
+	{
+		"original_line": "out_scaled = out_scaled + ((V(vd2) > vtrans) ? (bit_var[2]/64) : 0);", 
+		"bug_line": "out_scaled = out_scaled + ((V(vd3) > vtrans) ? (bit_var[2]/64) : 0);",
+		"error_description": "The condition incorrectly checks vd3 instead of vd2, causing bit2 to be controlled by the wrong input signal. This swaps the control logic between adjacent bits, resulting in incorrect digital-to-analog conversion."
+	}
+]

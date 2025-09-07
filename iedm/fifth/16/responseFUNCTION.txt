@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "if (log_to_file) $fclose(out_file);", 
+		"bug_line": "if (log_to_file) $fclose(out_file); // Resource leak remains",
+		"error_description": "The file handle 'out_file' is never closed when logging is enabled. The semicolon after the if statement creates an empty body, preventing the $fclose call from executing. This causes a resource leak where open files accumulate during simulation."
+	},
+	{
+		"original_line": "vclk_val = vlogic_low;", 
+		"bug_line": "vclk_val = vlogic_high;",
+		"error_description": "Assigns vlogic_high (5V) instead of vlogic_low (0V) during the clock's low phase, causing the clock signal to remain permanently high and preventing proper ADC sampling synchronization."
+	},
+	{
+		"original_line": "real    max_dnl;", 
+		"bug_line": "integer max_dnl;",
+		"error_description": "Changed max_dnl data type from real to integer, causing truncation of fractional DNL values during comparisons and assignments. This results in incorrect maximum DNL calculations since DNL values are fractional."
+	},
+	{
+		"original_line": "tnext_low  = tnext_high + tsettle/2;", 
+		"bug_line": "tnext_low  = tnext_high - tsettle/2;",
+		"error_description": "Changed '+' to '-' causing negative time calculation. This schedules the falling edge in the past relative to the rising edge, violating causality and preventing proper clock generation."
+	},
+	{
+		"original_line": "code_val[conv] = code_val[conv] + (V(vd7) > vtrans)*128;", 
+		"bug_line": "code_val[conv] = code_val[conv] + (V(vd7) > vtrans)*64;",
+		"error_description": "Bit weight error: Changed MSB multiplier from 128 to 64, halving the weight of the most significant bit (vd7). This causes incorrect ADC code generation by misrepresenting bit7's contribution."
+	},
+	{
+		"original_line": "width[i] = 1.0*bucket[i]/total_hits*(`NUM_OF_CODES-2);", 
+		"bug_line": "width[i] = 1.0*bucket[i]/total_hits*(`NUM_OF_CODES);",
+		"error_description": "Changed multiplier from NUM_OF_CODES-2 (254) to NUM_OF_CODES (256), causing incorrect code width calculation. This overestimates each code's width by ~0.8% since the normalization factor should exclude endpoint codes (0 and 255) as per histogram DNL methodology."
+	},
+	{
+		"original_line": "V(vout) <+ transition(vout_val,0,30u,30u);", 
+		"bug_line": "V(vout) <+ transition(vclk_val,0,30u,30u);",
+		"error_description": "The output voltage vout is incorrectly driven by the clock voltage (vclk_val) instead of the intended swept voltage (vout_val). This causes the ADC to sample the clock signal rather than the test ramp, corrupting all conversion results and DNL calculations."
+	},
+	{
+		"original_line": "vout_inc = (vend-vstart)/(`NUM_OF_CONVS-1);", 
+		"bug_line": "vout_inc = (vstart-vend)/(`NUM_OF_CONVS-1);",
+		"error_description": "Reversed voltage difference calculation (vstart-vend instead of vend-vstart) causes negative step increment. This inverts the ADC input sweep direction, starting from vstart but stepping downward instead of upward toward vend, corrupting the entire DNL measurement sequence."
+	},
+	{
+		"original_line": "vtrans = vlogic_high/2;", 
+		"bug_line": "vtrans = vlogic_low/2;",
+		"error_description": "Sets threshold voltage to half of logic low instead of half of logic high. This directional error causes all data line comparisons to incorrectly register as logic high since actual voltages exceed this extremely low threshold, corrupting ADC code interpretation."
+	},
+	{
+		"original_line": "code_val[conv] = code_val[conv] + (V(vd3) > vtrans)*8;", 
+		"bug_line": "code_val[conv] = code_val[conv] + (V(vd3) < vtrans)*8;",
+		"error_description": "Changed comparison operator from '>' to '<', causing bit 3 to be set when voltage is below threshold instead of above. This inverts the logic for bit 3 in the ADC output code."
+	},
+	{
+		"original_line": "real vout_val;", 
+		"bug_line": "integer vout_val;",
+		"error_description": "Changing vout_val from real to integer truncates fractional voltage values during the analog sweep, causing quantization errors in the input signal and invalid DNL measurements."
+	},
+	{
+		"original_line": "            tnext_high=1M;", 
+		"bug_line": "            tnext_high=0;",
+		"error_description": "Setting tnext_high to 0 causes immediate rescheduling of clock events after final conversion. This leads to unbounded increment of 'conv' beyond array limits (code_val[4096+] when only 0-4095 allocated), causing memory corruption and simulation crash during DNL calculation."
+	},
+	{
+		"original_line": "tnext_low  = tnext_high + tsettle/2;", 
+		"bug_line": "tnext_low  = tnext_high + tsettle;",
+		"error_description": "Sets falling edge timing to match next rising edge instead of half-period, causing clock signal conflict and eliminating valid low phase between conversions."
+	},
+	{
+		"original_line": "max_dnl_code = i;", 
+		"bug_line": "max_dnl_code = max_dnl;",
+		"error_description": "Assigns the real-valued DNL measurement (max_dnl) instead of the integer code index (i) to max_dnl_code. This causes type mismatch and incorrect reporting since max_dnl_code should store the specific ADC code (0-255) with worst DNL, not the DNL value itself."
+	},
+	{
+		"original_line": "vtrans = vlogic_high/2;", 
+		"bug_line": "vtrans = vlogic_high;",
+		"error_description": "Threshold voltage set to full vlogic_high instead of half. Digital inputs require voltage > vlogic_high to register as high, which is impossible since ADC outputs max at vlogic_high. All bits read as 0, corrupting DNL calculations."
+	},
+	{
+		"original_line": "tnext_high=1M;", 
+		"bug_line": "tnext_high=1n;",
+		"error_description": "Changed stop time from 1ms to 1ns, causing premature clock reactivation. This triggers extra conversions beyond the 4096 limit, corrupting memory via out-of-bounds array writes to code_val[4096]."
+	},
+	{
+		"original_line": "`define NUM_OF_CONVS 4096", 
+		"bug_line": "`define NUM_OF_CONVS 1",
+		"error_description": "Setting the number of conversions to 1 causes division by zero during vout_inc calculation since (vend-vstart)/(1-1) becomes undefined, crashing the simulation."
+	},
+	{
+		"original_line": "         if (log_to_file) begin", 
+		"bug_line": "         if (!log_to_file) begin",
+		"error_description": "Inverts the logging condition - writes DNL results to file only when log_to_file=0 (disabled) instead of when enabled (non-zero). Violates parameter specification where logging should occur when log_to_file is set to yes/true."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* not_instrument_module *)",
+		"error_description": "Changed the attribute to 'not_instrument_module', causing simulation tools to ignore this module as a measurement instrument. This prevents the ADC DNL test from executing, violating the design requirement for performance characterization."
+	},
+	{
+		"original_line": "max_dnl = 0;", 
+		"bug_line": "max_dnl = 100;",
+		"error_description": "Initializing max_dnl to 100 instead of 0 causes the condition (max_dnl < abs(dnl[i])) to never be true for typical DNL values (which are <100 LSB). This prevents updating the actual maximum DNL value and code, resulting in incorrect static reports of max_dnl=100 at code 0 regardless of ADC measurements."
+	}
+]

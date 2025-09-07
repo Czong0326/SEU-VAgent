@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "I(out2q) <+ -a2q*s12/(sqrt(r2)*(1+s11));", 
+		"bug_line": "I(out2q) <+ a2q*s12/(sqrt(r2)*(1+s11));",
+		"error_description": "Removed the negative sign in the quadrature branch current contribution, causing signal inversion in the Q-path while the I-path remains correct. This creates amplitude/phase imbalance between I/Q channels."
+	},
+	{
+		"original_line": "s22 = 0;", 
+		"bug_line": "s22 = s21;",
+		"error_description": "Assigns forward transmission coefficient s21 to output reflection coefficient s22 instead of 0. This creates output impedance mismatch (non-zero s22) violating the design requirement for matched output reflection (s22=0), causing signal reflections and inaccurate loss modeling."
+	},
+	{
+		"original_line": "@(initial_step) begin", 
+		"bug_line": "@(final_step) begin",
+		"error_description": "Changes initialization event from simulation start (initial_step) to simulation end (final_step). This prevents S-parameters (s21, s12, etc.) from being calculated during the simulation, leaving them at default 0.0 values. Consequently, no signal passes through the module since all S-parameters remain zero throughout the active simulation period."
+	},
+	{
+		"original_line": "electrical outq;", 
+		"bug_line": "ground outq;",
+		"error_description": "Declaring outq as ground instead of electrical shorts the output port to ground. This forces the output voltage to 0V and disrupts current flow calculations involving I(outq, out3q), breaking the module's intended signal processing behavior."
+	},
+	{
+		"original_line": "electrical  out2q, out3q;", 
+		"bug_line": "real  out2q, out3q;",
+		"error_description": "Changing the type from electrical to real causes a type mismatch in the I() function calls, leading to compilation errors and functional failure due to incorrect discipline handling."
+	},
+	{
+		"original_line": "`define db20_real(x)  (pow(10, (x)/20))", 
+		"bug_line": "`define db20_real(x)  (pow(10, (x)*20))",
+		"error_description": "Changed division to multiplication in dB conversion formula. This error causes the attenuation calculation to use 10^(x*20) instead of 10^(x/20), resulting in extreme over-attenuation (e.g., 3dB loss becomes 10^60 attenuation instead of 10^0.15)."
+	},
+	{
+		"original_line": "`define db20_real(x)  (pow(10, (x)/20))", 
+		"bug_line": "`define db20_real(x)  (pow(10, (x)/10))",
+		"error_description": "Changed the dB-to-linear conversion divisor from 20 to 10. This incorrectly calculates voltage ratios as power ratios, doubling the effective loss (e.g., 3dB loss becomes 6dB equivalent attenuation)."
+	},
+	{
+		"original_line": "   @(initial_step) begin", 
+		"bug_line": "   @(final_step) begin",
+		"error_description": "Changes initial parameter setup to occur at simulation end instead of start. This leaves s-parameters uninitialized during operation, causing incorrect loss calculation throughout the simulation."
+	},
+	{
+		"original_line": "module BB_loss(ini, inq, outi, outq);", 
+		"bug_line": "module BB_loss(ini, outq, outi, inq);",
+		"error_description": "Swapped 'inq' input port with 'outq' output port, causing incorrect signal routing where quadrature input is connected to quadrature output port and vice versa, violating signal flow direction."
+	},
+	{
+		"original_line": "@(initial_step) begin", 
+		"bug_line": "@(final_step) begin",
+		"error_description": "Changed event trigger from initial_step to final_step. The S-parameter initialization now occurs at simulation end instead of start, leaving critical scattering matrix values uninitialized during operation."
+	},
+	{
+		"original_line": "              I(out3i) <+ V(outi)/r2*(1-s22)/(1+s22);", 
+		"bug_line": "              I(out3i) <+ V(outi)/r2*(1+s22)/(1-s22);",
+		"error_description": "Swapped numerator and denominator terms in reflection coefficient formula. Changes (1-s22)/(1+s22) to (1+s22)/(1-s22), incorrectly inverting the output port reflection coefficient calculation and distorting the loss model."
+	},
+	{
+		"original_line": "electrical  out2i, out3i;", 
+		"bug_line": "electrical  out2i;",
+		"error_description": "Removed the out3i node declaration, causing subsequent references to out3i (e.g., in I(outi, out3i) and I(out3i)) to be undefined. This breaks the signal path for the in-phase output current calculations."
+	},
+	{
+		"original_line": "electrical ini;", 
+		"bug_line": "magnetic ini;",
+		"error_description": "Changing discipline from electrical to magnetic makes V(ini) access undefined magnetic flux instead of voltage, breaking all voltage-dependent calculations and port compatibility with electrical networks."
+	},
+	{
+		"original_line": "      I(out3i) <+ -a1i*s21/(sqrt(r2)*(1+s22));", 
+		"bug_line": "      I(out3i) <+ -a1i*s21/(sqrt(r2)*(1+s11));",
+		"error_description": "Changed s22 to s11 in the denominator, incorrectly using the input reflection coefficient instead of the output reflection coefficient. This breaks the S-parameter model by mismatching the output termination condition."
+	},
+	{
+		"original_line": "`include "discipline.h"", 
+		"bug_line": "`include "discipline_wrong.h"",
+		"error_description": "Changed include file to a non-existent 'discipline_wrong.h', preventing the compiler from finding necessary electrical discipline definitions. This breaks port declarations and causes compilation failure."
+	},
+	{
+		"original_line": "      I(out3i) <+ V(outi)/r2*(1-s22)/(1+s22);", 
+		"bug_line": "      I(out3i) <+ V(ini)/r2*(1-s22)/(1+s22);",
+		"error_description": "Incorrect voltage reference: uses input voltage V(ini) instead of output voltage V(outi), breaking the port relationship and causing erroneous current calculation in the I branch."
+	},
+	{
+		"original_line": "         s11 = 0;", 
+		"bug_line": "         s11 = 0.1;",
+		"error_description": "The error sets input reflection coefficient s11 to 0.1 instead of 0. This violates the design requirement of no reflections by introducing unintended input signal reflection, altering the intended loss behavior."
+	},
+	{
+		"original_line": "electrical outi;", 
+		"bug_line": "electrical out_i;",
+		"error_description": "Changed net name from 'outi' to 'out_i' in the discipline declaration. This leaves the port net 'outi' without a defined discipline, causing compilation errors when the analog block references the undefined net 'outi' in contributions (e.g., V(outi)), preventing simulation."
+	},
+	{
+		"original_line": "      a2q = V(outq)/sqrt(r2) + I(outq, out3q)*sqrt(r2);", 
+		"bug_line": "      a2q = V(outq)/sqrt(r2) + I(outq, out3q)*sqrt(50.0);",
+		"error_description": "The current term incorrectly uses a fixed 50 ohm resistance instead of parameter r2, introducing impedance mismatch in the Q-channel scattering calculations."
+	},
+	{
+		"original_line": "s12 = s21;", 
+		"bug_line": "s12 = s22;",
+		"error_description": "Sets reverse transmission coefficient (s12) to s22 (which is 0) instead of s21. This breaks signal reciprocity by disabling reverse path transmission while forward transmission (s21) remains active, violating the symmetric loss design requirement."
+	}
+]

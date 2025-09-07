@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "so that if the baseband input were 1 volt in magnitude, the", 
+		"bug_line": "so that if the baseband input were 0.5 volt in magnitude, the",
+		"error_description": "The design description incorrectly states that the circuit achieves specified dBm output at 0.5V input, while the actual implementation scales output for 1V input, creating a functional mismatch where output power will be 6dB lower than expected for 0.5V inputs."
+	},
+	{
+		"original_line": "`include "constants.h"", 
+		"bug_line": "`include "constnts.h"",
+		"error_description": "Misspelled include file name prevents 'constants.h' from being loaded, causing undefined physical constants and breaking the peak voltage calculation in the initial_step block."
+	},
+	{
+		"original_line": "parameter real rout = 50 from [0:inf);", 
+		"bug_line": "parameter real rout = 0 from [0:inf);",
+		"error_description": "Setting default resistance to 0 causes division by zero in analog block during simulation when calculating output current, as 'rout' is used in the denominator of both I_out and Q_out expressions."
+	},
+	{
+		"original_line": "real peak;", 
+		"bug_line": "real peak = 0;",
+		"error_description": "Initializing 'peak' to 0 causes incorrect power calculation. The initial_step block overwrites this value, but if simulation restarts or has multiple phases, the re-initialization resets 'peak' to 0 instead of recalculating, leading to sustained incorrect output scaling."
+	},
+	{
+		"original_line": "   @( initial_step) begin", 
+		"bug_line": "   @( final_step) begin",
+		"error_description": "Changed event trigger from initial_step to final_step. Peak value calculation now occurs at simulation end instead of start, leaving peak uninitialized (0.0) throughout the simulation. This eliminates amplification since I_out/I_Q_out always equals V(I_out)/rout and V(Q_out)/rout."
+	},
+	{
+		"original_line": "peak = 2*sqrt(2*rout*0.001*pow(10, 0.1*power_level));", 
+		"bug_line": "peak = 2*sqrt(2*rout*0.001*pow(10, power_level));",
+		"error_description": "Removed the 0.1 multiplier in the exponent calculation, causing the power term to be 10^(power_level) instead of 10^(0.1*power_level). This results in a 10x exponential error in power conversion, severely miscalculating the required peak voltage."
+	},
+	{
+		"original_line": "module BB_driver(I_in, I_out, Q_in, Q_out);", 
+		"bug_line": "module BB_driver(I_in, I_out, Q_in);",
+		"error_description": "Removed Q_out port, causing missing connection for quadrature output and invalid internal references to Q_out in subsequent code."
+	},
+	{
+		"original_line": "parameter real power_level = 10;", 
+		"bug_line": "parameter real power_level_wrong = 10;",
+		"error_description": "Renaming the parameter to 'power_level_wrong' breaks the calculation in the initial_step block where 'power_level' is referenced. This undefined variable error causes incorrect peak voltage computation, resulting in zero output power instead of the specified 10 dBm."
+	},
+	{
+		"original_line": "output across a matched resistive load would equal the specified", 
+		"bug_line": "output across an unmatched resistive load would equal the specified",
+		"error_description": "Changed 'matched' to 'unmatched', misleading the designer to implement incorrect impedance matching, causing signal reflections and power delivery errors."
+	},
+	{
+		"original_line": "so that if the baseband input were 1 volt in magnitude, the", 
+		"bug_line": "so that if the baseband input were 0.5 volt in magnitude, the",
+		"error_description": "Changing the input reference from 1V to 0.5V misaligns the design specification. The peak calculation in the code (line 31) assumes 1V input for correct dBm output. This discrepancy causes the output power to be 6dB lower than specified when using 1V inputs."
+	},
+	{
+		"original_line": "input Q_in;", 
+		"bug_line": "output Q_in;",
+		"error_description": "Changed Q_in port direction from input to output. This violates the design requirement where Q_in must be an input signal, causing incorrect external connections and preventing proper voltage sensing."
+	},
+	{
+		"original_line": "electrical I_in;", 
+		"bug_line": "thermal I_in;",
+		"error_description": "Changed discipline from electrical to thermal. This violates the design because thermal nodes don't have voltage potential, breaking the V(I_in) access in the analog block and rendering the driver non-functional."
+	},
+	{
+		"original_line": "`include "constants.h"", 
+		"bug_line": "`define inf 0",
+		"error_description": "Replaces the constants.h include with a definition setting 'inf' to 0. This causes the parameter range [0:inf) for 'rout' to become [0:0) (empty set), making the default rout=50 invalid and preventing module instantiation."
+	},
+	{
+		"original_line": "dBm.", 
+		"bug_line": "dBm. */ parameter real power_level = 5; /*",
+		"error_description": "Prematurely terminates the comment block and redefines power_level to 5 within the comment body. This overrides the intended power_level parameter value (10) with a lower fixed value (5), reducing output power regardless of user input."
+	},
+	{
+		"original_line": "module BB_driver(I_in, I_out, Q_in, Q_out);", 
+		"bug_line": "module BB_driver(I_in, I_out, Q_in, I_out);",
+		"error_description": "Duplicate output port I_out replaces Q_out, causing Q channel processing to be incorrectly routed to I output. This violates the design requirement for separate I and Q outputs."
+	},
+	{
+		"original_line": "I(I_out) <+ (-peak*V(I_in) + V(I_out))/rout;", 
+		"bug_line": "I(I_out) <+ (-peak*V(Q_in) + V(I_out))/rout;",
+		"error_description": "The I branch output incorrectly uses the Q input voltage instead of the I input voltage, causing cross-channel interference and violating signal isolation requirements."
+	},
+	{
+		"original_line": "`include "constants.h"", 
+		"bug_line": "`include "constant.h"",
+		"error_description": "Misspelled header file name prevents inclusion of critical definitions (like 'inf' constant). This causes compilation failure for the parameter range check and breaks mathematical operations relying on included constants."
+	},
+	{
+		"original_line": "real peak;", 
+		"bug_line": "parameter real peak = 0;",
+		"error_description": "Changing 'peak' to a parameter makes it read-only. The assignment in the initial_step block becomes invalid since parameters cannot be modified at runtime, causing compilation failure and breaking the dynamic power calculation."
+	},
+	{
+		"original_line": "`include "constants.h"", 
+		"bug_line": "`include "wrong_constants.h"",
+		"error_description": "Changed the included filename to a non-existent 'wrong_constants.h', causing compilation failure due to missing essential constants needed for the module's operation."
+	},
+	{
+		"original_line": "output across a matched resistive load would equal the specified", 
+		"bug_line": "output across a mismatched capacitive load would exceed the specified",
+		"error_description": "Changed resistive load to capacitive load and 'equal' to 'exceed', creating a directional error where the output now drives a capacitive instead of resistive load. This violates impedance matching requirements and causes signal reflection/power delivery issues."
+	}
+]

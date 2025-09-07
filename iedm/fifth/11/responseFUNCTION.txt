@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "@(initial_step) begin", 
+		"bug_line": "@(final_step) begin",
+		"error_description": "Changed initial_step to final_step. This prevents critical initialization (OVSF code generation and variable setup) from occurring at simulation start. The block now only executes at simulation end, leaving the module uninitialized during operation and causing incorrect spreading code application."
+	},
+	{
+		"original_line": "Q_out_tmp_pich =  Q_out_hold_pich;", 
+		"bug_line": "Q_out_tmp_pich = I_out_hold_pich;",
+		"error_description": "Incorrectly assigns the I-channel hold value to the Q-channel temporary output for PICH when spreading code is positive, mixing I/Q components and breaking quadrature modulation integrity."
+	},
+	{
+		"original_line": "I_out_tmp_p_ccpch   = 0;", 
+		"bug_line": "I_out_tmp_p_ccpch   = I_out_tmp_pich;",
+		"error_description": "Incorrectly initializes I_out_tmp_p_ccpch with I_out_tmp_pich (which is 0) instead of 0. While both are 0 during initialization, this creates a dependency where changes to I_out_tmp_pich would erroneously affect I_out_tmp_p_ccpch if any later modifications occur, violating channel independence requirements."
+	},
+	{
+		"original_line": "  @(timer(sampled/500, sampled, sampled/10000)) begin", 
+		"bug_line": "  @(timer(sampled/500, sampled, sampled/500)) begin",
+		"error_description": "Reduced timer tolerance from sampled/10000 to sampled/500, causing premature event triggering due to tighter timing constraints. This leads to incorrect spreading code application and signal desynchronization."
+	},
+	{
+		"original_line": "V(I_out_p_cpich)   <+ I_out_tmp_p_cpich;", 
+		"bug_line": "V(I_out_p_cpich)   <+ Q_out_tmp_p_cpich;",
+		"error_description": "The in-phase output for P-CPICH is incorrectly assigned the quadrature component instead of the in-phase component, causing a swap between I and Q channels for P-CPICH."
+	},
+	{
+		"original_line": "V(I_out_p_cpich)   <+ I_out_tmp_p_cpich;", 
+		"bug_line": "V(I_out_p_cpich)   <+ I_out_tmp_pich;",
+		"error_description": "Assigned PICH spread signal to P-CPICH I output instead of P-CPICH signal, causing cross-channel interference between PICH and P-CPICH I-branch outputs."
+	},
+	{
+		"original_line": "              Q_out_tmp_pich =  Q_out_hold_pich;", 
+		"bug_line": "              Q_out_tmp_pich =  I_out_hold_pich;",
+		"error_description": "The assignment incorrectly uses the I branch input value instead of the Q branch input value for the PICH channel's Q output in the positive spreading branch. This swaps I/Q components for PICH when the spreading code is positive."
+	},
+	{
+		"original_line": "ovsfCode[1]               = 1;", 
+		"bug_line": "ovsfCode[1]               = 0;",
+		"error_description": "Initializing the root OVSF code to 0 instead of 1 breaks the spreading algorithm. The entire code tree will be built with zeros, causing all spreading operations to multiply inputs by zero (except index 1 of channel-specific arrays). This results in zero output for most chips, corrupting the spread signal."
+	},
+	{
+		"original_line": "Q_out_tmp_p_ccpch = Q_out_hold_p_ccpch;", 
+		"bug_line": "Q_out_tmp_p_ccpch = I_out_hold_p_ccpch;",
+		"error_description": "Assigns I channel value to Q output instead of Q channel value in the primary CCPCH positive branch, causing I/Q cross-talk and signal corruption."
+	},
+	{
+		"original_line": "        end else begin", 
+		"bug_line": "        end begin",
+		"error_description": "Removed 'else' keyword, causing the P-CCPCH negative branch to execute unconditionally. This inverts the P-CCPCH channel signal regardless of OVSF code polarity, violating spreading requirements."
+	},
+	{
+		"original_line": "        Q_out_tmp_p_cpich = Q_out_hold_p_cpich;", 
+		"bug_line": "        Q_out_tmp_p_cpich = I_out_hold_p_cpich;",
+		"error_description": "Assigns in-phase component to quadrature output for P-CPICH when OVSF code is positive, causing I/Q cross-talk in the spread signal."
+	},
+	{
+		"original_line": "tmpIndex = codeIndex[n];", 
+		"bug_line": "tmpIndex = codeIndex[(n+1)%4];",
+		"error_description": "Uses incorrect code index by shifting to next channel modulo 4, causing DPCH to use P-CPICH code, P-CPICH to use PICH code, PICH to use P-CCPCH code, and P-CCPCH to wrap back to DPCH code."
+	},
+	{
+		"original_line": "          end else if ( n == 1) begin", 
+		"bug_line": "          end else if ( n == 10) begin",
+		"error_description": "Changed condition from n==1 to n==10. Since n only ranges 0-3, this branch never executes, leaving P-CPICH outputs unmodified (stuck at initial 0). This disables the primary pilot channel while other channels function normally."
+	},
+	{
+		"original_line": "output I_out_dpch, I_out_p_cpich, I_out_pich, I_out_p_ccpch,", 
+		"bug_line": "input I_out_dpch, I_out_p_cpich, I_out_pich, I_out_p_ccpch,",
+		"error_description": "The I_out_* ports are mistakenly declared as inputs instead of outputs. This causes a functional error because the module attempts to drive these input ports in the analog block, violating port directionality and leading to simulation errors."
+	},
+	{
+		"original_line": "            pccpch_ovsfCode[0:256];", 
+		"bug_line": "            pccpch_ovsfCode[0:255];",
+		"error_description": "Reduced array size from 257 elements to 256 elements. During OVSF code generation, index 256 will be accessed (for SF=256), causing out-of-bounds access and undefined behavior in the spreading operation for P-CCPCH channel."
+	},
+	{
+		"original_line": "I_out_tmp_p_ccpch   = 0;", 
+		"bug_line": "I_out_tmp_p_ccpch   = 1;",
+		"error_description": "Initializes the temporary P-CCPCH in-phase signal to 1 instead of 0, causing incorrect non-zero output during the initial simulation phase before proper signal processing occurs."
+	},
+	{
+		"original_line": "if ( n == 0 ) begin", 
+		"bug_line": "if ( n == 4 ) begin",
+		"error_description": "Changed condition from n==0 to n==4. Since n only iterates from 0 to 3, the DPCH branch will never execute. This prevents DPCH signal processing, causing the DPCH outputs (I_out_dpch/Q_out_dpch) to remain at initial zero values instead of being properly spread."
+	},
+	{
+		"original_line": "          else begin", 
+		"bug_line": "          else if (n == 3) begin",
+		"error_description": "The modification restricts the OVSF code generation error to only the pccpch channel (n==3) when tmpIndex >= tmpSF. Other channels (dpch, pcpich, pich) will skip the required code negation branch during tree building, causing incorrect spreading codes for those channels."
+	},
+	{
+		"original_line": "      I_out_tmp_pich  =  I_out_hold_pich;", 
+		"bug_line": "      I_out_tmp_pich  =  I_out_hold_p_cpich;",
+		"error_description": "Assigns primary CPICH (p_cpich) I-component to PICH output instead of PICH I-component in positive branch, causing cross-channel interference between primary CPICH and PICH signals."
+	},
+	{
+		"original_line": "    I_out_tmp_dpch         = 0;", 
+		"bug_line": "    I_out_tmp_dpch         = 1;",
+		"error_description": "Initialization error: DPCH I channel temporary output initialized to 1 instead of 0. Causes incorrect output value at startup until first timer event, violating zero-initial state requirement."
+	}
+]

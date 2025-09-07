@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real vlogic_low = 0;", 
+		"bug_line": "parameter real vlogic_low = vlogic_high;",
+		"error_description": "Sets logic low level equal to logic high level. This causes both outputs to always be at the same voltage (5V), eliminating the distinction between logic states and violating the truth table where outputs should alternate between high and low based on inputs."
+	},
+	{
+		"original_line": "parameter real vlogic_high = 5;", 
+		"bug_line": "parameter real vlogic_high = 0;",
+		"error_description": "Setting vlogic_high to 0V (same as vlogic_low) forces all outputs to 0V regardless of inputs, violating the truth table where outputs should be 5V for '1' states."
+	},
+	{
+		"original_line": "@ (cross(V(vin2) - vtrans, 1))  b = 1;", 
+		"bug_line": "@ (cross(V(vin2) - vtrans, 1))  b = 0;",
+		"error_description": "Sets b to 0 instead of 1 when vin2 crosses threshold positively, inverting the input detection. This causes incorrect borrow/diff outputs (e.g., when vin1=0/vin2=1, borrow becomes 0 instead of 1)."
+	},
+	{
+		"original_line": "@ (cross(V(vin2) - vtrans, -1)) b = 0;", 
+		"bug_line": "@ (cross(V(vin2) - vtrans, 1)) b = 0;",
+		"error_description": "Changed the falling-edge event to a rising-edge event. Now both vin2 events trigger on rising edges, causing b to be set to 0 during rising transitions instead of falling transitions. This violates the truth table when vin2 transitions high, incorrectly resetting borrow and difference outputs during positive edges."
+	},
+	{
+		"original_line": "vout_borrow_val = !a && b ? vlogic_high : vlogic_low;", 
+		"bug_line": "vout_borrow_val = !a || b ? vlogic_high : vlogic_low;",
+		"error_description": "Changed logical AND (&&) to OR (||) in borrow condition. Now sets borrow=1 for cases (a=0,b=0) and (a=1,b=1) where borrow should be 0, violating the half-subtractor truth table."
+	},
+	{
+		"original_line": "input vin1, vin2;", 
+		"bug_line": "output vin1, vin2;",
+		"error_description": "Changed input ports to outputs. This violates the design specification since vin1 and vin2 should be inputs receiving external signals, but are now incorrectly declared as outputs. The module will attempt to drive these ports instead of reading them, causing functional errors in signal processing."
+	},
+	{
+		"original_line": "output vout_diff, vout_borrow;", 
+		"bug_line": "output vout_diff;",
+		"error_description": "The output port vout_borrow is removed, leaving it undeclared. This causes the borrow output signal to be undriven, breaking the half-subtractor functionality where borrow should be high when inputs are (0,1)."
+	},
+	{
+		"original_line": "parameter real vtrans = 1.4;", 
+		"bug_line": "parameter real vtrans = 6.0;",
+		"error_description": "Threshold voltage (6.0V) exceeds logic high level (5.0V), causing inputs to never register as high since input voltages can't reach this threshold. This breaks all logic operations dependent on high input detection."
+	},
+	{
+		"original_line": "vout_borrow_val = !a && b ? vlogic_high : vlogic_low;", 
+		"bug_line": "vout_borrow_val = !a && b ? vlogic_low : vlogic_high;",
+		"error_description": "Inverts the borrow output logic: incorrectly assigns vlogic_low when borrow should be high and vlogic_high when borrow should be low."
+	},
+	{
+		"original_line": "vout_diff_val = a ^ b ? vlogic_high : vlogic_low;", 
+		"bug_line": "vout_diff_val = a && b ? vlogic_high : vlogic_low;",
+		"error_description": "Replaced XOR with AND operation for difference output. This causes incorrect logic where (1,1) inputs produce high (should be low) and (0,1)/(1,0) produce low (should be high), violating the half-subtractor truth table."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed 'analog begin' to 'initial begin', converting the continuous analog block to a one-time digital initial block. This prevents continuous evaluation of cross events and output transitions, freezing outputs after t=0 and breaking the dynamic subtraction functionality."
+	},
+	{
+		"original_line": "b = V(vin2) > vtrans;", 
+		"bug_line": "b = V(vin1) > vtrans;",
+		"error_description": "Assigned input b based on vin1 instead of vin2, causing both inputs to use vin1 and ignore vin2 completely."
+	},
+	{
+		"original_line": "V(vout_borrow) <+ transition( vout_borrow_val, tdel, trise, tfall);", 
+		"bug_line": "V(vout_borrow) <+ transition( vlogic_low, tdel, trise, tfall);",
+		"error_description": "The borrow output is hardcoded to always be low (vlogic_low), ignoring the actual borrow calculation. This violates the truth table where borrow must be high when inputs are (0,1), causing functional failure for that input combination."
+	},
+	{
+		"original_line": "@ (cross(V(vin2) - vtrans, 1))  b = 1;", 
+		"bug_line": "@ (cross(V(vin2) - vtrans, 1))  b = 0;",
+		"error_description": "Sets b to 0 on rising edge of vin2 instead of 1, causing incorrect interpretation of input vin2 as low when it is high. This violates the truth table where vin2=1 should produce diff=1 and borrow=1 when vin1=0."
+	},
+	{
+		"original_line": "    $display("Inconsistent $threshold specification w/logic family.\n");", 
+		"bug_line": "    vtrans = vlogic_low;",
+		"error_description": "Changed warning message to incorrectly force vtrans parameter to vlogic_low value, overriding user-defined threshold and causing incorrect logic level detection for all inputs."
+	},
+	{
+		"original_line": "electrical vin1, vin2, vout_diff, vout_borrow;", 
+		"bug_line": "electrical vin1, vin2, vout_diff;",
+		"error_description": "Removed 'vout_borrow' from the discipline declaration. This leaves the borrow output pin without a defined electrical discipline, causing a compilation error and preventing proper connection to analog networks."
+	},
+	{
+		"original_line": "parameter real tfall = 1u from (0:inf);", 
+		"bug_line": "parameter real tfall = -1u from (0:inf);",
+		"error_description": "Assigned negative value (-1u) to tfall, which violates the range constraint (0:inf). This causes an invalid parameter error during simulation setup since fall time must be positive."
+	},
+	{
+		"original_line": "@ (cross(V(vin1) - vtrans, 1))  a = 1;", 
+		"bug_line": "@ (cross(V(vin1) - vtrans, 1))  a = 0;",
+		"error_description": "Sets a=0 (low) on positive threshold crossing of vin1 instead of a=1 (high), causing inverted state detection for input a during rising transitions."
+	},
+	{
+		"original_line": "V(vout_diff) <+ transition( vout_diff_val, tdel, trise, tfall);", 
+		"bug_line": "V(vout_diff) <+ transition( vout_borrow_val, tdel, trise, tfall);",
+		"error_description": "The difference output incorrectly uses the borrow value instead of the XOR result. This causes the diff output to mirror the borrow output (0 when inputs are same, 1 when first input is 0 and second is 1), violating the half-subtractor truth table where diff should be 1 when inputs differ."
+	},
+	{
+		"original_line": "b = V(vin2) > vtrans;", 
+		"bug_line": "b = V(vin1) > vtrans;",
+		"error_description": "Changed input reference from vin2 to vin1, causing the subtractor to ignore the second input. Both a and b now incorrectly depend solely on vin1, breaking the core functionality where outputs should respond to both inputs according to the truth table."
+	}
+]

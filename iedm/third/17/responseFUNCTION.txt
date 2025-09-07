@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "	I(d,e) <+ ci*ddt(V(d,e));", 
+		"bug_line": "	I(d,e) <+ ci*ddt(V(d));",
+		"error_description": "Capacitor current incorrectly uses derivative of single-node voltage (V(d)) instead of differential voltage (V(d,e)), breaking the fundamental capacitor equation that requires voltage difference across terminals."
+	},
+	{
+		"original_line": "ci = 1/(2*`M_PI*freq*ri);", 
+		"bug_line": "ci = 1/(2*`M_PI*freq*rout);",
+		"error_description": "Replaced internal resistor 'ri' with output impedance 'rout' in capacitance calculation. This incorrectly uses the output impedance value instead of the internal resistor value, disrupting the RC time constant and phase shift characteristics."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   analog initial begin",
+		"error_description": "Replaced 'analog begin' with 'analog initial begin', incorrectly nesting initial block inside analog block. This causes the initial_step event and subsequent assignments to execute only once at time zero instead of continuously, breaking the phase shifter's dynamic behavior."
+	},
+	{
+		"original_line": "I(e) <+ (1/ri)*V(e);", 
+		"bug_line": "I(e) <+ (1/ri)*V(single);",
+		"error_description": "The current contribution at node 'e' incorrectly uses voltage from 'single' terminal instead of local node 'e', breaking the resistor's voltage dependency and causing erroneous behavior in the phase shifter circuit."
+	},
+	{
+		"original_line": "	I(lag) <+ V(lag)/rin;", 
+		"bug_line": "	I(lag) <+ V(lead)/rin;",
+		"error_description": "Replaced 'V(lag)' with 'V(lead)', causing the input current at the lag terminal to incorrectly depend on the voltage at the lead terminal instead of its own voltage, breaking input impedance isolation."
+	},
+	{
+		"original_line": "   electrical single, lag, lead;", 
+		"bug_line": "   electrical single, lag;",
+		"error_description": "The port 'lead' is missing its electrical discipline declaration. This causes the analog block to reference an undeclared net when accessing V(lead), resulting in a compilation error and breaking the shifter functionality."
+	},
+	{
+		"original_line": "electrical single, lag, lead;", 
+		"bug_line": "electrical single, lag; magnetic lead;",
+		"error_description": "The 'lead' port is incorrectly declared as magnetic instead of electrical, causing incompatible discipline assignments. This violates design requirements since voltage operations (V(lead)) and electrical connections in the module will fail during compilation/simulation."
+	},
+	{
+		"original_line": "   parameter real r    = 50 from (0:inf);", 
+		"bug_line": "   parameter real r    = -50 from (-inf:inf);",
+		"error_description": "The resistance parameter 'r' is set to a negative default value and allows negative values in the range. This causes the internal resistor 'ri' to be negative, resulting in non-physical negative resistance behavior in the circuit, violating the design requirement of positive resistance."
+	},
+	{
+		"original_line": "I(a,b) <+ (1/ri)*V(a,b);", 
+		"bug_line": "I(a,b) <+ (1/ri)*V(a);",
+		"error_description": "The resistor current incorrectly depends on the absolute voltage at node 'a' instead of the voltage difference between nodes 'a' and 'b', violating Ohm's law and fundamentally breaking the phase shift functionality."
+	},
+	{
+		"original_line": "   parameter real rout = 50 from (0:inf);", 
+		"bug_line": "   parameter real rout = -50 from (-inf:inf);",
+		"error_description": "Changed output resistance to negative value (-50) and expanded range to include negatives. This introduces non-physical negative resistance that causes simulation instability since passive components cannot have negative impedance."
+	},
+	{
+		"original_line": "      @(initial_step) begin", 
+		"bug_line": "      @(final_step) begin",
+		"error_description": "Changed event trigger from initial_step to final_step. This causes the ri/ci initialization to occur at simulation end instead of start, leaving critical parameters uninitialized during operation. Results in division-by-zero (1/ri) and incorrect capacitor behavior throughout the simulation."
+	},
+	{
+		"original_line": "   ri = r;", 
+		"bug_line": "   ri = 0;",
+		"error_description": "Setting ri=0 causes division by zero when calculating ci=1/(2*π*freq*ri), resulting in undefined/infinite capacitance. This corrupts the RC network behavior and makes the phase shifter non-functional."
+	},
+	{
+		"original_line": "   parameter real gain = 2 from (0:inf);", 
+		"bug_line": "   parameter real gains = 2 from (0:inf);",
+		"error_description": "Renamed parameter 'gain' to 'gains', making the variable 'gain' used in voltage assignments (V(a) <+ gain*V(lag)) undefined. This breaks the gain multiplication functionality as 'gain' becomes an implicit net with undefined value."
+	},
+	{
+		"original_line": "I(b) <+ ci*ddt(V(b));", 
+		"bug_line": "I(b) <+ ci*ddt(V(a));",
+		"error_description": "The capacitor current incorrectly depends on voltage derivative at node 'a' instead of node 'b', breaking the intended RC network behavior. This directional error causes incorrect phase shift calculations by coupling unrelated nodes."
+	},
+	{
+		"original_line": "   parameter real rout = 50 from (0:inf);", 
+		"bug_line": "   parameter real rout = 0;",
+		"error_description": "Removes the range constraint and sets default output impedance to 0Ω, creating a short circuit instead of the specified 50Ω impedance. This violates the design by forcing V(c,single) to 0V regardless of current."
+	},
+	{
+		"original_line": "module shifter_combiner(single, lag, lead);", 
+		"bug_line": "module shifter_combiner(single, lag);",
+		"error_description": "Removed the 'lead' input port, disconnecting the leading-phase signal. This breaks the phase-shifting functionality since the internal node 'lead' becomes an unconnected local net instead of receiving external input."
+	},
+	{
+		"original_line": "   parameter real r    = 50 from (0:inf);", 
+		"bug_line": "   parameter real r    = 0 from [0:inf);",
+		"error_description": "Default resistance set to 0 and range adjusted to include 0. This causes division by zero when calculating ci in initial_step (ci = 1/(2*π*freq*ri)) since ri=r=0, leading to simulation failure."
+	},
+	{
+		"original_line": "inout single, lag, lead;", 
+		"bug_line": "inout single, lag;",
+		"error_description": "The 'lead' pin is removed from the port declaration, causing unresolved references to 'lead' in the module body (e.g., V(d) <+ gain*V(lead)), resulting in compilation failure and preventing simulation."
+	},
+	{
+		"original_line": "electrical single, lag, lead;", 
+		"bug_line": "electrical single, lag; ground lead;",
+		"error_description": "The 'lead' port is incorrectly declared as ground discipline instead of electrical. This forces the lead terminal to 0V, preventing signal input and causing incorrect voltage references throughout the analog block."
+	},
+	{
+		"original_line": "V(a) <+ gain*V(lag);", 
+		"bug_line": "V(a) <+ gain*V(lead);",
+		"error_description": "Swapped input signal from lag to lead, causing both paths to process the same lead input signal. This violates the design where lag and lead signals should be processed separately through distinct paths before combining."
+	}
+]

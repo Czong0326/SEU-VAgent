@@ -1,0 +1,202 @@
+[
+	{
+		"original_line": "branch (hx ,vgnd )	hax;", 
+		"bug_line": "branch (vgnd ,hx )	hax;",
+		"error_description": "Reversed branch polarity for hx input causes inversion of applied magnetic field. The external field hx will subtract from effective field instead of adding, fundamentally altering LLG dynamics and creating directional errors in magnetization response."
+	},
+	{
+		"original_line": "branch (MZ ,vgnd )	magz, magzz;", 
+		"bug_line": "branch (vgnd ,MZ )	magz, magzz;",
+		"error_description": "Reversed branch polarity inverts magnetization Z-component sign, causing incorrect STT torque calculation and magnetization dynamics. The effective field direction becomes inverted in Z-axis due to reversed voltage potential reference between MZ and virtual ground."
+	},
+	{
+		"original_line": "mdp = V(magx)*MHX + V(magy)*MHY + V(magz)*MHZ;", 
+		"bug_line": "mdp = V(magx)*MHX + V(magy)*MHY;",
+		"error_description": "Excludes z-component from magnetization dot product calculation, corrupting state interpolation between P/AP configurations by ignoring vertical magnetization alignment critical for PMA devices."
+	},
+	{
+		"original_line": "electrical fl,pl,hx,hy,hz,MX,MY,MZ,vgnd,th,ph,heff_x,heff_y,heff_z;", 
+		"bug_line": "electrical fl,pl,hx,hy,hz,MX,MY,MZ,vgnd,th,ph,heff_z,heff_y,heff_x;",
+		"error_description": "Swapped heff_x/heff_z declarations creates directional inversion in effective field components. Causes z-axis anisotropy field to be applied along x-axis and vice versa, fundamentally disrupting LLG equation calculations while maintaining syntactic validity."
+	},
+	{
+		"original_line": "mdp = V(magx)*MHX + V(magy)*MHY + V(magz)*MHZ;", 
+		"bug_line": "mdp = V(magx)*MHX + V(magy)*MHY - V(magz)*MHZ;",
+		"error_description": "Sign inversion in z-component of magnetization dot product reverses the angular dependence of MTJ resistance. This causes conductance interpolation between parallel/anti-parallel states to be inverted, making the device appear anti-aligned when magnetizations are parallel and vice versa."
+	},
+	{
+		"original_line": "real mxpy, mxpz, Ap2, Am2, Lamb_PL2, Lamb_FL2;", 
+		"bug_line": "real mxpy, mxpz, Am2, Ap2, Lamb_PL2, Lamb_FL2;",
+		"error_description": "Swapped Ap2/Am2 declaration order causes inverted denominator calculation in STT torque factor. The denominator (Ap2 - Am2*mdp²) becomes (Am2_original - Ap2_original*mdp²), fundamentally altering the spin-torque model's stability conditions and critical current calculations."
+	},
+	{
+		"original_line": "V(magy) <+ sin(V(theta))*sin(V(phi));", 
+		"bug_line": "V(magy) <+ sin(V(theta))*cos(V(phi));",
+		"error_description": "Swapped sine and cosine in phi component for magy conversion. This creates directional error in spherical-to-Cartesian transformation, making magnetization y-component identical to x-component. Destroys magnetization orientation accuracy critical for STT calculations and LLG dynamics."
+	},
+	{
+		"original_line": "parameter real Ku2 = 5e3 from (-inf:inf);", 
+		"bug_line": "parameter real Ku2 = -5e3 from (-inf:inf);",
+		"error_description": "Negative uniaxial anisotropy constant inverts PMA direction, creating easy-plane anisotropy instead of perpendicular magnetic anisotropy as specified. This flips the preferred magnetization orientation from out-of-plane to in-plane, fundamentally altering device operation."
+	},
+	{
+		"original_line": "branch (ph ,vgnd )	phi, llg_rhs_ph;", 
+		"bug_line": "branch (ph ,vgnd )	phi, llg_rhs_th;",
+		"error_description": "Swapped llg_rhs_ph to llg_rhs_th, incorrectly routing phi dynamics to theta's RHS. This cross-couples the LLG equations, causing theta to receive phi's angular terms and vice versa, fundamentally breaking magnetization dynamics calculations."
+	},
+	{
+		"original_line": "branch (fl ,pl )	mtjres;", 
+		"bug_line": "branch (pl ,fl )	mtjres;",
+		"error_description": "Reversing terminal order in mtjres branch inverts voltage polarity, causing incorrect current direction calculation. This flips spin-transfer torque polarity leading to reversed magnetization switching behavior as STT effect becomes directionally inverted."
+	},
+	{
+		"original_line": "I(magyy) <+ V(magy);", 
+		"bug_line": "I(magyy) <+ V(magz);",
+		"error_description": "Incorrect assignment of magnetization y-component (MY) to z-axis value instead of y-axis, disrupting coordinate conversion and causing erroneous magnetization dynamics in LLG calculations."
+	},
+	{
+		"original_line": "parameter real c4_p = 25.0243 from (-inf:inf);", 
+		"bug_line": "parameter real c4_p = 24.144 from (-inf:inf);",
+		"error_description": "Swapped c4_p coefficient with c4_ap value, causing incorrect parallel state conductance calculation. This violates the NEGF model parameterization by mixing anti-parallel state coefficients into parallel state calculation, leading to erroneous resistance values and invalid TMR ratios."
+	},
+	{
+		"original_line": "branch (hy ,vgnd )	hay;", 
+		"bug_line": "branch (hy ,vgnd )	haz;",
+		"error_description": "Cross-connected magnetic field branches: hy input incorrectly mapped to haz branch instead of hay. This swaps y-axis external field input with z-axis handling, corrupting effective field calculations in LLG dynamics."
+	},
+	{
+		"original_line": "I(happz) <+ -I(haz);", 
+		"bug_line": "I(happz) <+ I(haz);",
+		"error_description": "Reversed sign for z-axis applied field injection creates inverted effective field calculation. The positive feedback causes magnetization dynamics to respond opposite to external z-field inputs, violating directional field requirements in LLG equation."
+	},
+	{
+		"original_line": "I(llg_rhs_th) <+ -1*(V(heffx)*(alpha*cos(V(theta))*cos(V(phi))-sin(V(phi)))+V(heffy)*(cos(V(phi))+alpha*cos(V(theta))*sin(V(phi)))-V(heffz)*alpha*sin(V(theta)));", 
+		"bug_line": "I(llg_rhs_th) <+ -1*(V(heffx)*(alpha*cos(V(theta))*cos(V(phi))-sin(V(phi)))+V(heffy)*(cos(V(phi))-alpha*cos(V(theta))*sin(V(phi)))-V(heffz)*alpha*sin(V(theta)));",
+		"error_description": "Changed '+' to '-' in the heffy coefficient term, inverting the sign of the damping contribution from the y-component of effective field. This disrupts the Landau-Lifshitz torque balance by incorrectly combining Gilbert damping terms with opposite polarity, leading to unphysical magnetization precession and potential numerical instability."
+	},
+	{
+		"original_line": "Lamb_FL2 = Lambda_R*Lambda_R;", 
+		"bug_line": "Lamb_FL2 = Lambda_L*Lambda_L;",
+		"error_description": "Swapped Lambda_L and Lambda_R in free layer polarization parameter. Lamb_FL2 should represent free layer polarization (Lambda_R) but incorrectly uses pinned layer parameter (Lambda_L), corrupting spin torque calculations by mixing polarization asymmetries between layers."
+	},
+	{
+		"original_line": "MHX = sin(th_hard)*cos(ph_hard);", 
+		"bug_line": "MHX = cos(th_hard)*cos(ph_hard);",
+		"error_description": "Incorrect spherical coordinate conversion replaces sine with cosine for theta component, creating directional error in hard-axis magnetization vector. This corrupts anisotropy field calculations and magnetization dynamics by misaligning the reference axis orientation."
+	},
+	{
+		"original_line": "branch (hy ,vgnd )	hay;", 
+		"bug_line": "branch (hz ,vgnd )	hay;",
+		"error_description": "Changes the magnetic field input connection from hy to hz for the Y-axis component, causing incorrect mapping of external magnetic field inputs and disrupting the LLG equation's effective field calculation."
+	},
+	{
+		"original_line": "parameter real Ku2 = 5e3 from (-inf:inf);", 
+		"bug_line": "parameter real Ku2 = -5e3 from (-inf:inf);",
+		"error_description": "Negative uniaxial anisotropy constant inverts magnetic easy axis direction, converting intended perpendicular magnetic anisotropy to erroneous in-plane anisotropy. This fundamentally alters the device's preferred magnetization orientation, violating PMA (Perpendicular Magnetic Anisotropy) requirements."
+	},
+	{
+		"original_line": "electrical fl,pl,hx,hy,hz,MX,MY,MZ,vgnd,th,ph,heff_x,heff_y,heff_z;", 
+		"bug_line": "electrical fl,pl,hx,hy,hz,MY,MX,MZ,vgnd,th,ph,heff_x,heff_y,heff_z;",
+		"error_description": "Swapped MX/MY node declarations causes magnetization component inversion. X and Y magnetization states are stored in wrong nodes, corrupting STT torque calculations and LLG dynamics through reversed coordinate handling."
+	},
+	{
+		"original_line": "parameter real c3_p = -7.46919 from (-inf:inf);", 
+		"bug_line": "parameter real c3_p = 7.46919 from (-inf:inf);",
+		"error_description": "Sign inversion in c3_p coefficient for parallel resistance model. Positive exponent causes exponential overestimation of Gp_pre term, dramatically reducing parallel resistance (Rp) and destroying TMR ratio requirements."
+	},
+	{
+		"original_line": "real mxpy, mxpz, Ap2, Am2, Lamb_PL2, Lamb_FL2;", 
+		"bug_line": "real mxpy, mxpz, Am2, Ap2, Lamb_PL2, Lamb_FL2;",
+		"error_description": "Swapped Ap2/Am2 declaration order causes inverted denominator in spin torque calculation (Ap2 - Am2*mdp² becomes Am2 - Ap2*mdp²), leading to reversed STT polarity and incorrect magnetization switching direction."
+	},
+	{
+		"original_line": "I(happy) <+ -I(hay);", 
+		"bug_line": "I(happy) <+ -I(hax);",
+		"error_description": "Cross-axis coupling error: Applied x-axis field (hax) incorrectly contributes to y-axis effective field (happy). Violates magnetic field component isolation, causing erroneous magnetization dynamics by mixing orthogonal field components."
+	},
+	{
+		"original_line": "branch (ph ,vgnd )	phi, llg_rhs_ph;", 
+		"bug_line": "branch (ph ,vgnd )	llg_rhs_ph, phi;",
+		"error_description": "Reverses branch direction for LLG equation current contribution, inverting the sign of spin-torque induced precession in phi component. This causes magnetization rotation to follow wrong angular velocity direction during switching events."
+	},
+	{
+		"original_line": "branch (MY ,vgnd )	magy, magyy;", 
+		"bug_line": "branch (MY ,vgnd )	magx, magyy;",
+		"error_description": "Incorrect association of MY branch with magx (MX component) creates cross-axis coupling in magnetization calculations. This causes MX and MY components to share the same branch voltage, corrupting the spherical coordinate conversion and subsequent LLG dynamics."
+	},
+	{
+		"original_line": "MHX = sin(th_hard)*cos(ph_hard);", 
+		"bug_line": "MHX = sin(th)*cos(ph_hard);",
+		"error_description": "Replaced fixed parameter th_hard with dynamic variable th, making hard-axis x-component dependent on instantaneous magnetization angle. This violates the static hard-axis orientation requirement, creating feedback between magnetization state and anisotropy direction."
+	},
+	{
+		"original_line": "real mdp, MHX, MHY, MHZ, sttScaleFac, mxpx;", 
+		"bug_line": "real mdp, MHX, MHY, MHZ, stScaleFac, mxpx;",
+		"error_description": "Misspelled 'sttScaleFac' as 'stScaleFac' in declaration. This leaves 'sttScaleFac' undeclared, defaulting to 0, which nullifies the spin-transfer torque effect critical for magnetization switching."
+	},
+	{
+		"original_line": "I(hay) <+ V(hay);", 
+		"bug_line": "I(hay) <+ -V(hay);",
+		"error_description": "Inverts the applied magnetic field in y-direction by negating the current contribution, causing incorrect effective field calculation in LLG dynamics. This directional error leads to reversed spin torque effects and improper magnetization orientation."
+	},
+	{
+		"original_line": "V(magy) <+ sin(V(theta))*sin(V(phi));", 
+		"bug_line": "V(magy) <+ sin(V(theta))*cos(V(phi));",
+		"error_description": "Swapped sin(phi) to cos(phi) in magy calculation, creating directional error in spherical-to-Cartesian conversion. This makes magnetization y-component identical to x-component, corrupting magnetization dynamics simulation."
+	},
+	{
+		"original_line": "I(phi) <+ (1+alpha*alpha)*ddt(V(phi))/gamma;", 
+		"bug_line": "I(phi) <+ (1+alpha*alpha)*ddt(V(phi))*gamma;",
+		"error_description": "Replaced division with multiplication of gamma, critically altering LLG dynamics. The gyromagnetic ratio scaling becomes γ²(1+α²) instead of (1+α²)/γ, causing unphysical magnetization precession speeds (~1e14x faster) and simulation instability."
+	},
+	{
+		"original_line": "branch (ph ,vgnd )	phi, llg_rhs_ph;", 
+		"bug_line": "branch (ph ,vgnd )	phi, llg_rhs_th;",
+		"error_description": "Swapped llg_rhs_ph with theta's RHS branch, cross-coupling spherical coordinate equations. The phi differential equation now incorrectly receives theta's right-hand side terms, corrupting LLG solution and magnetization dynamics."
+	},
+	{
+		"original_line": "branch (heff_y ,vgnd )	heffy, happy, hs_y;", 
+		"bug_line": "branch (heff_y ,vgnd )	heffy, happy;",
+		"error_description": "Omitted spin-transfer torque (STT) contribution to y-axis effective field by removing hs_y branch. This prevents STT-induced y-direction magnetization changes, breaking proper magnetization dynamics and STT switching capability."
+	},
+	{
+		"original_line": "I(magzz) <+ V(magz);", 
+		"bug_line": "I(magzz) <+ -V(magz);",
+		"error_description": "Inverted magnetization z-component polarity. This reverses the sign of free layer's magnetization z-axis projection, corrupting anisotropy field calculations (H_UA = -2Ku2*Mz/Ms) and disrupting LLG dynamics by creating unphysical negative feedback in the z-direction."
+	},
+	{
+		"original_line": "I(llg_rhs_th) <+ -1*(V(heffx)*(alpha*cos(V(theta))*cos(V(phi))-sin(V(phi)))+V(heffy)*(cos(V(phi))+alpha*cos(V(theta))*sin(V(phi)))-V(heffz)*alpha*sin(V(theta)));", 
+		"bug_line": "I(llg_rhs_th) <+ -1*(V(heffx)*(alpha*cos(V(theta))*cos(V(phi))-sin(V(phi)))+V(heffy)*(cos(V(phi))+alpha*cos(V(theta))*sin(V(phi)))-V(heffz)*sin(V(theta)));",
+		"error_description": "Removed alpha multiplier from heff_z term in LLG theta equation, disrupting damping factor balance between Gilbert damping and precessional motion. This eliminates magnetic damping contribution from the z-axis effective field component, leading to unphysical magnetization oscillations."
+	},
+	{
+		"original_line": "parameter real c3_p = -7.46919 from (-inf:inf);", 
+		"bug_line": "parameter real c3_p = 7.46919 from (-inf:inf);",
+		"error_description": "Sign inversion of c3_p coefficient disrupts parallel state conductance calculation. Positive c3_p creates exponentially growing term in Gp_pre instead of decaying, leading to incorrect low parallel resistance and broken TMR ratio validation (R_AP/R_P > 2 requirement fails)."
+	},
+	{
+		"original_line": "I(mtjres) <+ V(mtjres)/Rmtj;", 
+		"bug_line": "I(mtjres) <+ V(mtjres)*Gp;",
+		"error_description": "Replaced resistance-based current calculation with fixed parallel conductance, eliminating magnetization-dependent resistance variation. This hardcodes the MTJ in parallel state regardless of actual magnetization orientation, disabling TMR effect crucial for device operation."
+	},
+	{
+		"original_line": "parameter real P_R = 0.4 from [0:inf);", 
+		"bug_line": "parameter real P_R = 0.4 from (-1:1);",
+		"error_description": "Changed valid range from [0:inf) to (-1:1), allowing negative polarization values which are physically impossible. This violates spin polarization physics as P_R represents spin polarization efficiency that cannot be negative, causing incorrect spin torque direction calculation in STT terms."
+	},
+	{
+		"original_line": "V(heffy) <+ I(heffy);", 
+		"bug_line": "V(heffy) <+ -I(heffy);",
+		"error_description": "Inverts the effective field's y-component polarity, causing reversed magnetization dynamics in the y-direction. This sign error leads to incorrect torque calculations in the LLG equation, potentially creating anti-damping behavior and unstable magnetic states."
+	},
+	{
+		"original_line": "branch (ph ,vgnd )	phi, llg_rhs_ph;", 
+		"bug_line": "branch (ph ,vgnd )	theta, llg_rhs_ph;",
+		"error_description": "Swapped theta/phi branch assignment creates reversed angular dependencies in LLG equations. Theta calculations will incorrectly use phi terminal voltages and vice versa, inverting magnetization dynamics relationships between polar and azimuthal angles."
+	},
+	{
+		"original_line": "branch (ph ,vgnd )	phi, llg_rhs_ph;", 
+		"bug_line": "branch (vgnd, ph )	phi, llg_rhs_ph;",
+		"error_description": "Reversed branch polarity for phi/llg_rhs_ph disrupts LLG equation integration by inverting time derivative signs, causing inverted magnetization dynamics in phi-direction."
+	}
+]

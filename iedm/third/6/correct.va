@@ -1,0 +1,155 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Copyright @ 2017 Purdue University
+ 
+//The terms under which the software and associated documentation (the Software) is provided are as the following:
+ 
+//The Software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages or other liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the Software or the use or other dealings in the Software.
+ 
+//Purdue grants, free of charge, to any users the right to modify, copy, and redistribute the Software, both within the user's organization and externally, subject to the following restrictions:
+ 
+//1. The users agree not to charge for the code itself but may charge for additions, extensions, or support.
+ 
+//2. In any product based on the Software, the users agree to acknowledge the TAG solar cell model Research Group that developed the software. This acknowledgment shall appear in the product documentation.
+ 
+//3. The users agree to obey all U.S. Government restrictions governing redistribution or export of the software.
+ 
+//4. The users agree to reproduce any copyright notice which appears on the software on any copy or modification of such made available to others.
+ 
+//Agreed to by 
+//Xingshu Sun, Raghu Vamsi Chavali, Sourabh Dongaonkar, Suhas Baddela, Mark Lundstrom, and Muhammad Ashraf Alam, Purdue University
+//April 11 2017
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Xingshu Sun, Raghu Vamsi Chavali, Sourabh Dongaonkar, Suhas Baddela, Mark Lundstrom, and Muhammad Ashraf Alam (alam@purdue.edu), Purdue University
+// Verilog-A version of Purdue Physics-Based Solar Cell Model (PSM) V2.0.0 for Pervoskite and a-Si (p-i-n)
+// Physics model:  X. Sun, R. Asadpour, W. Nie, A. D. Mohite, and M. A. Alam, “A Physics-Based Analytical Model for Perovskite Solar Cells,” IEEE J. Photovoltaics, vol. 5, no. 5, pp. 1389–1394, Sep. 2015.
+// Implemented on May 30 2016, 2016 by Xingshu Sun
+// Default parameters are from X. Sun, R. Asadpour, W. Nie, A. D. Mohite, and M. A. Alam, “A Physics-Based Analytical Model for Perovskite Solar Cells,” IEEE J. Photovoltaics, vol. 5, no. 5, pp. 1389–1394, Sep. 2015.
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+module psm_pero_asi_v_2_0_0(vp, vn);
+
+inout vp,vn;
+electrical vp,vn,vpi;
+
+//intrinsic model parameter
+parameter real area       =   1e-4        from (0:100];       // cell area                                                [m2]
+parameter real m          =   4.5         from (0:100];       // absorber thickness over lambda                           
+parameter real jphoto_max =   230         from [0:1000];      // maximum photocurrent                                     [A/m2] 
+parameter real shading_P  =   0           from [0:100];       // shading percentage                                       [%]    	
+parameter real j0f        =   2.7e-12     from (0:1];         // front recombination current                              [A/m2]
+parameter real j0b        =   4e-12       from (0:1];         // back recombination current                               [A/m2]
+parameter real Vbi        =   0.78        from (0:2];         // cell built-in voltage                                    [V]
+parameter real bf         =   5.79        from (0:1e7];       // beta for front interface                             
+parameter real bb         =   59.74       from (0:1e7];       // beta for back interface        
+parameter real T_REF      =   300         from [250:400];     // cell temperature for reference
+parameter real T_Cell     =   300         from [250:400];     // cell temperature
+parameter real Vbr_REF    =   -20         from [-100:0];      // breakdown voltage for reference                          [V]
+parameter real beta_Vbr   =   8.8e-4      from [0:1];         // temperature dependence of breakdown voltage              [1/K]
+
+//parasitic resistances
+parameter real gsh1       =   1e-4        from (0:10];        // shunt conductance parameter 1                            [S/m2]
+parameter real gsh2       =   1e-4        from (0:10];        // shunt conductance parameter 2                            [S/m2]
+parameter real n_sh       =   3           from (0:5);         // shunt conductance index
+parameter real RS         =   1e-6        from (0:100];       // series resistance                                        [Ohms/square]
+
+//smooth function parameters
+parameter real smoothP1   =   1e5         from [1e3:inf);     // smooth parameter for a continuous step function
+parameter real smoothP2   =   10          from [0:1e5];       // smooth parameter                                         [V]
+
+real  j_diode, j_photo, j_shunt, f_br, I_tot;
+
+real  V_i, V_re, Vbr;
+
+real  alphaf, alphab, B, A, VE;
+
+real  fs1, fs2;
+
+real  kT;
+
+/////////////////////////////////////////////////////
+///define current branch
+branch (vpi,vn)   i_b;                                                                   // intrinsic branch
+branch (vp,vpi)   rs_b;                                                                  // series resistance branch
+
+analog begin
+
+/////////////////////////////////////////////////////
+///define voltage node and current branch
+V_i         =       V(i_b);                                                              // intrinsic voltage
+
+V_re        =       V(rs_b);                                                             // voltage across series resistance
+/////////////////////////////////////////////////////
+//Define Constant
+kT          =       T_Cell * 8.617e-5;                                                   // thermal voltage (T3.10 in the manual)
+
+/////////////////////////////////////////////////////
+///calculate temperature-dependent parameters
+Vbr         =       Vbr_REF*(1+beta_Vbr*(T_Cell-T_REF));                                 // breakdown voltage (T3.11 in the manual)             [V]
+
+/////////////////////////////////////////////////////
+///calculate numerical smooth function 
+fs1         =       0.5*(1-tanh(smoothP2*V_i));                                          // smooth function #1 (T3.12 in the manual)
+
+fs2         =       0.5*(1+tanh(smoothP2*(V_i - Vbr)));                                  // smooth function #2 (T3.13 in the manual)
+
+/////////////////////////////////////////////////////
+///calculate fitting parameters
+VE          =       (V_i-Vbi)/kT;                                                        // (T3.6 in the manual)
+
+if  (VE != 0 ) begin
+alphaf      =       1 / ( (limexp(VE)-1)/VE + bf );                                      // (T3.7.1 in the manual)
+alphab      =       1 / ( (limexp(VE)-1)/VE + bb );                                      // (T3.7.2 in the manual)
+end
+else begin
+alphaf      =       1 / ( 1 + bf );                                                      // (T3.7.3 in the manual)
+alphab      =       1 / ( 1 + bb );                                                      // (T3.7.4 in the manual)
+end
+
+if  (VE != m ) begin
+A           =       alphaf*( (1- limexp(VE-m))/(VE-m) - bf );                            // (T3.8.1 in the manual)
+end
+else begin
+A           =       alphaf*( -1 - bf );                                                  // (T3.8.2 in the manual)
+end
+
+if  (VE != -m ) begin
+B           =       alphab*( (1- limexp(VE+m))/(VE+m) - bb );                            // (T3.9.1 in the manual)
+end
+else begin
+B           =       alphab*( -1 - bb );                                                  // (T3.9.2 in the manual)
+end
+
+/////////////////////////////////////////////////////
+///
+j_photo     =       (100-shading_P)/100*jphoto_max* (-B*limexp(-m) + A);                 // calculate photocurrent (T3.3 in the manual)
+
+/////////////////////////////////////////////////////
+///   
+j_shunt     =       gsh1 * V_i   + gsh2 * tanh(smoothP1*V_i)*pow(abs(V_i) ,n_sh);        // calculate shunt current (T3.2 in the manual)
+      	  
+/////////////////////////////////////////////////////
+///
+j_diode     =       (alphaf*j0f + alphab*j0b) * (limexp(V_i/kT) - 1);                    // calculate the diode current (T3.1 in the manual)
+
+//////////////////////////////////////////////////////
+///define the breakdown function
+f_br        =       (1 - limexp ( 3* (1 - sqrt ((Vbi - Vbr)/(Vbi-fs1*fs2*V_i )))));      // breakdown function (T3.4 in the manual) 
+
+//////////////////////////////////////////////////////
+I_tot       =       area*(j_diode + j_photo + j_shunt)/f_br;                             // add up the total current (T3.5 in the manual)
+
+//////////////////////////////////////////////////////
+///series resistance
+I(i_b)     <+       I_tot;
+I(rs_b)    <+       V_re/RS;                                                          // include series resistance
+
+end
+
+endmodule
+
+
+
+

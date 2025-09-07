@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "if (type == "n") begin", 
+		"bug_line": "if (type == "n" || type == "p") begin",
+		"error_description": "The modified condition always evaluates to true since 'type' can only be "n" or "p". This causes the n-type branch to execute for both device types, skipping the p-type specific logic and tables, resulting in incorrect current direction and capacitance values for p-type devices."
+	},
+	{
+		"original_line": "`ifdef _HETEROJUNCTION_", 
+		"bug_line": "`ifdef _HETEROJUNCTIONX_",
+		"error_description": "Changed the condition from '_HETEROJUNCTION_' to '_HETEROJUNCTIONX_' (typo). This prevents the heterojunction block from ever executing since the correct macro is never defined, forcing the model to incorrectly use the homojunction section or no implementation."
+	},
+	{
+		"original_line": "      Qs = W*(-1)*Cgs*(V(g,s));", 
+		"bug_line": "      Qs = W*(-1)*Cgs*(V(d,s));",
+		"error_description": "The source charge calculation incorrectly uses drain-source voltage V(d,s) instead of gate-source voltage V(g,s). This violates charge conservation principles and distorts transient behavior by decoupling source charge from gate control voltage."
+	},
+	{
+		"original_line": "I(d) <+ ddt(Qd);", 
+		"bug_line": "I(d) <+ ddt(Qs);",
+		"error_description": "The displacement current at drain incorrectly uses source charge (Qs) instead of drain charge (Qd), breaking charge conservation and causing incorrect terminal currents."
+	},
+	{
+		"original_line": "Ids=$table_model(-V(d,s), (-V(g,s)), "IdVg-GaSb-InAs-HNTFET-Lg-20nm.tbl","1LL,1LL");", 
+		"bug_line": "Ids=$table_model(-V(d,s), (V(g,s)), "IdVg-GaSb-InAs-HNTFET-Lg-20nm.tbl","1LL,1LL");",
+		"error_description": "Missing negative sign on V(g,s) breaks p-type device symmetry. This causes gate voltage to be interpreted with incorrect polarity, resulting in erroneous current calculation for p-type devices as the lookup table expects inverted gate voltages."
+	},
+	{
+		"original_line": "Ids=$table_model(V(d,s), (V(g,s)), "IdVg-InAs-NTFET-Lg-20nm.tbl","1LL,1LL");", 
+		"bug_line": "Ids=$table_model(V(s,d), (V(g,s)), "IdVg-InAs-NTFET-Lg-20nm.tbl","1LL,1LL");",
+		"error_description": "Changed V(d,s) to V(s,d) which reverses the drain-source voltage polarity. This incorrectly calculates Vds as negative of the actual value, flipping current direction and violating the n-type device behavior."
+	},
+	{
+		"original_line": "      I(g) <+ ddt(Qg);", 
+		"bug_line": "      I(g) <+ ddt(Qs);",
+		"error_description": "The gate current incorrectly uses the derivative of source charge (Qs) instead of gate charge (Qg). This violates charge conservation by decoupling the gate current from the actual gate charge dynamics, leading to unphysical terminal behavior."
+	},
+	{
+		"original_line": "        `ifdef _HETEROJUNCTION_", 
+		"bug_line": "        `ifdef _HOMOJUNCTION_",
+		"error_description": "Changed conditional macro from _HETEROJUNCTION_ to _HOMOJUNCTION_, causing the heterojunction code block to never execute since the homojunction macro is defined later. This forces the model to incorrectly use homojunction parameters for heterojunction devices."
+	},
+	{
+		"original_line": "Cgd=$table_model(V(d,s), (V(g,s)), "CGD-InAs-NTFET-Lg-20nm.tbl","1LL,1LL");", 
+		"bug_line": "Cgd=$table_model(V(g,s), (V(d,s)), "CGD-InAs-NTFET-Lg-20nm.tbl","1LL,1LL");",
+		"error_description": "The voltage arguments for the table model are swapped. The first argument should be drain-source voltage (Vds) and the second should be gate-source voltage (Vgs). This reversal causes incorrect capacitance lookup during simulation."
+	},
+	{
+		"original_line": "Qd = W*(-1)*Cgd*(V(g,d));", 
+		"bug_line": "Qd = W*(-1)*Cgd*(V(g,s));",
+		"error_description": "Replaced V(g,d) with V(g,s), causing incorrect drain charge calculation. The original uses gate-drain voltage for Cgd-related charge, while the modified version incorrectly uses gate-source voltage, violating charge conservation principles and distorting transient behavior."
+	},
+	{
+		"original_line": "Cgd=$table_model(V(d,s), (V(g,s)), "CGD-InAs-PTFET-Lg-20nm.tbl","1LL,1LL");", 
+		"bug_line": "Cgd=$table_model(V(s,d), (V(g,s)), "CGD-InAs-PTFET-Lg-20nm.tbl","1LL,1LL");",
+		"error_description": "Swapped drain and source voltages in the Vds argument (changed V(d,s) to V(s,d)). This inverts the drain-source voltage polarity for capacitance lookup, causing incorrect Cgd values during normal p-type operation where Vds is negative."
+	},
+	{
+		"original_line": "direction = -1;", 
+		"bug_line": "direction = 1;",
+		"error_description": "For p-type devices, the direction should be -1 to correctly represent hole current flow from drain to source. Setting direction to 1 causes current polarity reversal, making p-type devices behave like n-type devices."
+	},
+	{
+		"original_line": "Cgs=$table_model(V(d,s), (V(g,s)), "CGS-InAs-NTFET-Lg-20nm.tbl","1LL,1LL");", 
+		"bug_line": "Cgs=$table_model(V(g,s), (V(d,s)), "CGS-InAs-NTFET-Lg-20nm.tbl","1LL,1LL");",
+		"error_description": "Swapped V(d,s) and V(g,s) arguments in Cgs table lookup. Causes gate capacitance to be evaluated with drain voltage instead of gate voltage and vice versa, corrupting capacitance calculations."
+	},
+	{
+		"original_line": "integer direction;", 
+		"bug_line": "integer direction = 0;",
+		"error_description": "Initializing 'direction' to 0 causes incorrect current flow when the device type is not yet processed. For p-type devices, direction should be -1 but temporarily remains 0 during analog processing, leading to erroneous positive current flow before the conditional assignment."
+	},
+	{
+		"original_line": "module TFET(d,g,s);", 
+		"bug_line": "module TFET(d,s,g);",
+		"error_description": "Swapped gate and source ports. This causes the gate voltage to be applied between source and drain, and the source voltage to be applied to the gate terminal, fundamentally reversing the control behavior and violating the transistor's operational principles."
+	},
+	{
+		"original_line": "`else `ifdef _HOMOJUNCTION_", 
+		"bug_line": "`else `ifdef _HOMOGENEOUS_",
+		"error_description": "Changed the conditional compilation directive from _HOMOJUNCTION_ to _HOMOGENEOUS_. Since _HOMOGENEOUS_ is never defined in the code, the homojunction functionality will never be compiled, breaking the design's intended support for homojunction TFET configurations."
+	},
+	{
+		"original_line": "analog begin", 
+		"bug_line": "digital begin",
+		"error_description": "Changed 'analog' to 'digital' keyword, making the entire transistor behavior block execute only once during initialization instead of continuously during simulation. This violates the fundamental requirement for analog circuit simulation where transistor currents/charges must be computed continuously throughout the simulation timeframe."
+	},
+	{
+		"original_line": "Ids=$table_model(V(d,s), (V(g,s)), "IdVg-GaSb-InAs-HNTFET-Lg-20nm.tbl","1LL,1LL");", 
+		"bug_line": "Ids=$table_model(V(g,s), (V(d,s)), "IdVg-GaSb-InAs-HNTFET-Lg-20nm.tbl","1LL,1LL");",
+		"error_description": "Swapped drain-source voltage (V(d,s)) and gate-source voltage (V(g,s)) arguments in the table lookup function. This causes the current calculation to use gate voltage as the drain voltage and vice versa, fundamentally inverting the device behavior and violating the physical operating principles."
+	},
+	{
+		"original_line": "electrical g,d,s;", 
+		"bug_line": "electrical g,d;",
+		"error_description": "The source node 's' is not declared as an electrical node, causing undefined reference errors when accessing source-related voltages (V(g,s) and V(d,s)) and preventing charge calculations for Qs."
+	},
+	{
+		"original_line": "real Ids, Cgs, Cgd,Qg, Qs, Qd;", 
+		"bug_line": "real Ids, Cgs, Cgd,Qg, Qd, Qs;",
+		"error_description": "Swapping Qd and Qs variables violates charge conservation. Qd (drain charge) and Qs (source charge) are incorrectly assigned, leading to reversed current/charge calculations in the gate, drain, and source nodes."
+	}
+]

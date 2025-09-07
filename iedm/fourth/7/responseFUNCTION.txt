@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "poles[IntegTmp+1] =  imagtmp/2;", 
+		"bug_line": "poles[IntegTmp+1] = -imagtmp/2;",
+		"error_description": "Sign flip in imaginary pole component breaks conjugate symmetry required for stable real filters. This creates an unstable pole in the right-half plane, causing oscillation instead of attenuation."
+	},
+	{
+		"original_line": "   integer i, Npair, Np1p, k, IntegTmp;", 
+		"bug_line": "   integer i, Npair, Np1p, k;",
+		"error_description": "The variable IntegTmp is removed from the declaration. This causes a compilation error because IntegTmp is used as an index for the poles array (e.g., poles[IntegTmp]) in the initial block, and the undeclared variable will prevent the code from running."
+	},
+	{
+		"original_line": "wbn = wbn * wb / wg2;", 
+		"bug_line": "wbn = wbn * wb * wg2;",
+		"error_description": "Changed division to multiplication, causing numerator coefficient to scale incorrectly by (wg2^2N) instead of (wg2^-N). This distorts gain and frequency response by over-amplifying high frequencies."
+	},
+	{
+		"original_line": "   ImP[k-1] =   cosh_nu * cos(teta);", 
+		"bug_line": "   ImP[k-1] =   sinh_nu * cos(teta);",
+		"error_description": "Replaced 'cosh_nu' with 'sinh_nu', causing incorrect pole calculation. The imaginary part of the pole should use hyperbolic cosine but uses hyperbolic sine instead, distorting filter frequency response and ripple characteristics."
+	},
+	{
+		"original_line": "realtmp = wb2 * ReP[i]* ReP[i] - 4 * wg2;", 
+		"bug_line": "realtmp = wb2 * ReP[i]* ReP[i] + 4 * wg2;",
+		"error_description": "Changed subtraction to addition in pole calculation, altering the denominator polynomial coefficients and shifting filter cutoff frequencies."
+	},
+	{
+		"original_line": "for (k=1; k<=Np1p; k=k+1) begin", 
+		"bug_line": "for (k=1; k<=Np1p+1; k=k+1) begin",
+		"error_description": "The loop now runs one extra iteration beyond the required pole pairs. This writes to unallocated memory in ReP/ImP arrays (index Np1p+1) causing undefined pole values and filter instability."
+	},
+	{
+		"original_line": "   cosh_nu = cosh(nu);", 
+		"bug_line": "   cosh_nu = sinh(nu);",
+		"error_description": "Replaced hyperbolic cosine with hyperbolic sine. This miscalculates the complex poles' imaginary components, distorting the Chebyshev filter frequency response and ripple characteristics."
+	},
+	{
+		"original_line": "   cosh_nu = cosh(nu);", 
+		"bug_line": "   cosh_nu = sinh(nu);",
+		"error_description": "Replaced hyperbolic cosine with hyperbolic sine assignment. This causes incorrect pole calculation in the imaginary component (ImP), leading to erroneous filter frequency response and ripple characteristics since the pole derivation relies on both sinh and cosh terms being computed correctly."
+	},
+	{
+		"original_line": "zerod[k]=0.0;", 
+		"bug_line": "zerod[k]=wb;",
+		"error_description": "Replaces zero initialization with the bandwidth value wb. This corrupts the zeros array by setting all elements to a non-zero frequency value instead of zero, fundamentally altering the filter's transfer function and frequency response."
+	},
+	{
+		"original_line": "where H(s) is the polynomial transfer function of Chebyshev BPF implemented", 
+		"bug_line": "where H(s) is the polynomial transfer function of Chebyshev LPF implemented",
+		"error_description": "Changed filter type from bandpass (BPF) to lowpass (LPF) in the description, contradicting the bandpass implementation that uses both fupper and flower frequencies for bandwidth calculation."
+	},
+	{
+		"original_line": "   end //for (i=0; i<Npair; i=i+1)", 
+		"bug_line": "   end //for (i=0; i<=Npair; i=i+1)",
+		"error_description": "Changed loop condition from 'i<Npair' to 'i<=Npair', causing an extra iteration. This accesses uninitialized ReP[i]/ImP[i] elements when i=Npair, leading to undefined pole calculations and incorrect filter behavior."
+	},
+	{
+		"original_line": "teta = teta / 2.0;", 
+		"bug_line": "teta = teta * 2.0;",
+		"error_description": "Changed division to multiplication, doubling the angle instead of halving it. This miscalculates the complex root angles, corrupting pole placement and filter frequency response."
+	},
+	{
+		"original_line": "        teta = teta / 2.0;", 
+		"bug_line": "        teta = teta * 2.0;",
+		"error_description": "The angle calculation error doubles teta instead of halving it, corrupting pole position computations and causing incorrect filter frequency response."
+	},
+	{
+		"original_line": "   Npair = `N/2; Np1p = (`N+1)/2;", 
+		"bug_line": "   Npair = `N/2; Np1p = (`N-1)/2;",
+		"error_description": "The modified line incorrectly calculates Np1p as (`N-1)/2 instead of (`N+1)/2. For odd filter orders, this underestimates the required number of pole pairs during normalized pole initialization. This causes incomplete pole calculation and uninitialized values in the poles array, resulting in incorrect bandpass filter behavior for odd-order configurations."
+	},
+	{
+		"original_line": "   parameter real rout = 50 from (0:inf);", 
+		"bug_line": "   parameter real rout = 50 from (100:inf);",
+		"error_description": "The output resistance range is incorrectly restricted to [100, inf). The default value of 50 falls below this range and will be clamped to 100 Ohms, violating the design specification of 50 Ohms output resistance and altering filter behavior."
+	},
+	{
+		"original_line": "zerod[k]=0.0;", 
+		"bug_line": "zerod[k]=1.0;",
+		"error_description": "Changed zeros array initialization from 0.0 to 1.0. This introduces erroneous non-zero roots in the transfer function numerator, fundamentally altering the filter's frequency response by adding unintended attenuation poles and violating the Chebyshev bandpass design specification."
+	},
+	{
+		"original_line": "tmp = sqrt ( tmp );", 
+		"bug_line": "tmp = tmp;",
+		"error_description": "The square root operation required for complex magnitude calculation is omitted, causing incorrect pole computation. This results in distorted filter frequency response, shifted corner frequencies, and failure to meet ripple specifications."
+	},
+	{
+		"original_line": "I(inn) <+ V(inn)/rin;", 
+		"bug_line": "I(inn) <+ V(inn)/rout;",
+		"error_description": "The input resistance for the negative terminal incorrectly uses the output resistance parameter 'rout' instead of the input resistance 'rin', violating the specified input impedance and causing impedance mismatch errors in the differential input stage."
+	},
+	{
+		"original_line": "wg2 = `M_TWO_PI * `M_TWO_PI * fupper * flower;", 
+		"bug_line": "wg2 = `M_TWO_PI * `M_TWO_PI * fupper / flower;",
+		"error_description": "Changed multiplication to division between fupper and flower. This incorrectly calculates the center frequency as sqrt(fupper/flower) instead of the required geometric mean sqrt(fupper*flower), fundamentally breaking the bandpass filter's frequency response."
+	},
+	{
+		"original_line": "inp-    | H(s) |   ---rout----outp", 
+		"bug_line": "inp-    | H(s) |   ---rin----outp",
+		"error_description": "Changed output resistance label from 'rout' to 'rin', creating a directional error where the output stage incorrectly references the input resistance parameter instead of the output resistance. This causes incorrect current calculation at the output nodes since rin (50Ω) will be used instead of rout (50Ω) in the output stage, violating the design specification that requires separate input/output resistances."
+	}
+]

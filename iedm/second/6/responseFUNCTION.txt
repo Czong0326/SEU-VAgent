@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "         qs = 0.6*qn;", 
+		"bug_line": "         qs = 0.4*qn;",
+		"error_description": "Both drain and source charge components are set to 40% of total channel charge (qd=0.4*qn and qs=0.4*qn), violating charge conservation where qn must equal qd + qs. This creates inconsistent capacitive currents."
+	},
+	{
+		"original_line": "         qgf = width*length*cof*(vgfs - wkf - phi -", 
+		"bug_line": "         qgf = width*length*cof*(vgfs - wkf - phi +",
+		"error_description": "Changed subtraction to addition for the channel charge term, causing incorrect gate charge calculation during saturation by altering the sign of the ((vgfs - vtff)/(3*(1 + alpha))) component."
+	},
+	{
+		"original_line": "parameter real toxb = 0.5u;", 
+		"bug_line": "parameter real toxb = -0.5u;",
+		"error_description": "Negative oxide thickness (-0.5u) is physically impossible and violates device physics assumptions. This will cause negative capacitance values in subsequent calculations (cob = epsox/toxb), leading to unphysical threshold voltage computations and simulation instability."
+	},
+	{
+		"original_line": "      vds,", 
+		"bug_line": "      vdss,",
+		"error_description": "Changed variable name from 'vds' to 'vdss', making subsequent assignments and calculations using 'vds' invalid as the variable is no longer declared. This breaks drain-source voltage processing throughout the module."
+	},
+	{
+		"original_line": "parameter real width=1 from (0:inf);", 
+		"bug_line": "parameter real width=-1 from (-inf:inf);",
+		"error_description": "Changed the default width to -1 and allowed negative values, which is non-physical. This causes negative current for positive Vds, violating the design requirement of positive physical dimensions."
+	},
+	{
+		"original_line": "I(vsource, vgate_back) <+ dev_type_sign*ddt(qs);", 
+		"bug_line": "I(vsource, vgate_back) <+ dev_type_sign*ddt(qd);",
+		"error_description": "Replaced source charge (qs) with drain charge (qd) in gate current calculation. This breaks charge conservation by incorrectly assigning drain charge dynamics to the source terminal, corrupting transient behavior and charge partitioning in the device model."
+	},
+	{
+		"original_line": "phi,   // body potential.", 
+		"bug_line": "phi = 0,   // body potential.",
+		"error_description": "Forcing body potential (phi) to zero creates a functional error by disrupting the fundamental relationship between body doping concentration and built-in potential. This violates semiconductor physics principles where phi = 2*Vt*ln(nbody/ni) must be calculated based on temperature and doping concentration to properly model threshold voltage, flat-band voltage, and charge distributions."
+	},
+	{
+		"original_line": "      vdsat = (vgfs - vtff)/(1 + alpha);", 
+		"bug_line": "      vdsat = (vgfs + vtff)/(1 + alpha);",
+		"error_description": "The threshold voltage vtff is added instead of subtracted, incorrectly calculating the saturation voltage. This overestimates vdsat, preventing proper saturation region operation and distorting drain current behavior."
+	},
+	{
+		"original_line": "      alpha, // capacitance ratio.", 
+		"bug_line": "      alph, // capacitance ratio.",
+		"error_description": "Changed variable name 'alpha' to 'alph', causing an undefined variable error. All subsequent calculations depending on 'alpha' (vtff, vdsat, id, etc.) will fail since 'alph' is never assigned."
+	},
+	{
+		"original_line": "(12*(vgfs - vtff - tmp1/2)));", 
+		"bug_line": "(12*(vgbs - vtff - tmp1/2)));",
+		"error_description": "Replaced front-gate voltage (vgfs) with back-gate voltage (vgbs) in the charge calculation denominator, creating incorrect dependency on back-gate voltage for front-gate charge computation."
+	},
+	{
+		"original_line": "alpha = cbb/cof;", 
+		"bug_line": "alpha = cof/cbb;",
+		"error_description": "The capacitance ratio alpha is incorrectly calculated as the reciprocal of the intended value. This swaps the capacitive coupling effect between front/back gates, causing errors in saturation voltage calculation and drain current modeling."
+	},
+	{
+		"original_line": "cbb,   // series body / back-gate capacitance.", 
+		"bug_line": "cbb,   // series body / front-gate capacitance.",
+		"error_description": "Changed the comment to incorrectly describe the capacitance as 'front-gate' instead of 'back-gate'. This mislabels the physical property, potentially causing confusion and incorrect interpretation of the capacitance relationship between body and back-gate terminals."
+	},
+	{
+		"original_line": "id = id*(1 + lambda*vds);", 
+		"bug_line": "id = id*(1 + lambda*vgfs);",
+		"error_description": "Replaced vds (drain-source voltage) with vgfs (gate-source voltage) in channel length modulation term. This incorrectly makes the drain current dependent on gate voltage instead of drain voltage for channel length modulation, violating the physical behavior of MOSFETs."
+	},
+	{
+		"original_line": " if (back_surf == 1) begin", 
+		"bug_line": " if (back_surf == 2) begin",
+		"error_description": "Changed inversion state check (1) to accumulation state (2). Now incorrectly reports inversion warning during accumulation and fails to report actual inversion events."
+	},
+	{
+		"original_line": " if( dev_type == `n_type )  dev_type_sign = 1;", 
+		"bug_line": " if( dev_type == `n_type )  dev_type_sign = -1;",
+		"error_description": "Sets incorrect sign (-1 instead of 1) for n-type devices. This flips the polarity of voltages/currents in n-type transistors, causing reversed operation and invalid results."
+	},
+	{
+		"original_line": "cof,   // capacitance front-gate to body.", 
+		"bug_line": "cob,   // capacitance front-gate to body.",
+		"error_description": "Changed variable name 'cof' to 'cob', causing front-gate capacitance to incorrectly reuse the back-gate capacitance variable. This merges both capacitances into one variable, corrupting all dependent calculations (threshold voltage, saturation voltage, channel charge, etc.)."
+	},
+	{
+		"original_line": "cfb = cof*cb/(cof + cb);", 
+		"bug_line": "cfb = cof*cb/(cof * cb);",
+		"error_description": "Changed denominator from addition to multiplication, incorrectly calculating series capacitance as 1 instead of the proper (cof*cb)/(cof+cb). This violates the fundamental capacitor series formula and distorts all derived capacitance values."
+	},
+	{
+		"original_line": "	 wkf = Vt*ln(ngate/ni) - phi/2;", 
+		"bug_line": "	 wkf = Vt*ln(nsub/ni) - phi/2;",
+		"error_description": "Changed ngate to nsub, incorrectly using back-gate doping concentration instead of front-gate concentration in work-function calculation, causing threshold voltage miscalculation."
+	},
+	{
+		"original_line": "	 cfbb = cfb*cob/(cfb + cob);", 
+		"bug_line": "	 cfbb = cfb*cof/(cfb + cob);",
+		"error_description": "Incorrectly used front-gate oxide capacitance (cof) instead of back-gate capacitance (cob) in the numerator, violating the series capacitance calculation between front-gate/body and back-gate layers."
+	},
+	{
+		"original_line": "      vds = dev_type_sign*V(vdrain, vsource);", 
+		"bug_line": "      vds = dev_type_sign*V(vsource, vdrain);",
+		"error_description": "Inverted drain-source voltage polarity by swapping the voltage measurement nodes. This causes the model to misinterpret positive/negative Vds values, leading to incorrect current calculations in all operating regions."
+	}
+]

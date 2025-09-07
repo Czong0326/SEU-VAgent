@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "real      noise_current;", 
+		"bug_line": "real      noise_current = 0;",
+		"error_description": "Initializing noise_current to zero overrides the correct calculation in the initial_step block. This forces the noise current to always be zero, eliminating all thermal noise in the model."
+	},
+	{
+		"original_line": "a1 = V(in)/sqrt(rin) + I(in, in_int)*sqrt(rin);", 
+		"bug_line": "a1 = V(in)/sqrt(rin) - I(in, in_int)*sqrt(rin);",
+		"error_description": "Changed '+' to '-' in incident wave calculation. This violates the definition of incident waves (a1 = (V + I*Z)/sqrt(Z)), causing incorrect S-parameter behavior and distorted power calculations throughout the model."
+	},
+	{
+		"original_line": "real      poutput, alimit;", 
+		"bug_line": "real      poutput; integer alimit;",
+		"error_description": "Changed 'alimit' from real to integer type. This causes truncation of the calculated clipping threshold (sqrt(s21/(3*c3))) during assignment, violating the 1dB compression point specification. The integer conversion alters the amplifier's clipping behavior for large input signals, leading to incorrect power saturation modeling."
+	},
+	{
+		"original_line": "parameter real rout = 50 from (0:inf);", 
+		"bug_line": "parameter real rout = 0 from (0:inf);",
+		"error_description": "Setting rout (output impedance) to 0 causes division by zero in the output current calculation (I(out_int) <+ V(out)/rout) and violates the positive impedance requirement."
+	},
+	{
+		"original_line": "   parameter real cpdb = 30;", 
+		"bug_line": "   parameter real cpdb = -30;",
+		"error_description": "Setting negative compression point (-30 dBm) violates physical constraints. This unrealistic value causes incorrect nonlinearity coefficient calculation (c3), resulting in premature saturation and distorted power transfer characteristics."
+	},
+	{
+		"original_line": "@(initial_step) begin", 
+		"bug_line": "@(cross(V(in), 0)) begin",
+		"error_description": "Changed initial setup event to voltage cross event. Now critical parameters (gain, compression, noise) recalculate at every zero-crossing instead of once at startup, causing time-varying behavior and compression point errors."
+	},
+	{
+		"original_line": "   electrical in, out;", 
+		"bug_line": "   electrical in, out_wrong;",
+		"error_description": "Renamed 'out' to 'out_wrong' creates an undeclared node error for 'out' in the analog block (V(out), I(out)). The output port remains disconnected while internal logic references a non-existent node."
+	},
+	{
+		"original_line": "a1 = alimit;", 
+		"bug_line": "a1 = 0;",
+		"error_description": "The input signal (a1) is incorrectly clamped to 0 instead of alimit when exceeding the positive threshold. This creates severe gain compression and distortion by zeroing positive peaks while negative peaks remain clipped at -alimit, violating the symmetric clipping requirement."
+	},
+	{
+		"original_line": "poutput = poutput-a1*a1*a1*c3;", 
+		"bug_line": "poutput = poutput + a1*a1*a1*c3;",
+		"error_description": "Changed subtraction to addition, causing incorrect distortion modeling. The PA should exhibit gain compression (negative distortion term), but this modification creates gain expansion by adding the distortion term instead of subtracting it."
+	},
+	{
+		"original_line": "   parameter real rout = 50 from (0:inf);", 
+		"bug_line": "   parameter real rout = 0;",
+		"error_description": "Setting default output resistance to 0 causes division by zero in V(out)/rout and sqrt(rout) operations, violating positive resistance requirement and crashing simulation."
+	},
+	{
+		"original_line": "parameter real rout = 50 from (0:inf);", 
+		"bug_line": "parameter real rout = 0 from [0:inf);",
+		"error_description": "Set default output impedance to 0 and included 0 in valid range, causing division by zero in I(out_int) <+ V(out)/rout calculation during simulation."
+	},
+	{
+		"original_line": "poutput = poutput-a1*a1*a1*c3;", 
+		"bug_line": "poutput = poutput+a1*a1*a1*c3;",
+		"error_description": "Changed subtraction to addition for the distortion term. This inverts the compression effect, causing gain expansion instead of compression at high input levels, violating the power amplifier's fundamental behavior."
+	},
+	{
+		"original_line": "poutput = poutput-a1*a1*a1*c3;", 
+		"bug_line": "poutput = poutput+a1*a1*a1*c3;",
+		"error_description": "Changed subtraction to addition of nonlinear term, causing gain expansion instead of compression at high input powers. This violates the power amplifier's fundamental behavior where output should saturate/compress beyond the 1dB compression point."
+	},
+	{
+		"original_line": "a2 = V(out)/sqrt(rout) + I(out, out_int)*sqrt(rout);", 
+		"bug_line": "a1 = V(out)/sqrt(rout) + I(out, out_int)*sqrt(rout);",
+		"error_description": "Overwrites the input incident wave variable (a1) with the output incident wave calculation. This corrupts the input signal processing since a1 is later used for gain and compression calculations, causing incorrect output power and distortion behavior."
+	},
+	{
+		"original_line": "`define db20_real(x)  (pow(10, (x)/20))", 
+		"bug_line": "`define db20_real(x)  (pow(10, (x)*20))",
+		"error_description": "Replaced division with multiplication in the exponent calculation. This causes the voltage gain conversion to become 10^(x*20) instead of 10^(x/20), resulting in astronomically high gain values (e.g., 20 dB input yields 10^400 instead of 10). This violates the design specification and will cause numerical overflow during simulation."
+	},
+	{
+		"original_line": "   parameter real cpdb = 30;", 
+		"bug_line": "   parameter real cpdb = 300;",
+		"error_description": "The compression point (cpdb) is incorrectly set to 300 dBm instead of 30 dBm. This unrealistically high value prevents the amplifier from ever clipping, violating the intended design specification where the amplifier should compress at 30 dBm output power."
+	},
+	{
+		"original_line": "   electrical in, out;", 
+		"bug_line": "   electrical in; ground out;",
+		"error_description": "The output port is incorrectly assigned the 'ground' discipline instead of 'electrical'. This forces the output node to 0V, short-circuiting all output signals and preventing any amplified signal from being observed."
+	},
+	{
+		"original_line": "endmodule //PA_PB", 
+		"bug_line": "endmodul //PA_PB",
+		"error_description": "Misspelled 'endmodule' as 'endmodul', causing a syntax error that prevents successful compilation and model instantiation."
+	},
+	{
+		"original_line": "   electrical in_int, out_int;", 
+		"bug_line": "   electrical in_int; ground out_int;",
+		"error_description": "Declares out_int as ground instead of electrical. This shorts the output stage to ground, disabling amplification and causing the output port to see only the output impedance connected to ground."
+	},
+	{
+		"original_line": "I(in) <+ white_noise(noise_current*noise_current, "PA_PB");", 
+		"bug_line": "I(out) <+ white_noise(noise_current*noise_current, "PA_PB");",
+		"error_description": "Incorrectly injects input-referred noise current into output node instead of input node, disrupting noise modeling by placing thermal noise at amplifier output where it shouldn't exist."
+	}
+]

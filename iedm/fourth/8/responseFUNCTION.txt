@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "Rep2MinusImp2 = ReP2 - ImP2;", 
+		"bug_line": "Rep2MinusImp2 = ReP2 + ImP2;",
+		"error_description": "Changed the pole calculation from difference to sum of squared components, corrupting the Chebyshev filter's pole placement by altering the critical Rep2MinusImp2 term used in pole real/imaginary computations."
+	},
+	{
+		"original_line": "   integer i, Npair, Np1p, k, IntegTmp;", 
+		"bug_line": "   integer i, Npair, Np1p, IntegTmp;",
+		"error_description": "The loop index variable k is removed, causing it to be undeclared. This breaks the k-indexed loop that initializes zeros, resulting in uninitialized filter coefficients and incorrect filter behavior."
+	},
+	{
+		"original_line": "          if (realtmp == 0) teta = `M_PI / 2;", 
+		"bug_line": "          if (realtmp == 0) teta = `M_PI;",
+		"error_description": "Changed the angle calculation from π/2 to π when real part is zero. This incorrectly sets the angle to 180° instead of 90° for purely imaginary positive values, disrupting the pole placement calculation for the Chebyshev filter."
+	},
+	{
+		"original_line": "poles[IntegTmp+2] =  (re_pole - realtmp)/2;", 
+		"bug_line": "poles[IntegTmp+2] =  (re_pole + realtmp)/2;",
+		"error_description": "Changed the subtraction to addition in the pole calculation formula. This error incorrectly computes the real part of the second pole for odd-order filters by adding the real components instead of subtracting them, shifting the pole location and distorting the filter's frequency response."
+	},
+	{
+		"original_line": "teta = (2*k-1.0)*`M_PI/(2*`N);", 
+		"bug_line": "teta = (2*k)*`M_PI/(2*`N);",
+		"error_description": "Changed pole angle calculation from (2k-1) to 2k, shifting Chebyshev pole locations. This violates the standard Chebyshev filter design formula, resulting in incorrect pole placement and degraded filter frequency response."
+	},
+	{
+		"original_line": "real  ReP[0:`N/2], ImP[0:`N/2];", 
+		"bug_line": "real  ReP[0:`N/2 + 1], ImP[0:`N/2];",
+		"error_description": "The array size for ReP is increased by 1 while ImP remains unchanged. This creates a size mismatch between the real/imaginary pole arrays. Subsequent loops assume equal sizes, causing ImP to be underfilled relative to ReP. This leads to uninitialized values in pole calculations and filter instability."
+	},
+	{
+		"original_line": "IntegTmp = 8*i;", 
+		"bug_line": "IntegTmp = 8*(i-1);",
+		"error_description": "Off-by-one error in pole index calculation. When i=0, index becomes negative (-8), causing invalid memory access during pole storage. This corrupts the poles array and results in an incorrect transfer function."
+	},
+	{
+		"original_line": "   ReP[k-1] = - sinh_nu * sin(teta);", 
+		"bug_line": "   ReP[k-1] = sinh_nu * sin(teta);",
+		"error_description": "The sign inversion error causes the real part of Chebyshev poles to become positive, placing them in the right-half plane. This violates stability requirements for filters, leading to unbounded output growth instead of signal attenuation."
+	},
+	{
+		"original_line": "if (Npair*2==`N) real_gain = pow(10.0,(gain-ripple)/20.0);", 
+		"bug_line": "if (Npair*2==`N) real_gain = pow(10.0,(gain+ripple)/20.0);",
+		"error_description": "Replaced gain subtraction with addition, causing incorrect gain calculation for even-order filters. This adds ripple dB instead of subtracting it, violating the design specification that requires passband gain adjustment by subtracting ripple."
+	},
+	{
+		"original_line": "poles[IntegTmp+6] =  re_pole - realtmp;", 
+		"bug_line": "poles[IntegTmp+6] = re_pole + realtmp;",
+		"error_description": "The real part of the fourth pole is incorrectly set to (re_pole + realtmp) instead of (re_pole - realtmp). This error moves the pole location to the right half-plane, causing instability in the filter response by violating the stability requirement for negative real parts in Chebyshev filter poles."
+	},
+	{
+		"original_line": " end // init step", 
+		"bug_line": " end // init step; real_gain = 0;",
+		"error_description": "Added erroneous assignment setting real_gain=0 after initial calculations. This overrides the computed gain value, forcing zero output regardless of input signal or gain parameter."
+	},
+	{
+		"original_line": "   eps = sqrt(pow(10.0,ripple/10.0)-1.0);", 
+		"bug_line": "   eps = sqrt(pow(10.0,ripple/10.0)+1.0);",
+		"error_description": "Changed subtraction to addition in ripple factor calculation. This makes epsilon (ε) significantly larger than required, causing incorrect pole placement. The filter will exhibit excessive passband ripple and fail to meet attenuation specifications since ε = sqrt(10^(ripple/10) + 1) instead of the correct sqrt(10^(ripple/10) - 1)."
+	},
+	{
+		"original_line": "        realtmp = tmp * cos(teta) / 2;", 
+		"bug_line": "        realtmp = tmp * sin(teta) / 2;",
+		"error_description": "Replaces cosine with sine for the real part calculation, incorrectly computing the pole location and distorting the filter frequency response."
+	},
+	{
+		"original_line": "     IntegTmp = 4*k;", 
+		"bug_line": "     IntegTmp = 3*k;",
+		"error_description": "Changed index multiplier from 4 to 3, causing overlapping zero assignments. Subsequent k-indexed iterations overwrite previous zero entries due to insufficient spacing, corrupting the band-stop filter's pole-zero configuration."
+	},
+	{
+		"original_line": "   real tmp, realtmp, imagtmp;", 
+		"bug_line": "   real tmp, realtmp, imagtmp = 0;",
+		"error_description": "Initializing 'imagtmp' to 0 introduces a constant zero in pole calculations, disrupting the imaginary component of complex poles and corrupting the filter's frequency response."
+	},
+	{
+		"original_line": "        real_gain = real_gain / Sqr_Rep2PlusImp2;", 
+		"bug_line": "        real_gain = real_gain / ReP2;",
+		"error_description": "Replaced Sqr_Rep2PlusImp2 (magnitude squared) with ReP2 (real part squared). This neglects the imaginary component in gain adjustment, causing incorrect pole magnitude compensation and distorted frequency response."
+	},
+	{
+		"original_line": "        if (realtmp > 0) begin", 
+		"bug_line": "        if (realtmp < 0) begin",
+		"error_description": "The condition check for the sign of realtmp is inverted. This swaps the handling of positive/negative values, causing incorrect pole calculation for odd-order filters. The filter will compute imaginary components as real and vice versa, severely distorting the frequency response."
+	},
+	{
+		"original_line": "        poles[IntegTmp]   =  (re_pole + realtmp)/2;", 
+		"bug_line": "        poles[IntegTmp]   =  (re_pole + realtmp)*2;",
+		"error_description": "Changed division to multiplication, incorrectly scaling the pole location by 4x (2*2 due to missing division). This distorts the frequency response and stability characteristics of the odd-order filter case."
+	},
+	{
+		"original_line": "parameter real rout = 50 from (0:inf);", 
+		"bug_line": "parameter real rout = 50 from (-inf:inf);",
+		"error_description": "Changed valid range from (0:inf) to (-inf:inf), allowing negative resistance values which cause non-physical behavior and simulation instability."
+	},
+	{
+		"original_line": "    if (abs(ImP[k-1])< 1.0e-8) ImP[k-1] = 0.0;", 
+		"bug_line": "    if (abs(ImP[k-1])> 1.0e-8) ImP[k-1] = 0.0;",
+		"error_description": "The condition is inverted: instead of zeroing negligible imaginary parts (below threshold), it zeroes significant imaginary parts (above threshold). This destroys complex pole pairs required for Chebyshev filter response, causing incorrect frequency behavior."
+	}
+]

@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "I(TE,BE)<+Itb;", 
+		"bug_line": "I(BE,TE)<+Itb;",
+		"error_description": "The current direction is reversed by swapping TE and BE in the contribution statement. This causes the device to source current when it should sink and vice versa, inverting the intended current flow direction through the RRAM device."
+	},
+	{
+		"original_line": "real			Vtb, Itb;  ", 
+		"bug_line": "real			Vtb; integer Itb;",
+		"error_description": "Changed Itb to integer type causing current value truncation. This leads to incorrect current calculations as microamp values get rounded to 0 or 1, breaking the device behavior."
+	},
+	{
+		"original_line": "parameter real		gap_max		= 17e-10 from(0:100e-10);", 
+		"bug_line": "parameter real		gap_max		= 1e-10 from(0:100e-10);",
+		"error_description": "Sets gap_max (1e-10) below gap_min (2e-10), causing unstable gap oscillation between clamping limits during operation due to conflicting boundary conditions."
+	},
+	{
+		"original_line": "analog begin", 
+		"bug_line": "initial begin",
+		"error_description": "Changed analog block to initial block, causing the state variables to update only once during initialization instead of continuously during simulation. This breaks the dynamic gap calculation and current response over time."
+	},
+	{
+		"original_line": "parameter real		I0		= 1000e-6 from(0:1e-2);", 
+		"bug_line": "parameter real		I0		= 1000e-3 from(0:1e-2);",
+		"error_description": "Changed I0 from 1mA to 1A, making nominal current 1000x larger. This violates the design specification of typical RRAM operating currents and causes unrealistic current magnitudes in simulations."
+	},
+	{
+		"original_line": "parameter real		version		= 1.00 from(0:inf);", 
+		"bug_line": "parameter real		gap		= 1.00 from(0:inf);",
+		"error_description": "Changed parameter name 'version' to 'gap', conflicting with the critical gap state variable. This creates duplicate definitions (parameter vs real variable) causing compilation failure and preventing simulation."
+	},
+	{
+		"original_line": "parameter real		version		= 1.00 from(0:inf);", 
+		"bug_line": "parameter real		model_switch		= 1.00 from(0:inf);",
+		"error_description": "Duplicate parameter name 'model_switch' causes compilation error as the next parameter also uses this name, violating unique identifier requirement."
+	},
+	{
+		"original_line": "rand_seed = rand_seed_ini;", 
+		"bug_line": "rand_seed = rand_seed;",
+		"error_description": "The random seed is incorrectly assigned to itself (uninitialized variable) instead of the initial seed parameter, causing undefined behavior in random number generation and breaking the variation model."
+	},
+	{
+		"original_line": "12/05/2013 Last Modified by Jane Zizhen Jiang.", 
+		"bug_line": "12/05/2013 Last Modified by Jane Zizhen Jiang.);",
+		"error_description": "Added extraneous closing parenthesis ')' which creates a syntax error during compilation by prematurely terminating the comment structure and introducing invalid tokens."
+	},
+	{
+		"original_line": "parameter real		a0		= 0.25e-9 from(0:inf);", 
+		"bug_line": "parameter real		a0		= -0.25e-9 from(0:inf);",
+		"error_description": "Negative atom spacing (a0) violates physical constraints and reverses the sign in the gap derivative calculation, causing incorrect switching behavior. The range restriction (0:inf) is ignored during simulation, leading to unphysical negative values in the model equations."
+	},
+	{
+		"original_line": "parameter real		F_min		= 1.4e9 from(0:3e9);", 
+		"bug_line": "parameter real		F_min		= 3e9 from(0:3e9);",
+		"error_description": "Increased F_min from 1.4e9 to 3e9 V/m, exceeding typical operational fields. This prevents gap formation enhancement during normal switching voltages (usually < 2V across 12nm oxide = ~1.67e8 V/m), violating the minimum field requirement for resistive switching."
+	},
+	{
+		"original_line": "parameter real		gap_min		= 2e-10 from(0:100e-10);", 
+		"bug_line": "parameter real		gap_min		= 20e-10 from(0:100e-10);",
+		"error_description": "Set gap_min (20e-10) greater than gap_max (17e-10). This violates the design constraint that gap_min must be less than gap_max, causing undefined clamping behavior in the gap calculation logic."
+	},
+	{
+		"original_line": "parameter real		time_step	= 1e-9 from(1e-15, 1);", 
+		"bug_line": "parameter real		time_step	= 1e-15 from(1e-15, 1);",
+		"error_description": "Changed default time_step value from 1e-9 to 1e-15 seconds. This extremely small timestep will cause simulation instability and convergence failures due to insufficient time resolution for the analog solver to handle the RRAM's physical dynamics."
+	},
+	{
+		"original_line": "2. In any product based on the Software, the users agree to acknowledge the Stanford Nanoelectronics Research Group of Prof. H.-S. Philip Wong that developed the software and cite the relevant publications that form the basis of the Software. This acknowledgment shall appear in the product documentation.", 
+		"bug_line": "2. In any product based on the Software, the users agree to acknowledge the Stanford Nanoelectronics Research Group of Prof. H.-S. Philip Wong that developed the software and cite the relevant publications that form the basis of the Software. This acknowledgment shall appear in the product documentation. */",
+		"error_description": "Premature comment termination causes subsequent code (module declaration and parameters) to be commented out, preventing model compilation and parameter initialization."
+	},
+	{
+		"original_line": "parameter real		tox		= 12e-9 from(0:100e-9);", 
+		"bug_line": "parameter real		tox		= 12e-6 from(0:100e-9);",
+		"error_description": "Changed oxide thickness from 12nm to 12μm, violating the physical design range (0-100nm). This causes incorrect electric field calculations (V/to_x), disrupting switching behavior and resistance states."
+	},
+	{
+		"original_line": "parameter real		g0		= 0.25e-9 from(0:2e-9);", 
+		"bug_line": "parameter real		g0		= 0.25e-9 from(2e-9:0);",
+		"error_description": "Swapped the range limits (min:max) to (max:min). This inverts the valid parameter range, allowing negative values which causes instability in the exponent term exp(-gap/g0) since g0 could become negative during simulation clamping."
+	},
+	{
+		"original_line": "parameter real		V0		= 0.25    from(0:10);", 
+		"bug_line": "parameter real		V0		= -0.25    from(0:10);",
+		"error_description": "Changed V0 from positive to negative. This inverts the argument of the sinh function in the current equation (Itb), causing inverted current flow direction relative to voltage polarity and violating the intended device behavior."
+	},
+	{
+		"original_line": "Itb = I(TE,BE);", 
+		"bug_line": "Itb = I(BE,TE);",
+		"error_description": "Reverses current direction by swapping TE and BE in I() call. This inverts the sign of Itb, causing incorrect power dissipation (T_cur = T_ini + abs(Vtb * Itb * Rth)) and invalid temperature-dependent gap calculations."
+	},
+	{
+		"original_line": "parameter real		a0		= 0.25e-9 from(0:inf);", 
+		"bug_line": "parameter real		a0		= -0.25e-9 from(-inf:inf);",
+		"error_description": "Setting negative atom spacing (a0) inverts the gap change direction, causing opposite switching behavior: positive voltages increase gap (RESET) while negative voltages decrease gap (SET), violating fundamental device physics."
+	},
+	{
+		"original_line": "The terms under which the software and associated documentation (the Software) is provided are as the following:", 
+		"bug_line": "The terms under which the software and associated documentation (the Software) is provided are as the following: */ parameter real illegal_param = 0.0; /*",
+		"error_description": "Prematurely terminates the comment block with */ and inserts an invalid global parameter declaration, causing compilation failure due to parameter declaration outside module scope and unterminated comment block."
+	}
+]

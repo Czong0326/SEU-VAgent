@@ -1,0 +1,161 @@
+//  VerilogA for VerilogA, Butterworth_lpf_d, veriloga
+//
+//  Butterworth lowpass filter (order >= 2) in Verilog-A.
+//  Differential system level implementation based on
+//  laplace_zp() filter
+//   
+//  Copyright (c) 2005
+//  by Cadence Design Systems, Inc.  All rights reserved.
+//
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+// Define filter order N: must be >=2
+`define N 8
+
+//   Next filter parameters are implemented as parameters
+//   of this Verilog-A module: 
+//	fupper:        upper critical frequency [Hz]
+//      flower         lower critical frequency [Hz]
+//   	rin:           input resistance [Ohm]
+//   	rout:          output resistance [Ohm]
+//   	gain:          voltage gain [dB]; (or loss, if gain < 0). 
+
+/* System level implementation of Butterworth bandstop filter:
+        --------              
+inp-    | H(s) |   ---rout----outp
+   |    --------   |
+  rin            VHout
+   |		   |
+  gnd             gnd
+
+inn-               ---rout----outn
+   |    	  |
+  rin            VHout
+   |		  |
+  gnd		 gnd
+             
+Voltage source VHout = H(s)*Vin, where H(s) is the polynomial transfer function
+of BSF implemented as laplace_zp(V(inp)- V(inn), zeros, poles).
+*/
+
+module BB_butterworth_bs_laplace(inp,inn,outp,outn);
+   input inp,inn;
+   output  outp,outn;
+   electrical inp,inn, outp,outn;
+   
+   parameter real fupper = 1e9 from (0:inf);
+   parameter real flower = 1e6 from (0:fupper);
+   parameter real gain = 0;
+   parameter real rin = 50 from (0:inf);
+   parameter real rout = 50 from (0:inf);
+
+   // vector for all N denominatoe poles 
+   real  poles[0:4 *`N-1], zeros[0:4*`N-1];
+ 
+   // vectors for Re and Im of poles pairs:
+   real  ReP[0:`N/2], ImP[0:`N/2];
+
+   real wb, re_pole, im_pole, vout, wg, wg2, wb2, teta, wgn;
+   real ReP2, ImP2, Sqr_Rep2PlusImp2, Rep2MinusImp2;
+   integer i, Npair, Np1p, k, IntegTmp;
+   real tmp, realtmp, imagtmp;
+
+analog begin
+
+ @(initial_step) begin
+   if( `N < 2 ) begin
+        $strobe("Filter order is less then 2");
+        $stop(1);
+   end // if( `N < 2 )
+   wb  = `M_TWO_PI * (fupper - flower);
+   wb2 = wb * wb;
+   wg2 = `M_TWO_PI * `M_TWO_PI * fupper * flower;
+   wg  = sqrt(wg2);
+   Npair = `N/2; Np1p = (`N+1)/2;
+   wgn   = pow(10.0,gain/20.0);
+   for (k=0; k<`N; k=k+1) begin
+     IntegTmp = 4*k;
+     zeros[IntegTmp]     =  0;
+     zeros[IntegTmp + 1] =  wg;
+     zeros[IntegTmp + 2] =  0;
+     zeros[IntegTmp + 3] = -wg;
+   end
+
+// Initialization of vectors ReP and ImP
+// using normalized Butterworth pole locations
+// where `M_TWO_PI*f=1
+
+   tmp = `M_PI/(2*`N);
+   for (k=0; k<Np1p; k=k+1) begin
+   	teta   = (2*k+1.0)*tmp;
+   	ReP[k] = -sin(teta);
+   	ImP[k] = cos(teta);
+   end // for (k=1; k<=Np1p; k=k+1)
+
+// Poles of denormalized filter
+   for (i=0; i<Npair; i=i+1) begin
+        ReP2 = ReP[i]* ReP[i]; ImP2 = ImP[i]* ImP[i];
+	Sqr_Rep2PlusImp2 = ReP2 + ImP2;
+        re_pole  =   wb * ReP[i] / Sqr_Rep2PlusImp2 / 2;
+        im_pole  =  -wb * ImP[i] / Sqr_Rep2PlusImp2 / 2;
+	wgn = wgn / Sqr_Rep2PlusImp2;
+	Sqr_Rep2PlusImp2 = Sqr_Rep2PlusImp2 * Sqr_Rep2PlusImp2;
+	Rep2MinusImp2 = ReP2 - ImP2;
+        realtmp =   wb2 * Rep2MinusImp2 / Sqr_Rep2PlusImp2 - 4 * wg2;
+	imagtmp = - 2 * ReP[i] * ImP[i] * wb2 / Sqr_Rep2PlusImp2;
+        if (imagtmp > 0) begin
+	  if (realtmp == 0) teta = `M_PI / 2;
+	  else if (realtmp > 0 ) teta = atan(imagtmp/realtmp);
+	  else teta = `M_PI + atan(imagtmp/realtmp);
+	end else begin
+	  if (realtmp == 0) teta = -`M_PI / 2;
+	  else if (realtmp > 0 ) teta = `M_TWO_PI + atan(imagtmp/realtmp);
+	  else teta = `M_PI + atan(imagtmp/realtmp);
+	end // it's impossible that imagtmp == 0.0
+	teta = teta / 2.0;
+	tmp = sqrt ( sqrt(realtmp*realtmp + imagtmp*imagtmp) );
+        realtmp = tmp * cos(teta) / 2;
+	imagtmp = tmp * sin(teta) / 2;
+	IntegTmp = 8*i;
+        poles[IntegTmp]   =  re_pole + realtmp;
+        poles[IntegTmp+1] =  im_pole + imagtmp;
+        poles[IntegTmp+2] =  re_pole + realtmp;
+        poles[IntegTmp+3] = -im_pole - imagtmp;
+	poles[IntegTmp+4] =  re_pole - realtmp;
+        poles[IntegTmp+5] = -im_pole + imagtmp;
+        poles[IntegTmp+6] =  re_pole - realtmp;
+        poles[IntegTmp+7] =  im_pole - imagtmp;
+   end //for (i=0; i<Npair; i=i+1)
+
+   if (Npair != Np1p) begin // odd `N
+        realtmp = wb2 / ReP[i] / ReP[i] - 4 * wg2;
+	re_pole = - wb * ReP[i];
+	if (realtmp > 0) begin
+	  realtmp = sqrt (realtmp);
+	  imagtmp = 0.0;
+	end else begin
+	  realtmp = 0.0;
+	  imagtmp = sqrt (- realtmp);
+	end
+ 	IntegTmp = 8*i;
+        poles[IntegTmp]   =  (re_pole + realtmp)/2;
+        poles[IntegTmp+1] =  imagtmp/2;
+        poles[IntegTmp+2] =  (re_pole - realtmp)/2;
+        poles[IntegTmp+3] = -imagtmp/2;
+   end //if (Npair != Np1p)
+ end // init step
+
+ // input model:
+ I(inp) <+ V(inp)/rin;
+ I(inn) <+ V(inn)/rin;
+
+//  output model:
+ vout = wgn * laplace_zp(V(inp)- V(inn), zeros, poles);
+
+ I(outp) <+ (V(outp) - vout)/rout;
+ I(outn) <+ (V(outn) + vout)/rout;
+
+end // analog begin
+endmodule // Butterworth_bs

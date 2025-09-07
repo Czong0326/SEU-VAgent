@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "Xk[61] = 0.000013394745242923;", 
+		"bug_line": "Xk[61] = 0.000013394745242923 * 1000;",
+		"error_description": "Scaled Xk[61] coefficient by 1000, disrupting Gaussian filter symmetry and causing incorrect frequency modulation in GFSK signal generation."
+	},
+	{
+		"original_line": "      Ak[36] = 0.030234657072402478; ", 
+		"bug_line": "      Ak[38] = 0.030234657072402478; ",
+		"error_description": "Assigned the coefficient value to index 38 instead of 36, corrupting the Gaussian filter weights. Ak[36] remains uninitialized (0.0), breaking the symmetric coefficient structure and distorting the pulse shaping filter response."
+	},
+	{
+		"original_line": "      trig                  = enable_stop - enable_start;", 
+		"bug_line": "      trig                  = enable_stop + enable_start;",
+		"error_description": "Changed subtraction to addition. This miscalculates the frame trigger period as the sum instead of difference between stop/start parameters, causing incorrect timing in the deactivation logic."
+	},
+	{
+		"original_line": "tt                     = period/10000 ;", 
+		"bug_line": "tt                     = period/0 ;",
+		"error_description": "Division by zero error: The timer step 'tt' becomes undefined/infinite, causing simulation failure during the timer event trigger due to invalid time step calculation."
+	},
+	{
+		"original_line": "real Sum, CurrentPhase;", 
+		"bug_line": "real Sum; integer CurrentPhase;",
+		"error_description": "Changing CurrentPhase to integer causes truncation of phase values during accumulation, disrupting the smooth phase transitions required for GFSK modulation and introducing quantization errors in the output signals."
+	},
+	{
+		"original_line": "Xk[55] = 0.000711458115749065;", 
+		"bug_line": "Xk[55] = -0.000711458115749065;",
+		"error_description": "Negates the Gaussian quadrature coefficient Xk[55], causing incorrect exponential calculations in the pulse-shaping filter and distorting the modulated signal phase."
+	},
+	{
+		"original_line": "parameter integer frame_size = 625;", 
+		"bug_line": "parameter integer frame_size = 0;",
+		"error_description": "Setting frame_size to zero causes division by zero in T = frame_time / frame_size during initial_step calculations, crashing simulation immediately."
+	},
+	{
+		"original_line": "if ( count == frame_size ) begin", 
+		"bug_line": "if ( count == frame_size + 1 ) begin",
+		"error_description": "Changed condition from 'count == frame_size' to 'count == frame_size + 1'. This off-by-one error prevents proper reset timing, causing the frame counter to miss the reset point. As a result, 'frames' increments too late and deactivation timing drifts by one symbol period per frame."
+	},
+	{
+		"original_line": "mm = CurrentPhase / `M_TWO_PI;", 
+		"bug_line": "mm = CurrentPhase * `M_TWO_PI;",
+		"error_description": "Replaced division with multiplication. This causes mm to become a large scaled value instead of the integer number of full cycles. Subsequent subtraction of mm * M_TWO_PI introduces massive phase errors, corrupting the I/Q modulation."
+	},
+	{
+		"original_line": "      Xk[32] = 2.957993578549723300;", 
+		"bug_line": "      Xk[32] = 0.0;",
+		"error_description": "Set Gaussian filter coefficient Xk[32] to zero, distorting the filter's impulse response and compromising the GFSK modulation accuracy."
+	},
+	{
+		"original_line": "      Xk[40] = 3.387916206223269300;", 
+		"bug_line": "      Ak[40] = 3.387916206223269300;",
+		"error_description": "Assigned the value to Ak[40] instead of Xk[40]. This leaves Xk[40] uninitialized (0.0) and corrupts Ak[40] by overwriting its correct coefficient. The Gaussian filter calculation will use incorrect values for both arrays, distorting the pulse shaping and GFSK modulation output."
+	},
+	{
+		"original_line": "        if ( frames == trig ) begin", 
+		"bug_line": "        if ( frames >= trig ) begin",
+		"error_description": "Changed equality operator to greater-than-or-equal, causing premature deactivation. The condition now triggers when frames exceed the target (trig) rather than matching exactly, violating the timing control for frame deactivation."
+	},
+	{
+		"original_line": "      Xk[39] = 0.034869842536188106; ", 
+		"bug_line": "      Xk[39] = -0.034869842536188106; ",
+		"error_description": "Changed the sign of Gaussian quadrature point Xk[39] from positive to negative. This inverts the exponential term behavior in the Gaussian filter computation, causing distortion in the pulse shaping and deviating from the intended GFSK modulation characteristics."
+	},
+	{
+		"original_line": "parameter integer initial_syms[0:pulse_length-1] = {1 };", 
+		"bug_line": "parameter integer initial_syms[0:pulse_length-1] = {0 };",
+		"error_description": "The initial symbol is set to 0 instead of 1 or -1, causing incorrect phase modulation. Valid symbols must be ±1 to represent binary data; a 0 value corrupts the initial phase calculation and subsequent I/Q outputs."
+	},
+	{
+		"original_line": "      OneOversqrtPI = sqrt(`M_1_PI) / 2;", 
+		"bug_line": "      OneOversqrtPI = sqrt(`M_PI) / 2;",
+		"error_description": "Replaced `M_1_PI (1/π) with `M_PI (π) in the sqrt calculation. This inverts the constant value from 1/√π to √π, causing incorrect Gaussian pulse scaling and distortion in the GFSK modulation output."
+	},
+	{
+		"original_line": "      Ak[55] = 0.011168139460131128; ", 
+		"bug_line": "      Ak[55] = 0.0; ",
+		"error_description": "Set Gaussian filter coefficient Ak[55] to zero instead of the correct positive value, removing its contribution to the pulse shaping calculation and distorting the modulated output waveform."
+	},
+	{
+		"original_line": "end  /* end of initial_step  */", 
+		"bug_line": "end  /* end of initial_step  */ period = 0;",
+		"error_description": "Sets period to zero after initialization, causing division-by-zero in timer calculations and preventing proper waveform generation due to invalid time steps."
+	},
+	{
+		"original_line": "parameter integer need_deactivate = 0 from [0:1];", 
+		"bug_line": "parameter integer need_deactivate = 1 from [0:1];",
+		"error_description": "Changed default value from 0 to 1, forcing unintended deactivation behavior. The 'need_deactivate' block will now always execute during initialization, altering timing calculations and potentially disabling module functionality by default."
+	},
+	{
+		"original_line": "bminuxa2   =   scale * (point + HalfT);", 
+		"bug_line": "bminuxa2   =   scale * (point - HalfT);",
+		"error_description": "Changed '+' to '-' in bminuxa2 calculation. This makes both edges use the same time offset (point - HalfT), disrupting the Gaussian pulse symmetry needed for proper frequency shaping."
+	},
+	{
+		"original_line": "tmpI  = ampl * cos( CurrentPhase );", 
+		"bug_line": "tmpI  = ampl * sin( CurrentPhase );",
+		"error_description": "Assigns the sine component to the I branch instead of cosine, causing both I and Q outputs to be identical (both sine). This breaks the quadrature modulation scheme as I and Q should be 90 degrees out of phase."
+	}
+]

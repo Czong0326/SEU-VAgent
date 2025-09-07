@@ -1,0 +1,176 @@
+//#################################################
+//
+// VerilogA AOS+LLGS implementation
+// Written by Johan Pelloux-Prayer
+// Last modified: September 2019
+// Based on work from: Samiran Ganguly and Kerem Y. Camsari; September 2014
+//
+//#################################################
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+`include "/AOS_disciplines/verilogams/verilog.vams" //add path to AOS_disciplines
+
+module AOS_v2( T_el, M_AOS, M_ini, h ,s);
+	input T_el;
+	input [0:2] M_ini,h,s;
+	output [0:2] M_AOS;
+	
+	Thermal_2Tmodel T_el, T_temp, T_dummy; 
+	electrical [0:2] h, s;
+	Magnet [0:2] M_AOS, M_ini;
+
+	parameter real DT_cutoff = 10;
+    (* desc="Gilbert Damping Parameter"*)
+    parameter real alpha = 0.01;
+    (* desc="Magnet thickness", units="m"*)
+    parameter real tfm=20e-9;
+    (* desc="Radius of cross section", units="m"*)
+    parameter real r_magnet = 25n;
+    (* desc="Saturation magnetization", units="A/m"*)
+    parameter real Ms = 800k;
+    (* desc="Anisotropy field", units="T"*)
+    parameter real Hk = 1;
+    (* desc="LLG integration step", units="s"*)
+    parameter real llg_step = 10m;
+    (* desc="easy axis_x"*)
+    parameter real easy_axis_x = 0 from [0:1];
+    (* desc="easy axis_y"*)
+    parameter real easy_axis_y = 0 from [0:1];
+    (* desc="easy axis_z"*)
+    parameter real easy_axis_z = 1 from [0:1];
+    (* desc="x axis demagnetization coefficients"*)
+    parameter real Nx = 0.5;
+    (* desc="y axis demagnetization coefficients"*)
+    parameter real Ny = 0.5;
+    (* desc="z axis demagnetization coefficients"*)
+    parameter real Nz = 0.0;
+
+	real dTe = 0;
+	real Mxi = 0.1;
+	real Myi = 0.1;
+	real Mzi = 0.8;
+
+	integer Starting_point = 0;
+	real offset = 0;
+ 	real timing = 0;
+	real Norm_M = 1;
+	real dmx = 0.01;
+	real dmy = 0.1;
+	real dmz = 0.1;
+	real Mx = 0.01;
+	real My = 0.01;
+	real Mz = 0.01;
+	real hx = 0;
+	real hy = 0;
+	real hz = 0;
+	real ix = 0;
+	real iy = 0;
+	real iz = 0;
+	real theta = 0.01;
+	real Mnorm = 1;
+	real Area = `M_PI*r_magnet*r_magnet;
+    real gamma = 1.76e11;							// Gyromagnetic ratio
+	real hbar = 1.05457e-34;						 	// Reduced Planck's constant
+	real q = `P_Q;									// Electron charge
+	real mu0 = 1.257e-7;								// 
+	real tdl =  (1+alpha*alpha)*gamma*mu0*Ms ;		// Normalization coefficient for LLGS
+	real kstt = hbar/(q*2*Ms*Area*tfm);				// Current normalization
+	real test = 0;
+
+	analog begin
+	@(initial_step) begin							// Initisialisation step to avoid zero magnetization situation
+
+  	  	Mxi = M(M_ini[0]);
+		Myi = M(M_ini[1]);
+		Mzi = M(M_ini[2]);
+
+	end
+ 
+	dTe = ddt(1p * T(T_el)) ;
+
+	T(T_temp) <+  dTe;
+
+	@(cross((T(T_temp)) - DT_cutoff,1)) begin 		// AOS startup point
+		offset = $abstime; 							// time offset for LUT consistency
+		if(Mzi > 0) begin
+			Starting_point = 1; 						// positive lookup table flag
+		end		
+		else if(Mzi < 0) begin
+			Starting_point = 0; 						// negative lookup table flag
+		end
+	end
+
+	test = (abs(T(T_temp)) > DT_cutoff);
+
+		if(abs(T(T_temp)) > DT_cutoff) begin		// AOS trigger is based on thermal gradient
+			timing = ($abstime-offset)*1e15; 		// time scale of the LUT
+			$bound_step(100f); 						// tight stepping for AOS
+			if(Starting_point == 1) begin			// positive mz start LUT
+
+		//Time base LUT, not IEEE compatible
+		// Add path to the LUT files
+				Mxi = $table_model(timing, T(T_el), "/AOS_v2/Gd25Fe75_Fe_pos_AOS_X.dat");
+				Myi = $table_model(timing, T(T_el), "/AOS_v2/Gd25Fe75_Fe_pos_AOS_Y.dat");
+				Mzi = $table_model(timing, T(T_el), "/AOS_v2/Gd25Fe75_Fe_pos_AOS_Z.dat");
+
+			end
+			else if(Starting_point == 0) begin		// negative mz start LUT
+
+		//Time base LUT, not IEEE compatible
+
+				Mxi = $table_model(timing, T(T_el), "/AOS_v2/Gd25Fe75_Fe_neg_AOS_X.dat");
+				Myi = $table_model(timing, T(T_el), "/AOS_v2/Gd25Fe75_Fe_neg_AOS_Y.dat");
+				Mzi = $table_model(timing, T(T_el), "/AOS_v2/Gd25Fe75_Fe_neg_AOS_Z.dat");
+
+			end
+		end
+		else begin
+
+			$bound_step(100p); 						// relax the tight stepping condition needed for AOS
+
+
+			@(timer(0,llg_step/tdl)) begin
+
+				theta = (Mxi * easy_axis_x + Myi * easy_axis_y + Mzi * easy_axis_z)*`M_PI/2; //`M_PI;
+
+				hx = (V(h[0]) + Hk * ( cos(theta)*easy_axis_x ) - Nx*(Mxi) );
+				hy = (V(h[1]) + Hk * ( cos(theta)*easy_axis_y ) - Ny*(Myi) );
+				hz = (V(h[2]) + Hk * ( cos(theta)*easy_axis_z ) - Nz*(Mzi) );
+
+				ix = kstt * V(s[0]);
+				iy = kstt * V(s[1]);
+				iz = kstt * V(s[2]);
+
+				dmx = -(llg_step) * ( hz*Myi - Mzi*(ix*Mzi - iz*Mxi) - hy*Mzi - Myi*(ix*Myi - iy*Mxi) - alpha*iy*Mzi + alpha*iz*Myi - alpha*Myi*(hx*Myi - hy*Mxi) - alpha*Mzi*(hx*Mzi - hz*Mxi) );
+				dmy = -(llg_step) * ( hx*Mzi + Mxi*(ix*Myi - iy*Mxi) - hz*Mxi - Mzi*(iy*Mzi - iz*Myi) + alpha*ix*Mzi - alpha*iz*Mxi + alpha*Mxi*(hx*Myi - hy*Mxi) - alpha*Mzi*(hy*Mzi - hz*Myi) );
+				dmz = -(llg_step) * ( hy*Mxi + Myi*(iy*Mzi - iz*Myi) - hx*Myi + Mxi*(ix*Mzi - iz*Mxi) - alpha*ix*Myi + alpha*iy*Mxi + alpha*Mxi*(hx*Mzi - hz*Mxi) + alpha*Myi*(hy*Mzi - hz*Myi) );
+
+				Mx = Mxi + dmx;
+				My = Myi + dmy;
+				Mz = Mzi + dmz;
+				
+				Mnorm = sqrt(Mx*Mx + My*My + Mz*Mz);
+
+				Mxi = Mx/Mnorm;
+				Myi = My/Mnorm;
+				Mzi = Mz/Mnorm;
+
+			end
+
+
+		end
+
+	Norm_M = sqrt(Mxi*Mxi + Myi*Myi + Mzi*Mzi); // flatten the spike that occurs when crossing between AOS and LLGS
+
+  	M(M_AOS[0]) <+ Mxi/Norm_M;//slew(Mxi/Norm_M,slew_rate,-slew_rate);  
+
+	M(M_AOS[1]) <+ Myi/Norm_M;//slew(Myi/Norm_M,slew_rate,-slew_rate); 
+
+	M(M_AOS[2]) <+ Mzi/Norm_M;//slew(Mzi/Norm_M,slew_rate,-slew_rate); 
+
+	end
+
+endmodule
+

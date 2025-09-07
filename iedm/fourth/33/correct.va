@@ -1,0 +1,199 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Copyright @ 2015 Carnegie Mellon University (CMU)
+ 
+//The terms under which the software and associated documentation (the Software) is provided are as the following:
+ 
+//The Software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages or other liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the Software or the use or other dealings in the Software.
+ 
+//CMU grants, free of charge, to any users the right to modify, copy, and redistribute the Software, both within the user's organization and externally, subject to the following restrictions:
+ 
+//1. The users agree not to charge for the CMU code itself but may charge for additions, extensions, or support.
+ 
+//2. In any product based on the Software, the users agree to acknowledge the CMU mLogic Group that developed the software. This acknowledgment shall appear in the product documentation.
+ 
+//3. The users agree to obey all U.S. Government restrictions governing redistribution or export of the software.
+ 
+//4. The users agree to reproduce any copyright notice which appears on the software on any copy or modification of such made available to others.
+ 
+//Agreed to by 
+//Larry Pileggi, CMU
+//January 13 2015
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+/* mCell_1_0_1.va
+
+This model describes a simplified picture of STT-mCell operation. Because the "black-box" model of the mCell is the same regardless of whether the driving force is STT, the spin Hall effect, or something else, this macro-model can be used for any effect so long as the directionality of input current determines the resistance state of an electrically-isolated read-path. However, the parameters (and some empirically-fit behavior) are currently tuned for STT-based domain wall motion.
+
+This model is primarily intended for use in digital simulations (i.e., where the pulses are nominally square in shape).
+
+The model defines a discipline representing the location and velocity of the domain wall (modeled with infinitesimal width for simplicity). This is internal to the model; only the external electrical ports (read- and write-terminals) are visible to the user. To initiate switching, the current density must exceed a threshold value that is dependent on the pulse width. Here, we calculate an average value of the write-path current density over a variable time window; if the average value exceeds a calculated depinning time (based on an empirical fit to micromagnetic simulation data), the domain wall is depinned. Once this occurs, the velocity of the domain wall is linearly proportional to the current density. Smooth exponential functions are used to model transitional behavior; such functions are also used to "clamp" the domain wall at its endpoints on either side of the device. A "restoring force" is also modeled that slowly brings the domain wall back to x=0, where the magnetization in the read-path and write-path are parallel and the energy is at a global minimum. The resistance of the read-path is a function of the domain wall location. A flag is available to indicate whether or not the user wishes to simulate the device with two magnetic tunnel junctions (MTJs) in the read-path, or one MTJ and one ohmic contact.
+
+The characteristics of this model (particularly the empirical fit to depinning) are based on a specific set of device parameters and physical effects modeled in simulation only. The critical current density and switching time ARE NOT GUARANTEED TO BE CORRECT for all possible mCell parameters (e.g., write-path thickness, interlayer exchange coupling strength, write-path anisotropy, etc.).
+
+A special note about the depinning time function: this was extracted from micromagnetic simulation data that modeled pulse widths from 1-10 ns. It is unknown if the trend continues for wider pulses.
+
+A special note about sizing: the critical current density and switching time were found to not vary appreciably in a range of width from 10-50 nm (assuming zero edge roughness). It is unknown if these trends continue for wider devices.
+
+Authors: Daniel H. Morris, David M. Bromberg
+
+*/
+
+`include "disciplines.vams"
+`define NOT_GIVEN -9e99
+`define e_charge 1.602176565e-19 // Electron charge (NIST 2010) [C]
+`define g_factor 2.0 // Electron g-factor
+`define mu_b 9.27e-21 // Bohr magneton [emu]
+
+nature nanoposition
+    units = "nm";
+    access = nPos;
+    abstol = 1e-4;
+    blowup = 1e3;
+endnature
+
+nature nanovelocity
+     units = "nm/s";
+     access = nVel;
+     abstol = 1e8;
+     blowup = 1e12;
+endnature
+
+discipline nanokinematic
+     potential nanoposition;
+     flow nanovelocity;
+enddiscipline    
+
+
+
+module mCell_1_0_1(R1, R2, w_n, w_p); 
+    inout R1, R2; // Read-path electrical terminals (input and output terminals visible to user)
+    inout   w_n, w_p; // Write-path electrical terminals (input and output terminals visible to user)
+    // In this model, a conventional current into w_n sets the read-path to a high resistance state
+  
+    // Geometrical parameters (all units in [nm])
+    parameter real L_mtj = 12.0 from (0.0 : inf); // Length of read-path MTJ/electrode
+    parameter real L_ext = 8.0 from (0.0 : inf); // Length of region between write-path electrode and read-path "step"
+    parameter real L_space = 8.0 from (0.0 : inf); // Length of region separating read-path electrodes
+    parameter real width = 10.0 from (0.0 : inf); // Width of device
+
+    // Electrical parameters
+    parameter real rho_writepath = 200.0 from (0.0 : inf); // Resistivity of write-path [ohm*nm]
+    parameter real RA_MTJ_low = 1e5 from (0.0 : inf); // Resistance*area product of tunnel junction [ohm*nm^2]
+    parameter real TMR_percent = 100.0 from (0.0 : inf); // Tunnel magnetoresistance (TMR) ratio of MTJ [%]
+
+    // Miscellaneous parameters   
+    parameter integer ohmic_contact_readpath = 0 from [0 : inf]; // Flag to indicate whether one read-path electrode is an ohmic contact (0: two MTJs, 1: one MTJ, one ohmic contact)
+    parameter real initstate = 0 from [0:1]; // Initial state of the device (0: low resistance; 1: high resistance)
+   
+    electrical R1, R2, w_n, w_p; // Electrical terminals of the model
+    nanokinematic domain_wall_pos; // "Nanokinematic" node internal to the model that represents the domain wall position
+    
+    branch (R1,R2) readpath; // Establish an electrical connection between the read-path electrodes
+    branch (w_n,w_p) writepath; // Establish an electrical connection between the write-path electrodes
+    // Assume perfect isolation between read- and write-paths: no connection between these electrodes
+ 
+    branch (domain_wall_pos) domain_wall_capacitor; // Establish a connection between the position storage node and gnd; this is like a capacitor where the "voltage" represents the DW position
+    branch (domain_wall_pos) spin_current; // This will be a "current source" for the spin-polarized electrons
+    branch (domain_wall_pos) gmindcpath; // This will be a large "resistor" connected across the storage capacitor used to aid convergence
+    // By making these connections, we essentially have a current source (which represents the current that moves the DW) in parallel with a cap (whose potential represents the domain wall location) in parallel with a resistor (mainly for convergence))
+          
+    real L_lowstate1; // Length of region of first read-path electrode where the resistance is low (mag. parallel on either side of tunnel barrier) [nm]
+    real L_highstate1; // Length of region of first read-path electrode where the resistance is high (mag. antiparallel on either side of tunnel barrier) [nm]
+    real L_lowstate2; // Length of region of second read-path electrode where the resistance is low (mag. parallel on either side of tunnel barrier) [nm]
+    real L_highstate2; // Length of region of second read-path electrode where the resistance is high (mag. antiparallel on either side of tunnel barrier) [nm]
+    real R_readtotal; // Total resistance of read-path [Ohm]
+    real write_current_density; // Charge current density in write-path [A/nm^2]
+
+    real   min_boundary_comp; // This represents a "restoring force" that clamps the domain wall at its minimum position (i.e., can't have a position < 0)
+    real   max_boundary_comp; // This represents a "restoring force" that clamps the domain wall at its maximum position (i.e., can't have a position > L_total)
+    // The previous two variables can be thought of as a diode clamping circuit, ensuring the position storage node always has a position (potential) in a physical range
+    real   current_driven_comp; // This is the "driving force" component of the wall velocity, set by the write-path current density
+    real   global_min_comp; //This is a "restoring force" that slowly brings the domain wall to its 0 position (global energy minimum) if the current shuts off during the switching process
+
+    // Define local parameters
+    localparam real writepath_thickness = 3.0; // Thickness of write-path [nm]
+    localparam real alpha = 0.01; // Damping constant [dimensionless]
+    localparam real sat_mag = 500.0; // Saturation magnetization [emu/cm^3]
+    localparam real polarization = 0.50; // Spin polarization in write-path [dimensionless]
+    localparam real wall_speed_per_J = `g_factor*`mu_b*polarization/(2.0*`e_charge*sat_mag*(1+alpha*alpha))*1.0e21; // Pre-factor that, when multiplied by the write-path current density, yields the domain wall velocity [nm^3/(A*s)]   
+    localparam real restoration_speed = 1.0e8; // Empirical term that allows the domain wall to move to its global minimum position when the current shuts off [nm/s]
+    localparam real L_total = 2.0*L_ext+2.0*L_mtj+L_space; // Total length of device [nm]
+    localparam real MTJ_ratio = 1.0+TMR_percent/100.0; // OFF/ON ratio of MTJ (determined by TMR_percent)
+    localparam real R_writepath = rho_writepath*L_total/(width*writepath_thickness); // Total resistance of write-path [Ohm]
+
+    // Define variables (initialized to 0.0 on the first step)
+    real startTime; // Lower bound on integral of current density
+    real wall_depin; // Flag indicating whether the domain wall is depinned (1) or not (0)
+    real J_integ; // Integrated current density used in depinning calculation
+    real t_depin; // Time it takes to depin the domain wall as a function of current density (empirical function)
+    real J_avg; // Average current density
+    real stepCount; // Number of time steps taken under a given sign of current
+
+    analog begin
+        
+        if(analysis("ic")) begin
+          // Enforce initial condition by setting the potential at the domain_wall_pos node
+          nPos(domain_wall_pos) <+ initstate*L_total; // Position is 0 if initstate is 0, or at the end of the device if initstate is 1
+        end
+
+	write_current_density = I(writepath)/(width * writepath_thickness);
+
+        // When the current changes sign, we reset the time window (and step counter) for the depinning calculation
+	@(cross(write_current_density)) begin
+            startTime = $abstime;
+	    stepCount = 0.0;
+            J_integ = 0.0;
+        end
+
+        J_integ = J_integ+write_current_density; // Keep adding up the current density to find an average value in a given time window
+        if(nPos(domain_wall_capacitor) > 1.0 && nPos(domain_wall_capacitor) < L_total-1.0) begin
+            wall_depin = 1.0; // The wall is already depinned, so we will consider any level of current density as being sufficient to move the wall
+        end
+        else begin
+            wall_depin = 0.0; // The wall is "stuck" at an endpoint, meaning it is not depinned
+            J_avg = J_integ/(stepCount+1.0); // Find the average value of the current density over the given time window
+            if(abs(J_avg) < 1.0e-12) begin
+              t_depin = 1e9; // If the current density is roughly 0, the DW will never depin (can't evaluate this in the function below because it will cause a divide-by-zero error)
+            end
+            else begin
+              t_depin = 1.0e-9*(4523.0*pow((abs(J_avg)*1.0e8),-2.82) + 0.2285); // Empirical function that approximates the depinning time as a function of the current density (need unit of J to be [MA/cm^2])
+            end
+            if($abstime-startTime >= t_depin && abs(write_current_density) > 0.0) begin
+              wall_depin = 1.0; // Depin the wall if the average current density was applied long enough to depin the domain wall and the current isn't already off
+            end
+        end
+
+	// Calculate voltage across write-path (on every time step)
+        V(writepath) <+ I(writepath) * R_writepath;
+	
+	nVel(domain_wall_capacitor) <+ ddt(nPos(domain_wall_capacitor)); // Differentiate the position of the domain wall (w.r.t. time) to obtain domain wall velocity
+
+	// Use the domain wall position (potential on capacitor) to calculate how much of the read-path yields a low resistance and how much yields a high resistance
+	L_highstate1 = min(L_mtj, max(0, nPos(domain_wall_capacitor)-L_ext));
+	L_lowstate1 = L_mtj - L_highstate1;
+	L_highstate2 = min(L_mtj, max(0, nPos(domain_wall_capacitor)-L_ext-L_mtj-L_space));
+	L_lowstate2 = L_mtj - L_highstate2;
+
+	current_driven_comp = wall_speed_per_J * -write_current_density; // Negate the current density because we need electron flow
+
+	min_boundary_comp =  -limexp(-10*nPos(domain_wall_pos)); // Use a smooth function (an exponential) to clamp the minimum position at 0
+	max_boundary_comp = limexp(10*(nPos(domain_wall_pos)-L_total)); // Use a smooth function (an exponential) to clamp the maximum position at L_total
+	global_min_comp = -2.0*restoration_speed*(0.5 - 1/(1+limexp(0.05*nPos(domain_wall_pos)))); // Slowly restores the wall to its 0 position (global energy min) if the current shuts off
+        nVel(spin_current) <+ wall_depin*(current_driven_comp + global_min_comp) + min_boundary_comp + max_boundary_comp; // Calculate the velocity in response to the applied current (and clamping at the appropriate values)
+	nVel(gmindcpath) <+ nPos(domain_wall_pos)/1e6; // Allow negligibly small "leakage" of position (this helps convergence)
+
+	if(ohmic_contact_readpath) begin
+           R_readtotal = RA_MTJ_low/(width*(L_lowstate1+MTJ_ratio*L_highstate1));
+	end
+	else begin
+	   R_readtotal = RA_MTJ_low/(width*(L_lowstate1+MTJ_ratio*L_highstate1)) + RA_MTJ_low/(width*(L_lowstate2 + MTJ_ratio*L_highstate2));
+	end
+	
+	I(readpath)<+ V(readpath)/R_readtotal; // Set current through read-path
+	
+	stepCount = stepCount + 1.0; // Increment step counter
+   
+    end //end of analog statement
+
+endmodule

@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "analog begin", 
+		"bug_line": "analog initial begin",
+		"error_description": "Changing to initial block causes scrambling calculations to execute only once at time zero instead of continuously. This prevents real-time scrambling updates, freezing outputs at initial values and breaking signal modulation."
+	},
+	{
+		"original_line": "Q_in_dpch, Q_in_p_cpich, Q_in_pich, Q_in_p_ccpch, Q_in_ocns,", 
+		"bug_line": "Q_in_dpch, Q_in_p_cpich, Q_in_pich, Q_in_p_ccpch, Q_in_ocns_missing,",
+		"error_description": "Changed Q_in_ocns to Q_in_ocns_missing, making the OCNS Q-channel input undefined. This causes the scrambling module to use invalid/uninitialized data for OCNS Q-channel processing."
+	},
+	{
+		"original_line": "q_out_dpch    = 0;", 
+		"bug_line": "q_out_dpch    = i_out_dpch;",
+		"error_description": "Assigns the initial value of q_out_dpch to i_out_dpch (0) instead of 0, creating a directional error where the quadrature component incorrectly mirrors the in-phase component during initialization before the first timer event."
+	},
+	{
+		"original_line": "    if ( isReal ) ComplexMutiply = Iin1 * Iin2 - Qin1 * Qin2;", 
+		"bug_line": "    if ( isReal ) ComplexMutiply = Iin1 * Iin2 + Qin1 * Qin2;",
+		"error_description": "Changed subtraction to addition in real component calculation, violating complex multiplication formula (a+bi)(c+di) = (ac-bd) + (ad+bc)i. Real part now incorrectly sums products instead of subtracting them."
+	},
+	{
+		"original_line": "V(Q_out_p_ccpch) <+ q_out_p_ccpch;", 
+		"bug_line": "V(Q_out_p_ccpch) <+ q_out_p_cpich;",
+		"error_description": "The Q output for the primary CCPCH is incorrectly assigned the value of the primary CPICH's Q component after scrambling, causing cross-channel interference and violating channel isolation requirements."
+	},
+	{
+		"original_line": "@(initial_step) begin", 
+		"bug_line": "@(timer(0, local_sample)) begin",
+		"error_description": "Changed initial_step event to periodic timer. Causes repeated reinitialization of RealCalu/ImagCalu flags and output variables every local_sample interval, disrupting the complex multiplication state instead of setting it once at simulation start."
+	},
+	{
+		"original_line": "V(I_out_ocns)        <+ i_out_ocns;", 
+		"bug_line": "V(I_out_ocns)        <+ i_out_dpch;",
+		"error_description": "The I component of the OCNS output is incorrectly assigned the value of the DPCH I component instead of the OCNS I component, causing OCNS to output DPCH data."
+	},
+	{
+		"original_line": "    q_out_ocns    = 0;", 
+		"bug_line": "    q_out_ocns    = 1;",
+		"error_description": "Incorrect initialization: The Q-component output for OCNS is initialized to 1 instead of 0. This causes a constant offset error in the scrambled Q-channel output for Orthogonal Channel Noise Source, violating the requirement for proper scrambling initialization."
+	},
+	{
+		"original_line": "q_out_dpch    = 0;", 
+		"bug_line": "q_out_dpch    = 1.0;",
+		"error_description": "Incorrect initial value for q_out_dpch (1.0 instead of 0). This causes the output Q_out_dpch to start at 1.0 until the first timer event, creating an invalid initial state that violates the design specification requiring zero initialization."
+	},
+	{
+		"original_line": "RealCalu = 1;", 
+		"bug_line": "RealCalu = 0;",
+		"error_description": "Setting RealCalu to 0 incorrectly forces I channel outputs to use imaginary component calculations (I1*Q2 + Q1*I2) instead of real component (I1*I2 - Q1*Q2). This swaps real/imaginary processing for all I outputs while Q outputs remain imaginary, corrupting the complex scrambling operation."
+	},
+	{
+		"original_line": "V(I_out_p_cpich)   <+ i_out_p_cpich;", 
+		"bug_line": "V(I_out_p_cpich)   <+ i_out_dpch;",
+		"error_description": "Cross-talk error: the real output of the P-CPICH channel is incorrectly assigned the real component of the DPCH channel instead of its own, causing signal interference between channels."
+	},
+	{
+		"original_line": "q_out_p_cpich  = ComplexMutiply( V(I_in_p_cpich), V(Q_in_p_cpich),  tmpReal, tmpImag, ImagCalu );", 
+		"bug_line": "q_out_p_cpich  = ComplexMutiply( V(I_in_p_cpich), V(Q_in_p_cpich),  tmpReal, tmpImag, RealCalu );",
+		"error_description": "Used RealCalu instead of ImagCalu for Q-component calculation, assigning real-part result to imaginary output causing signal polarity error in P-CPICH scrambling."
+	},
+	{
+		"original_line": "i_out_p_ccpch = 0;", 
+		"bug_line": "i_out_p_ccpch = 0.5;",
+		"error_description": "Initial value for i_out_p_ccpch is set to 0.5 instead of 0, causing a constant DC offset in the Primary CCPCH I-channel output. This violates the specification requiring zero initialization and introduces signal distortion."
+	},
+	{
+		"original_line": "Q_in_dpch, Q_in_p_cpich, Q_in_pich, Q_in_p_ccpch, Q_in_ocns,", 
+		"bug_line": "Q_in_dpch, Q_in_p_cpich, Q_in_pich, Q_in_p_ccpch, I_in_ocns,",
+		"error_description": "Changed Q_in_ocns to I_in_ocns, swapping Q-channel input for OCNS with I-channel input. This incorrectly routes I-channel data to Q-channel scrambling processing for OCNS signals."
+	},
+	{
+		"original_line": "output I_out_dpch, I_out_p_cpich, I_out_pich, I_out_p_ccpch, I_out_ocns,", 
+		"bug_line": "output I_out_dpch, I_out_p_cpich, I_out_pich, I_out_p_ccpch, I_in_ocns,",
+		"error_description": "Changed 'I_out_ocns' to 'I_in_ocns', incorrectly making an output port an input port. This causes driver conflicts since the analog block attempts to drive this port while external connections treat it as an input."
+	},
+	{
+		"original_line": "real local_sample;", 
+		"bug_line": "integer local_sample;",
+		"error_description": "Changing 'local_sample' from real to integer causes truncation of the sample period calculation (frame_time/numChipsOut) to zero. This results in a timer period of zero, triggering continuous scrambling calculations instead of periodic chip-rate processing."
+	},
+	{
+		"original_line": "RealCalu = 1;", 
+		"bug_line": "RealCalu = 0;",
+		"error_description": "Setting RealCalu to 0 causes the complex multiplication function to incorrectly use the imaginary part formula for real component calculations, resulting in scrambled I/Q outputs being computed with swapped real/imaginary operations."
+	},
+	{
+		"original_line": "V(Q_out_ocns)       <+ q_out_ocns;", 
+		"bug_line": "V(Q_out_ocns)       <+ -q_out_ocns;",
+		"error_description": "Negates the imaginary component for the OCNS channel during scrambling, causing inverted phase in the output signal."
+	},
+	{
+		"original_line": "q_out_p_ccpch = ComplexMutiply( V(I_in_p_ccpch),V(Q_in_p_ccpch), tmpReal, tmpImag, ImagCalu );", 
+		"bug_line": "q_out_p_ccpch = ComplexMutiply( V(I_in_p_ccpch),V(Q_in_p_ccpch), tmpReal, tmpImag, RealCalu );",
+		"error_description": "Changed last argument from ImagCalu (0) to RealCalu (1), causing the imaginary output (q_out_p_ccpch) to incorrectly use real-part calculation (I1*I2 - Q1*Q2) instead of imaginary-part calculation (I1*Q2 + Q1*I2), corrupting the quadrature component."
+	},
+	{
+		"original_line": " * vector poly_length refers to.", 
+		"bug_line": " * vector poly_order refers to.",
+		"error_description": "Changed 'poly_length' to 'poly_order' in the comment, creating a documentation error that misleads about the relationship between polynomial parameters. This violates the design description where poly_order corresponds to the leftmost polynomial coefficient, while poly_length indicates the number of terms."
+	}
+]

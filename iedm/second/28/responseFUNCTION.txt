@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "$strobe("Error: Negative resistance %.2eΩ at V=%.2fV", R_actual, v_pn);", 
+		"bug_line": "$strobe("Error: Negative resistance %.2eΩ at V=%.2fV", R_actual, R_actual);",
+		"error_description": "Swapped 'v_pn' with 'R_actual' in error reporting, causing the voltage value to display the resistance value instead. This misreports critical simulation data by showing resistance in both fields when negative resistance occurs."
+	},
+	{
+		"original_line": "$strobe("Warning: %.3fV exceeds V_MAX=%.1fV at %t", v_pn, V_MAX, $realtime);", 
+		"bug_line": "$strobe("Warning: %.3fV exceeds V_MAX=%.1fV at %t", V_MAX, v_pn, $realtime);",
+		"error_description": "Swapped v_pn and V_MAX arguments cause the warning message to incorrectly display the measured voltage as the maximum limit and vice versa, misleading debug efforts by reversing critical values."
+	},
+	{
+		"original_line": "vcoeff_linear * v_pn + ", 
+		"bug_line": "vcoeff_quad * v_pn + ",
+		"error_description": "Uses quadratic coefficient (VC2) instead of linear coefficient (VC1) for the voltage-linear term, causing incorrect scaling of the linear voltage dependence in resistance calculation."
+	},
+	{
+		"original_line": "parameter real VC2 = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]", 
+		"bug_line": "parameter real VC2_typo = 5 from (-1e3 to 1e3);     // 2nd-order voltage coefficient [ppm/V²]",
+		"error_description": "Parameter name changed from VC2 to VC2_typo, making VC2 undefined in the analog block. This causes the quadratic voltage coefficient term to default to zero, eliminating the non-linear resistance behavior while appearing syntactically valid."
+	},
+	{
+		"original_line": "endgenerate", 
+		"bug_line": "endgenerate real R0 = 0;",
+		"error_description": "Declares a real variable R0 that shadows the parameter R0, forcing the resistance calculation to use 0 instead of the user-defined parameter value, causing division by zero errors and incorrect resistance behavior."
+	},
+	{
+		"original_line": "$bound_step(0.1*(R_actual * 1e-12));", 
+		"bug_line": "$bound_step(0.1*(v_pn * 1e-12));",
+		"error_description": "Replaced R_actual with v_pn (voltage). Step bound becomes negative during reverse bias, violating $bound_step()'s positive argument requirement and crashing simulation."
+	},
+	{
+		"original_line": "endgenerate", 
+		"bug_line": "endgenerate initial $display("Fatal Error: R0 must be positive value!");",
+		"error_description": "The unconditional initial statement added after endgenerate always executes the error message at time zero, regardless of R0's value. This violates the intended conditional parameter check that should only trigger when R0 ≤ 0."
+	},
+	{
+		"original_line": "  real R_actual = R0 * (1 + ", 
+		"bug_line": "  real R_actual = R0 * (1 - ",
+		"error_description": "The linear voltage coefficient term is subtracted instead of added, inverting the effect of VC1 on resistance. This causes resistance to decrease when it should increase (and vice versa) for positive voltage coefficients."
+	},
+	{
+		"original_line": "inout p, n;", 
+		"bug_line": "input p, n;",
+		"error_description": "Changing port direction from bidirectional (inout) to input-only breaks the resistor's fundamental behavior by preventing current flow from n to p, violating Kirchhoff's laws and making the model non-functional for reverse voltage scenarios."
+	},
+	{
+		"original_line": "module res_linear_voltage (p, n);", 
+		"bug_line": "module res_linear_voltage (n, p);",
+		"error_description": "Swapped port order causes voltage polarity inversion. V(p,n) becomes V(n,p) = -V(p,n), reversing sign in voltage-dependent resistance calculation and violating Ohm's Law directionality."
+	},
+	{
+		"original_line": "real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6", 
+		"bug_line": "real vcoeff_linear = VC1 * 1e-3;  // 1 ppm = 1e-6",
+		"error_description": "Changed voltage coefficient scaling from 1e-6 to 1e-3, making the linear term 1000 times larger than specified. This violates the design by incorrectly interpreting VC1 values as per-mille (%) instead of ppm, causing excessive resistance variation with voltage."
+	},
+	{
+		"original_line": "parameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]", 
+		"bug_line": "parameter real VX = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]",
+		"error_description": "Changed parameter name from VC1 to VX, making VC1 undefined in the analog block where it's used for resistance calculation, causing compilation/simulation failure."
+	},
+	{
+		"original_line": "`ifdef SIMULATION", 
+		"bug_line": "`ifdef SYNTHESIS",
+		"error_description": "Changed preprocessor condition from SIMULATION to SYNTHESIS. Since SYNTHESIS is typically undefined during simulation, this disables the $bound_step convergence helper, potentially causing numerical instability and simulation failures."
+	},
+	{
+		"original_line": "parameter real VC1 = 50 from (-1e3 to 1e3);    // 1st-order voltage coefficient [ppm/V]", 
+		"bug_line": "parameter real VC1 = -1e4 from (-1e4 to 1e3);    // 1st-order voltage coefficient [ppm/V]",
+		"error_description": "Changed default VC1 to -10000 ppm/V and extended lower bound to -10000. This highly negative coefficient causes R_actual to rapidly decrease with positive voltage, leading to negative resistance at moderate voltages (e.g., ~100V), violating non-negative resistance requirements and producing non-physical behavior."
+	},
+	{
+		"original_line": "real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6", 
+		"bug_line": "real vcoeff_linear = VC2 * 1e-6;  // 1 ppm = 1e-6",
+		"error_description": "The linear voltage coefficient incorrectly uses the quadratic coefficient parameter (VC2) instead of the linear coefficient (VC1). This swaps the design parameters, causing the linear voltage effect to be controlled by the quadratic coefficient and vice versa in the resistance calculation."
+	},
+	{
+		"original_line": "vcoeff_linear * v_pn +", 
+		"bug_line": "vcoeff_linear * abs(v_pn) +",
+		"error_description": "Replaced v_pn with abs(v_pn), incorrectly making the linear voltage coefficient symmetric. The original design requires asymmetric dependence on voltage polarity for the linear term (VC1), while this modification forces identical resistance changes for positive and negative voltages, violating the intended behavior."
+	},
+	{
+		"original_line": "parameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]", 
+		"bug_line": "parameter real V_MAX = -10 from (0.1 to 100);   // Maximum safe operating voltage [V]",
+		"error_description": "Setting V_MAX to negative (-10V) violates voltage safety logic. Since absolute voltage (abs(v_pn)) is always non-negative, the condition (abs(v_pn) > V_MAX) becomes always true, triggering warnings for ALL voltages including safe ones."
+	},
+	{
+		"original_line": "parameter real V_MAX = 10 from (0.1 to 100);   // Maximum safe operating voltage [V]", 
+		"bug_line": "parameter real V_MAX = 0;   // Maximum safe operating voltage [V]",
+		"error_description": "Setting V_MAX to 0 removes overvoltage warnings since abs(v_pn) > 0 triggers for any non-zero voltage, violating the intended 10V safety threshold."
+	},
+	{
+		"original_line": "real vcoeff_linear = VC1 * 1e-6;  // 1 ppm = 1e-6", 
+		"bug_line": "real vcoeff_linear = VC1 * 1e-3;  // 1 ppm = 1e-6",
+		"error_description": "Incorrect scaling factor: used 1e-3 instead of 1e-6 for ppm conversion, making the linear voltage coefficient 1000 times larger than specified. This exaggerates resistance variation with voltage, violating design specifications."
+	},
+	{
+		"original_line": "initial $display("Fatal Error: R0 must be positive value!");", 
+		"bug_line": "initial $display("Fatal Error: R0 must be negative value!");",
+		"error_description": "The error message incorrectly states R0 must be negative, contradicting the design requirement for positive resistance values. This misleads users to set invalid negative R0 values, causing downstream calculation errors."
+	}
+]

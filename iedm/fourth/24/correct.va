@@ -1,0 +1,195 @@
+/*
+ *  Copyright (c) 1999
+ *  by Cadence Design Systems, Inc.  All rights reserved.
+ *
+ *  $Date: 2004/06/04 15:11:31 $
+ *  $Revision: 1.2 $
+ *
+ *
+ */
+
+
+`include "constants.h"
+`include "discipline.h"
+
+(* instrument_module *)
+module GSM(i_out_node,q_out_node,bin_node,angular_node);
+output i_out_node,q_out_node,bin_node,angular_node;
+voltage i_out_node,q_out_node,bin_node,angular_node;
+
+//
+// INSTANCE parameters
+//    seed        = random number seed []
+//    amplitude  = maximum output voltage  [V]
+//
+// MODEL parameters
+//    {none}
+// This model generates i and q GSM baseband signals
+//
+//
+// Patterned after the SPW GSM transmitter.
+//
+
+`define PI 3.1415926535897932384626433
+`define TAP_LENGTH 32 
+`define VCO_GAIN 0.25
+`define FREQUENCY 270833.333
+`define OVERSAMPLE 4.0
+`define SGSBITS 14.25
+//Define IMPULSE_PULSE to be 1 for an impulse driven
+//FIR filter and 2 for a pulse-driven filter.
+`define IMPULSE_PULSE 2
+
+parameter integer seed = 21;
+parameter real amplitude= 2 from [0:inf);
+parameter real rise_fall = 1 from (0:1];
+
+real period;
+real out_val;
+real dummy;
+real theta;
+real pi2;
+real tt;
+
+integer top;
+integer bottom;
+integer count;
+integer frame_count;
+real filter_states[0:`TAP_LENGTH];
+real filter_out;
+real i_out;
+real q_out;
+real taps[1:`TAP_LENGTH];
+integer use_seed;
+integer k;
+integer sample;
+integer sgs[0:56];
+//NOTE: 56 = SGSBITS*OVERSAMPLE
+
+analog begin
+     @(initial_step) begin
+		pi2 = 2*`PI;
+		sample = 0;
+		theta = 0;
+		period = 1.0/(`OVERSAMPLE*`FREQUENCY);
+	        tt = rise_fall*period;
+		use_seed = seed;
+		for (k=0; k<=`TAP_LENGTH;k=k+1) begin
+			filter_states[k] =0;
+		end
+
+
+		//***********Set the tap coefficients.
+                taps[1] = -2.41279e-09;
+                taps[2] = 2.58321e-09;
+                taps[3] = -2.7769e-09;
+                taps[4] = 2.99684e-09;
+                taps[5] = -3.22268e-09;
+                taps[6] = 4.38565e-09;
+                taps[7] = 2.11082e-08;
+                taps[8] = 5.27425e-07;
+                taps[9] = 7.96384e-06;
+                taps[10] = 8.80883e-05;
+                taps[11] = 0.00070677;
+                taps[12] = 0.00411654;
+                taps[13] = 0.0174039;
+                taps[14] = 0.0534102;
+                taps[15] = 0.118978;
+                taps[16] = 0.192385;
+                taps[17] = 0.225808;
+                taps[18] = 0.192385;
+                taps[19] = 0.118978;
+                taps[20] = 0.0534102;
+                taps[21] = 0.0174039;
+                taps[22] = 0.00411654;
+                taps[23] = 0.00070677;
+                taps[24] = 8.80883e-05;
+                taps[25] = 7.96384e-06;
+                taps[26] = 5.27425e-07;
+                taps[27] = 2.11082e-08;
+                taps[28] = 4.38565e-09;
+                taps[29] = -3.22268e-09;
+                taps[30] = 2.99684e-09;
+                taps[31] = -2.7769e-09;
+                taps[32] = 2.58321e-09;
+
+                // Absorb the vco gain, oversample rate and conversion from Hz to
+                // radians into the taps.
+		for (k=1; k<=`TAP_LENGTH; k=k+1) taps[k] = pi2*taps[k]*`VCO_GAIN/`OVERSAMPLE;
+
+
+		//stop samples, guard samples, start samples
+		//NOTE: 3+3+8.25 = SGSBITS;
+		for (k=0; k < 3*`OVERSAMPLE; k=k+1) sgs[k] = -1;
+		for (k=3*`OVERSAMPLE; k < 11.25*`OVERSAMPLE; k=k+1) sgs[k] = 1;
+		for (k=11.25*`OVERSAMPLE; k < `SGSBITS*`OVERSAMPLE; k=k+1) sgs[k] = -1;
+
+		count = `OVERSAMPLE;
+		frame_count=0;
+		bottom = 143;
+		top = `OVERSAMPLE*`SGSBITS + bottom - 1;
+	end
+
+        @(timer(period/10, period)) begin
+
+		//*****generate the digital data****
+	        if (count >= `OVERSAMPLE) begin
+                   dummy = $dist_uniform(use_seed,-10,10);
+                   if (dummy < 0) out_val = -1; else out_val = 1;
+                   //**flag a sampling event and reset the counter**	
+                   sample = 1;
+	        end
+
+		//*****do the FIR filters****
+		//**Note: Sweeps k down to 2 instead of 1 if the taps are
+          	//**      for a pulse-driven filter instead an impulse-driven
+ 		//**      filter.
+                for (k=`TAP_LENGTH; k>=`IMPULSE_PULSE; k=k-1) begin
+			filter_states[k] = filter_states[k-1];
+		end
+                if (sample > 0) begin 
+    		        frame_count = frame_count + 1;
+		        count = 0;
+                        if (frame_count < bottom) begin
+			   filter_states[1] = out_val; 
+			   sample = 0;
+			end
+			else begin
+			   //Insert the 8.25 guard bits, 3 stop, & 3 start bits,
+			   //totaling oversample*sgsbits samples.
+			   if (frame_count <= top) begin
+			      filter_states[1] = sgs[frame_count-bottom];
+ 			   end
+			   else begin
+			      frame_count = 0;
+			      sample = 0;
+			      dummy = $dist_uniform(use_seed,-10,10);
+                              if (dummy < 0) out_val = -1; else out_val = 1;
+			      filter_states[1] = out_val;
+			   end
+			end
+                end 
+
+		//***sum the filter taps and integrate the frequency.
+                for (k=1; k<=`TAP_LENGTH; k=k+1) begin 
+                        theta = theta+taps[k]*filter_states[k]; 
+                end	
+
+		//***keep the angle between +2pi and -2pi.
+		if (theta > pi2) theta = theta - pi2;
+		if (theta < -pi2) theta = theta + pi2;
+
+                //****increment the counter***
+                count = count + 1;
+
+		//***compute the i and q components**
+		i_out = amplitude*cos(theta);
+		q_out = amplitude*sin(theta);
+        end
+
+	V(i_out_node) <+ transition(i_out,0,tt,tt);
+	V(q_out_node) <+ transition(q_out,0,tt,tt);
+	V(bin_node) <+ transition(filter_states[1],`TAP_LENGTH*period/2,period/25,period/25);
+	V(angular_node) <+ transition(theta,0,period/25,period/25);
+end
+endmodule

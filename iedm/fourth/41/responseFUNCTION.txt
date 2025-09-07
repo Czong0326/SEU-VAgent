@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real XTID 	= 3.0;					// Drain junction current temperature exponent", 
+		"bug_line": "parameter real XTID 	= -3.0;					// Drain junction current temperature exponent",
+		"error_description": "Negative temperature exponent inverts the junction current's temperature dependence, causing drain leakage current to decrease with rising temperature instead of increasing, violating fundamental semiconductor physics."
+	},
+	{
+		"original_line": "Grbpd = GBMIN + 1.0 / Rbpd;", 
+		"bug_line": "Grbpd = GBMIN + 1.0 * Rbpd;",
+		"error_description": "Changed division to multiplication. Now incorrectly computes conductance as GBMIN plus Rbpd (resistance) instead of GBMIN plus 1/Rbpd. This causes erroneous high conductance when Rbpd is large and violates Ohm's Law."
+	},
+	{
+		"original_line": "`ifdef __RDSMOD__", 
+		"bug_line": "`ifdef __RDSMODD__",
+		"error_description": "Changed macro name from __RDSMOD__ to __RDSMODD__. This prevents the source/drain resistance model from being activated even when intended, causing incorrect resistance calculations when RDSMOD=1 or 2."
+	},
+	{
+		"original_line": "rbt_c11 = rbt_Yeff * ( 1 - rbt_nueff) / ((1 + rbt_nueff)*(1 - 2*rbt_nueff));", 
+		"bug_line": "rbt_c11 = rbt_Yeff * ( 1 - rbt_nueff) * ((1 + rbt_nueff)*(1 - 2*rbt_nueff));",
+		"error_description": "Changed division to multiplication in Young's modulus conversion formula, incorrectly calculating the elastic constant c11 by scaling instead of properly inverting the denominator term."
+	},
+	{
+		"original_line": "if (T0 < -`EXPL_THRESHOLD)", 
+		"bug_line": "if (T0 > -`EXPL_THRESHOLD)",
+		"error_description": "Reversed the comparison operator from '<' to '>'. This causes the impact ionization current (Iii) to incorrectly clamp to MIN_EXPL when T0 is not extremely negative, while allowing underflow in exp() when T0 is highly negative (below -80). This violates the intended underflow protection and distorts Iii behavior in deep saturation regions."
+	},
+	{
+		"original_line": "BechvbEdge = -Bechvb * TOXE * POXEDGE_i;", 
+		"bug_line": "BechvbEdge = Bechvb * TOXE * POXEDGE_i;",
+		"error_description": "Removed the negative sign in the BechvbEdge calculation. This flips the sign of the exponential term in gate tunneling current calculations, causing incorrect growth instead of decay in edge gate currents and violating the physical tunneling behavior."
+	},
+	{
+		"original_line": "Grbps = GBMIN + 1.0 / Rbps;", 
+		"bug_line": "Grbps = GBMIN + Rbps;",
+		"error_description": "Changed resistance calculation from conductance (1/Rbps) to direct resistance value (Rbps). This incorrectly sets Grbps as a large resistance value instead of conductance, causing massive body resistance errors and potential simulation divergence."
+	},
+	{
+		"original_line": "T7 = T6 * T6;", 
+		"bug_line": "T4 = T6 * T6;",
+		"error_description": "Changed assignment of T7 to T4, overwriting the previously calculated T4 for the diode capacitance. This causes the source-bulk junction capacitance charge (Qbs) to be calculated incorrectly because T4 is reused in the charge formula without its intended value."
+	},
+	{
+		"original_line": "if (CGISL_i < 0) begin", 
+		"bug_line": "if (CGISL_i > 0) begin",
+		"error_description": "Changed negative value check to positive. This inverts the condition for parameter validation, allowing invalid positive values while incorrectly flagging valid negative values."
+	},
+	{
+		"original_line": "Rint = 0.0; \", 
+		"bug_line": "Rint = 1e12; \",
+		"error_description": "Replaces zero resistance with 1e12 ohms when internal fingers are zero, creating an open circuit instead of short circuit in source/drain resistance calculation."
+	},
+	{
+		"original_line": "parameter real DVTP5 	= 0.0;					// DITS", 
+		"bug_line": "parameter real DVTP5 	= -1e30;					// DITS",
+		"error_description": "Set DVTP5 to -1e30, causing an enormous negative value in the binning parameter DVTP5_i. This leads to a huge positive shift in the threshold voltage (dVth_ldop) for all device types, making the transistor permanently turned off under normal operating conditions due to the pocket implant effect calculation."
+	},
+	{
+		"original_line": "CJS_t = CJS * hypsmooth(1.0 + TCJ * delTemp - 1.0E-6, 1.0E-3);", 
+		"bug_line": "CJS_t = CJS * hypsmooth(1.0 + TCJ * delTemp - 1.0E-6, 1.0E+3);",
+		"error_description": "Changed smoothing parameter from 1e-3 to 1e+3, causing excessive smoothing that miscalculates temperature-adjusted junction capacitance by flattening the hypsmooth function output."
+	},
+	{
+		"original_line": "T9 = FPROUT_i * sqrt(Leff) / Vgst2Vtm;", 
+		"bug_line": "T9 = FPROUT_i * sqrt(Leff) * Vgst2Vtm;",
+		"error_description": "Division operator replaced with multiplication. This inverts the scaling relationship between Vgst2Vtm and T9, causing incorrect pocket implant degradation factor (Fp) calculation. Instead of decreasing T9 with higher Vgst2Vtm as designed, T9 now increases exponentially, severely distorting output conductance characteristics."
+	},
+	{
+		"original_line": "if((VTSSWS - Vbs_jct) < (VTSSWS * 1.0e-3)) begin", 
+		"bug_line": "if((VTSSWS - Vbs_jct) > (VTSSWS * 1.0e-3)) begin",
+		"error_description": "Changed comparison operator from less than (<) to greater than (>), reversing the junction tunneling current calculation logic near breakdown voltage. This causes incorrect selection of the exponential term for source-side tunneling current when Vbs_jct approaches VTSSWS."
+	},
+	{
+		"original_line": "PHIN_i		= PHIN 		+ BIN_L * LPHIN  	+ BIN_W * WPHIN  	+ BIN_WL * PPHIN ;", 
+		"bug_line": "PHIN_i		= PHIN 		- BIN_L * LPHIN  	+ BIN_W * WPHIN  	+ BIN_WL * PPHIN ;",
+		"error_description": "Changed '+' to '-' for LPHIN term, causing incorrect negative scaling of PHIN parameter with channel length, disrupting threshold voltage calculations."
+	},
+	{
+		"original_line": "rbt_c11 = rbt_Yeff * ( 1 - rbt_nueff) / ((1 + rbt_nueff)*(1 - 2*rbt_nueff));", 
+		"bug_line": "rbt_c11 = rbt_Yeff * ( 1 - rbt_nueff) / ((1 + rbt_nueff)*(1 + 2*rbt_nueff));",
+		"error_description": "Changed Poisson ratio term from (1 - 2*rbt_nueff) to (1 + 2*rbt_nueff). This sign error incorrectly calculates the c11 coefficient for resonator mechanics, violating Hooke's law for isotropic materials where the correct denominator requires (1 - 2ν) to account for volumetric constraints."
+	},
+	{
+		"original_line": "else \", 
+		"bug_line": "if \",
+		"error_description": "Changed 'else' to 'if', creating invalid nested condition. This breaks the charge calculation logic by introducing unreachable code and incorrect branching in the BSIM_q macro."
+	},
+	{
+		"original_line": "psip = -ln(1.0 - T2 + T3*T3); \", 
+		"bug_line": "psip = -ln(1.0 - T2 - T3*T3); \",
+		"error_description": "Changed '+' to '-' in the logarithm argument. This inverts the sign of the T3² term, causing incorrect pinch-off voltage calculation when vgfbPD < 0. The argument may become negative, leading to undefined logarithmic results and distorted surface potential values."
+	},
+	{
+		"original_line": "sqrtpsip = sqrt(psipclamp);", 
+		"bug_line": "sqrtpsip = sqrt(psip);",
+		"error_description": "Using the unclamped surface potential (psip) instead of the clamped value (psipclamp) for square root calculation can result in taking square root of negative values during simulation, causing numerical instability and NaN errors."
+	},
+	{
+		"original_line": "$strobe("[BSIM6] Although the model selector TNOIMOD is set to 1, the correlated thermal noise model was not activated when the Verilog-A code was compiled.  Please uncomment \"`define __TNOISW__\" in the beginning of the Verilog-A code.");", 
+		"bug_line": "$strobe("[BSIM6] Although the model selector TNOIMOD is set to 1, the correlated thermal noise model was not activated when the Verilog-A code was compiled.  Please uncomment \"`define __TNOISW__X\" in the beginning of the Verilog-A code.");",
+		"error_description": "Suggests uncommenting a non-existent macro `__TNOISW__X` instead of the correct `__TNOISW__`, preventing proper thermal noise model activation and causing unresolved compilation errors."
+	}
+]

@@ -1,0 +1,642 @@
+[
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nR_actual = 1e9; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n$strobe('Warning: Negative resistance detected at %t!', $realtime);\n\n Correction Criteria：Replaced warning with incorrect resistance override. When negative resistance is detected, this forcibly sets R_actual to 1e9 Ω instead of preserving the calculated negative value, violating the design's specified temperature-dependent resistance behavior."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nTC2*1e-6 * delta_T / delta_T  // 2nd-order temp effect Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nTC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n\n Correction Criteria：Replaced multiplication with division for the second delta_T term. This causes the second-order temperature effect to simplify to a constant TC2*1e-6 when delta_T ≠ 0, eliminating the quadratic dependence. Additionally, it introduces division by zero at exactly T_REF (delta_T=0), crashing simulations at the reference temperature."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n                              TC2*1e-6 * delta_T  // 2nd-order temp effect Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n                              TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n\n Correction Criteria：Changed the quadratic temperature dependence to linear by removing one delta_T multiplication, violating the intended second-order coefficient behavior."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nreal R_actual = R0 * (0 + Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nreal R_actual = R0 * (1 +\n\n Correction Criteria：Changed the constant term from 1 to 0, eliminating the nominal resistance component. At reference temperature (T_REF), the resistance becomes zero instead of R0, causing catastrophic failure of Ohm's Law implementation."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nreal temp = T_REF; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nreal temp = $temperature;\n\n Correction Criteria：Replaces the simulation temperature with the fixed reference temperature (T_REF), eliminating all temperature-dependent behavior by forcing delta_T to always be zero."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  TC1*1e6 * delta_T +        // 1st-order temp effect Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  TC1*1e-6 * delta_T +        // 1st-order temp effect\n\n Correction Criteria：Changed scaling factor from 1e-6 to 1e6. This makes the first-order temperature coefficient 1e12 times larger than intended (ppm to percentage), causing extreme resistance deviations even at small temperature changes."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nTC1*1e-3 * delta_T +        // 1st-order temp effect Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nTC1*1e-6 * delta_T +        // 1st-order temp effect\n\n Correction Criteria：Changed scaling factor from 1e-6 to 1e-3, making TC1 effectively 1000x larger. This misinterprets ppm (parts-per-million) as parts-per-thousand, drastically exaggerating temperature effects."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nreal delta_T = T_REF - temp; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nreal delta_T = temp - T_REF;\n\n Correction Criteria：Reverses the sign of temperature deviation, causing the temperature compensation to work in the opposite direction (e.g., a positive TC1 would incorrectly decrease resistance with increasing temperature)."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n          if (R_actual > 0) begin Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n          if (R_actual <= 0) begin\n\n Correction Criteria：The condition is inverted: the warning now triggers for positive resistance (normal condition) instead of negative/zero resistance (dangerous condition). This masks critical failures where extreme temperatures cause negative resistance."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nelectrical p; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nelectrical p, n;\n\n Correction Criteria：Port 'n' is not declared as an electrical node, making the voltage reference V(p,n) invalid and breaking Ohm's law implementation."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(p,n) <+ V(p,n) / R0;  // I = V/R Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n Correction Criteria：Replaced R_actual (temperature-adjusted resistance) with R0 (nominal resistance), removing temperature compensation and violating design specification for thermal modeling."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nI(n,p) <+ V(p,n) / R_actual;  // I = V/R Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nI(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n Correction Criteria：Swapped branch from I(p,n) to I(n,p), inverting current direction. This violates resistor polarity, causing current to flow opposite to voltage polarity."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nparameter real TC2_wrong = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²] Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\n\n Correction Criteria：Changed parameter name to TC2_wrong, making TC2 undefined in the analog block. This breaks the resistance calculation as the second-order temperature coefficient term becomes missing, causing inaccurate resistance values without compiler errors."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\ngenerate if (R0 < 0) begin Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\ngenerate if (R0 <= 0) begin\n\n Correction Criteria：The condition misses R0=0 cases. This allows zero resistance without warning, causing potential division-by-zero errors in the analog block when R_actual becomes zero."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\ninitial begin Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nanalog begin\n\n Correction Criteria：Replacing 'analog begin' with 'initial begin' executes the resistance calculation only once at time zero. The resistor fails to update during temperature changes, violating temperature-dependent behavior requirements."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  real R_actual = R0 * 1 +  Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  real R_actual = R0 * (1 + \n\n Correction Criteria：Removed parentheses around temperature compensation terms, causing incorrect order of operations. The compensation terms are now added as absolute values instead of being relative to R0, resulting in underestimated temperature effects and wrong resistance calculation."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\ngenerate if (TC1 <= 0) begin Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\ngenerate if (R0 <= 0) begin\n\n Correction Criteria：Condition erroneously checks temperature coefficient TC1 instead of resistance R0. This bypasses the critical safety check for invalid R0 values (<=0), allowing simulation to proceed with potentially catastrophic division-by-zero or negative resistance errors."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nendgenerate initial $display('Fatal Error: R0 must be positive!'); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nendgenerate\n\n Correction Criteria：The initial statement for error checking is moved outside the generate block, causing the fatal error message to be printed unconditionally at time zero regardless of R0's value. This violates the conditional error reporting intended only for non-positive R0."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nreal R_actual = T_REF * (1 + Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nreal R_actual = R0 * (1 +\n\n Correction Criteria：Replaced nominal resistance R0 with reference temperature T_REF, causing resistance calculation to use temperature value (25) instead of designed ohmic value (e.g., 1000), completely distorting the output."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nR_actual = R0; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n$strobe('Warning: Negative resistance detected at %t!', $realtime);\n\n Correction Criteria：Replaces the warning with an assignment that forces resistance to nominal value R0 when negative, overriding the temperature-dependent calculation and causing incorrect circuit behavior under temperature variations."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  initial $display('Fatal Error: R0 must be positive!); Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  initial $display('Fatal Error: R0 must be positive!');\n\n Correction Criteria：Unterminated string constant due to missing closing double quote after the message, causing a syntax error."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nendgenerat Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nendgenerate\n\n Correction Criteria：Misspelled keyword 'endgenerat' instead of 'endgenerate', causing unmatched 'generate' block termination error."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  I(p,n) <+ V(p,n) / R_actual  // I = V/R Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n Correction Criteria：Missing semicolon at the end of the statement, causing a syntax error as statements in VerilogA analog blocks must be terminated with semicolons."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nparameter real T_REF = 25.0 from [-50:150;     // Reference temperature [°C] Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n Correction Criteria：Unterminated range specification due to missing closing bracket ']' after '150', causing syntax error."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nelectrical p, n Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nelectrical p, n;\n\n Correction Criteria：Missing semicolon at end of declaration statement"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nparameter real T_REF = 25.0 from [-50:150;     // Reference temperature [°C] Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n Correction Criteria：Missing closing bracket ']' in range specification. The compiler expects ']' to close the range interval but finds ';' instead, causing a bracket mismatch error."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  TC1*1e-6 delta_T +        // 1st-order temp effect Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  TC1*1e-6 * delta_T +        // 1st-order temp effect\n\n Correction Criteria：Missing multiplication operator between '1e-6' and 'delta_T', creating adjacent expressions without operator which is invalid syntax."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nmodule res_linear_template (p, n; Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nmodule res_linear_template (p, n);\n\n Correction Criteria：Missing closing parenthesis ')' for the port list in module declaration"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nTC2*1e-6 * delta_T delta_T  // 2nd-order temp effect Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nTC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n\n Correction Criteria：Missing multiplication operator between 'delta_T' and 'delta_T', creating invalid consecutive identifiers without an operator."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nparameter real T_REF = 25.0 form [-50:150];     // Reference temperature [°C] Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n Correction Criteria：Misspelled keyword 'form' instead of 'from', causing invalid token error"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\ninout p, n Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\ninout p, n;\n\n Correction Criteria：Missing semicolon at the end of the port declaration statement, causing a syntax error as the next token 'electrical' becomes unexpected."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nparameter real R0 = 1e3 from (1e-3 to 1e9;     // Nominal resistance @25°C [Ω] Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\n\n Correction Criteria：Missing closing parenthesis ')' for the range expression in the 'from' clause, causing unbalanced parentheses."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n                              TC2*1e-6 * delta_T delta_T  // 2nd-order temp effect Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n                              TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n\n Correction Criteria：Missing multiplication operator between 'delta_T' variables, creating adjacent identifiers without operator which is invalid syntax."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  I(p,n) <+ V(p,n / R_actual;  // I = V/R Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n Correction Criteria：Missing closing parenthesis in V(p,n) argument list - becomes V(p,n which is unterminated"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  I(p,n) <+ V(p,n)) / R_actual;  // I = V/R Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n Correction Criteria：Extra closing parenthesis after V(p,n) creates mismatched parentheses and breaks expression grouping"
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n  if (R_actual =< 0) begin Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n  if (R_actual <= 0) begin\n\n Correction Criteria：Reversed operator for 'less than or equal to'. Correct operator is '<='; '=<' is invalid syntax in VerilogA."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nparameter real T_REF = 25.0 from [-50:150]     // Reference temperature [°C] Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n Correction Criteria：Missing semicolon at the end of the parameter declaration, causing a syntax error as statements must be properly terminated."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n                      TC1*1e-6 * delta_T         // 1st-order temp effect Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n\n Correction Criteria：Missing '+' operator between resistance calculation terms causes two adjacent expressions (delta_T and TC2*...) without an operator, violating VerilogA expression syntax rules."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\n                      TC2*1e-6 * delta_T*delta_T;  // 2nd-order temp effect Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n\n Correction Criteria：Inserted semicolon in the middle of an arithmetic expression, terminating the statement prematurely and causing a syntax error due to the following tokens."
+      }
+    ]
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a Verilog-A hardware modeling expert. Below is a reference code snippet:\n```\n// IEEE 1801-2015 Standard Header\n`include \"disciplines.vams\"\n\nmodule res_linear_template (p, n);\ninout p, n;\nelectrical p, n;\n\n// Process parameters with typical values/units\nparameter real R0 = 1e3 from (1e-3 to 1e9);     // Nominal resistance @25°C [Ω]\nparameter real TC1 = 100 from (-1e3 to 1e3);    // 1st-order tempco [ppm/°C]\nparameter real TC2 = 10 from (-1e3 to 1e3);     // 2nd-order tempco [ppm/°C²]\nparameter real T_REF = 25.0 from [-50:150];     // Reference temperature [°C]\n\n// Safety protection for resistance value\ngenerate if (R0 <= 0) begin\n  initial $display(\"Fatal Error: R0 must be positive!\");\nend\nendgenerate\n\n// Temperature-dependent resistance calculation\nanalog begin\n  // Get simulation temperature (in Celsius)\n  real temp = $temperature;\n\n  // Calculate temperature deviation from reference\n  real delta_T = temp - T_REF;\n\n  // Resistance calculation with temperature compensation\n  real R_actual = R0 * (1 + \n                      TC1*1e-6 * delta_T +        // 1st-order temp effect\n                      TC2*1e-6 * delta_T*delta_T  // 2nd-order temp effect\n                    );\n\n  // Implement Ohm's Law with final resistance\n  I(p,n) <+ V(p,n) / R_actual;  // I = V/R\n\n  // Parameter validation during simulation\n  if (R_actual <= 0) begin\n    $strobe(\"Warning: Negative resistance detected at %t!\", $realtime);\n  end\nend\n\nendmodule\n```\n Please correct the code based on the input error code, paying attention to functional and syntactic accuracy."
+      },
+      {
+        "role": "user",
+        "content": "Please correct the problematic Verilog-A code below:\nTC1*1e-6 * delta_T         // 1st-order temp effect Please provide the corrected code and the Correction Criteria."
+      },
+      {
+        "role": "assistant",
+        "content": "corrected code：\nTC1*1e-6 * delta_T +        // 1st-order temp effect\n\n Correction Criteria：Missing '+' operator between first-order and second-order temperature effect terms, causing adjacent expressions without operator in resistance calculation formula."
+      }
+    ]
+  }
+]

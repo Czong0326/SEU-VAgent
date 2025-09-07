@@ -1,0 +1,63 @@
+### **Code Summary: RBT Parasitics Module (rbtParasitics.va)**  
+
+This Verilog-A module models **parasitic elements** in a **Resonant Body Transistor (RBT)**, capturing **resistive and capacitive feedthrough paths** between different terminals. It provides a compact representation of **unintended signal coupling** and **loss mechanisms** in MEMS/NEMS resonators, ensuring accurate simulation of real-world device behavior.  
+
+#### **Key Features:**  
+1. **Feedthrough Parasitics Modeling**  
+   - **Capacitive Coupling (`rbt_Cfp*`):**  
+     Models parasitic capacitances between the drive port (`p`) and device terminals (`d`, `g`, `s`, `b`).  
+   - **Resistive Coupling (`rbt_Rfp*`):**  
+     Accounts for series resistances in feedthrough paths, affecting signal integrity.  
+
+2. **Body Resistance (`rbt_Rfnb`)**  
+   - Represents the **substrate/body resistance** between the negative terminal (`n`) and body (`b`).  
+
+3. **Modular & Extensible Design**  
+   - Uses **internal nodes (`pd`, `pg`, `ps`, `pb`)** to decouple feedthrough paths for numerical stability.  
+   - Supports **future thermal-dependent modeling** (currently not implemented).  
+
+4. **Time-Domain Analysis**  
+   - Capacitive currents computed via `ddt()` for transient simulations.  
+
+#### **Critical Equations:**  
+- **Resistive Feedthrough:**  
+  \( V(p, p_x) = I(p, p_x) \cdot R_{fp_x} \)  
+  (where \( x \in \{d, g, s, b\} \))  
+- **Capacitive Feedthrough:**  
+  \( I(p_x, x) = \frac{d}{dt} \left( C_{fp_x} \cdot V(p_x, x) \right) \)  
+- **Body Resistance:**  
+  \( V(n, b) = I(n, b) \cdot R_{fnb} \)  
+
+#### **Parameters:**  
+- **Capacitive Feedthrough:** `rbt_Cfpd`, `rbt_Cfpg`, `rbt_Cfps`, `rbt_Cfpb`  
+- **Resistive Feedthrough:** `rbt_Rfpd`, `rbt_Rfpg`, `rbt_Rfps`, `rbt_Rfpb`  
+- **Body Resistance:** `rbt_Rfnb`  
+- **Temperature Parameters:** `rbt_Tnom` (reserved for future use)  
+
+#### **Applications:**  
+- **High-frequency MEMS/NEMS resonator design** (filters, oscillators).  
+- **Signal integrity analysis** in mixed-domain (electrical-mechanical) systems.  
+- **Parasitic-aware optimization** for minimizing crosstalk and losses.  
+
+#### **Limitations:**  
+- **No thermal dependence** (parameters like \( R(T) \), \( C(T) \) not yet implemented).  
+- **Assumes linear parasitics** (nonlinear effects like voltage-dependent capacitance ignored).  
+
+#### **Version & Compatibility:**  
+- **Version:** 1.0.0 (validated on Cadence Spectre 13.1.1.049).  
+- **Author:** Bichoy Bahr (MIT), developed under the **MIT Computational Prototyping Group** (permissive license).  
+
+---
+
+### **Comparison with `rbtCapTrans.va`**  
+While `rbtCapTrans` focuses on **electromechanical transduction**, this module (`rbtParasitics`) **complements it** by modeling **non-ideal electrical paths**. Together, they enable a **comprehensive RBT compact model** for SPICE-level simulations.  
+
+**Key Differences:**  
+| Feature          | `rbtCapTrans` | `rbtParasitics` |  
+|------------------|--------------|----------------|  
+| **Primary Role** | Capacitive force generation | Parasitic coupling |  
+| **Domain**       | Electro-mechanical | Electrical-only |  
+| **Nonlinearity** | Gap-dependent capacitance | Linear R/C |  
+| **Thermal Effects** | Active (expansion, noise) | Reserved (future) |  
+
+This modular approach ensures **flexibility** in simulating both desired transduction and undesired parasitics.

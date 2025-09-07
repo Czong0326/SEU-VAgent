@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "vout_b3_val = (vlogic_high - vlogic_low) * bit3 + vlogic_low;", 
+		"bug_line": "vout_b3_val = (vlogic_high - vlogic_low) * bit0 + vlogic_low;",
+		"error_description": "The most significant bit (bit3) output incorrectly uses the least significant bit (bit0) value, causing bit reversal in the generated code."
+	},
+	{
+		"original_line": "V(vout_b0) <+ transition(vout_b0_val,tdel,trise,tfall);", 
+		"bug_line": "V(vout_b0) <+ transition(vout_b3_val,tdel,trise,tfall);",
+		"error_description": "Outputs the most significant bit (bit3) value to the least significant bit (vout_b0) pin. This causes bit0 to mirror bit3 instead of representing its own random value, corrupting the 4-bit output pattern."
+	},
+	{
+		"original_line": "         bit3 = (bit_reg >> 3) & 01;", 
+		"bug_line": "         bit3 = (bit_reg << 3) & 01;",
+		"error_description": "Replaced right shift (>>) with left shift (<<), causing bit3 to always read 0 due to LSB masking. This forces the MSB of the 4-bit code to always be 0 instead of properly reflecting bit 3 of the random value."
+	},
+	{
+		"original_line": "         bit1 = (bit_reg >> 1) & 01;", 
+		"bug_line": "         bit1 = (bit_reg >> 1) | 01;",
+		"error_description": "Changed bitwise AND operator (&) to OR (|), causing bit1 to always be 1 when the shifted bit is 0 (since 0 OR 1 = 1), and remain 1 when the bit is 1 (1 OR 1 = 1), resulting in constant high output for bit1."
+	},
+	{
+		"original_line": "V(vout_b2) <+ transition(vout_b2_val,tdel,trise,tfall);", 
+		"bug_line": "V(vout_b2) <+ transition(vout_b3_val,tdel,trise,tfall);",
+		"error_description": "Output for bit2 (vout_b2) incorrectly uses the value of bit3 (vout_b3_val) instead of its own value (vout_b2_val). This causes the second bit to mirror the most significant bit rather than independently represent its assigned bit value."
+	},
+	{
+		"original_line": "V(vout_b1) <+ transition(vout_b1_val,tdel,trise,tfall);", 
+		"bug_line": "V(vout_b1) <+ transition(vout_b0_val,tdel,trise,tfall);",
+		"error_description": "Assigned wrong bit value (bit0 instead of bit1) to output vout_b1, causing functional error in output pattern."
+	},
+	{
+		"original_line": "@ ( timer(tnext)) begin", 
+		"bug_line": "@ ( timer(tperiod)) begin",
+		"error_description": "Changed timer condition from absolute next-event time (tnext) to fixed period (tperiod). This causes the code to regenerate at every tperiod interval regardless of scheduled updates, creating duplicate outputs and disrupting the intended sequential timing controlled by tnext."
+	},
+	{
+		"original_line": "module code_gen_4bit(vout_b0, vout_b1, vout_b2, vout_b3);", 
+		"bug_line": "module code_gen_4bit(vout_b0, vout_b1, vout_b2, vout_b3_wrong);",
+		"error_description": "Renaming port 'vout_b3' to 'vout_b3_wrong' disconnects the output signal. The internal driver for bit3 remains assigned to 'vout_b3' (now an undriven internal node), leaving the actual output port 'vout_b3_wrong' undriven. This causes the most significant bit of the generated code to be missing at the output interface."
+	},
+	{
+		"original_line": "parameter real trise=1n;", 
+		"bug_line": "parameter real trise=2*tperiod;",
+		"error_description": "Rise time set to twice the period (2 seconds by default) causes output transitions to span multiple periods, preventing the signal from stabilizing to the correct logic level before the next code change."
+	},
+	{
+		"original_line": "vout_b2_val = (vlogic_high - vlogic_low) * bit2 + vlogic_low;", 
+		"bug_line": "vout_b2_val = (vlogic_high - vlogic_low) * bit1 + vlogic_low;",
+		"error_description": "The output voltage for bit2 incorrectly uses bit1's value instead of bit2, causing the second bit to mirror the first bit and corrupting the 4-bit output pattern."
+	},
+	{
+		"original_line": "iseed = 82;", 
+		"bug_line": "iseed = -82;",
+		"error_description": "The seed is set to -82 instead of 82, causing the random number generator to produce a different (and unintended) sequence of codes due to signed integer seed handling."
+	},
+	{
+		"original_line": "   real vout_b3_val;", 
+		"bug_line": "   integer vout_b3_val;",
+		"error_description": "Changing vout_b3_val from real to integer causes truncation of non-integer logic voltage levels, resulting in incorrect output voltage for bit3 when vlogic_high/vlogic_low are fractional values."
+	},
+	{
+		"original_line": "         bit2 = (bit_reg >> 2) & 01;", 
+		"bug_line": "         bit2 = (bit_reg >> 1) & 01;",
+		"error_description": "Incorrect bit extraction - shifts by 1 bit instead of 2, causing bit2 to duplicate bit1 value instead of representing the correct third bit position."
+	},
+	{
+		"original_line": "@ ( timer(tnext)) begin", 
+		"bug_line": "@ ( timer(tperiod)) begin",
+		"error_description": "Replaced variable 'tnext' with parameter 'tperiod'. This causes the timer event to trigger only once at fixed time tperiod instead of recurring every tperiod seconds, halting code updates after the first generation."
+	},
+	{
+		"original_line": "parameter real vlogic_low = 0;", 
+		"bug_line": "parameter real vlogic_low = vlogic_high;",
+		"error_description": "Sets the low logic level equal to the high logic level, causing all output bits to be at the same voltage (vlogic_high) regardless of the generated bit value. This prevents the generation of low voltage levels, making the output constant and non-functional for representing binary codes."
+	},
+	{
+		"original_line": "bit2 = (bit_reg >> 2) & 01;", 
+		"bug_line": "bit2 = (bit_reg >> 0) & 01;",
+		"error_description": "Shift amount changed from 2 to 0, causing bit2 to incorrectly capture bit0 (LSB) instead of the third bit. This results in bit2 output duplicating bit0 rather than representing its designated position in the 4-bit code."
+	},
+	{
+		"original_line": "V(vout_b3) <+ transition(vout_b3_val,tdel,trise,tfall);", 
+		"bug_line": "V(vout_b3) <+ transition(vout_b3_val,tdel,tfall,trise);",
+		"error_description": "Swapped trise and tfall parameters causes incorrect transition timing - rising edges use fall time and falling edges use rise time, distorting signal waveforms."
+	},
+	{
+		"original_line": "parameter real trise=1n;", 
+		"bug_line": "parameter real trise=1p;",
+		"error_description": "Changing rise time from 1ns to 1ps makes the signal transition unrealistically fast, violating the design's intended timing characteristics and potentially causing simulation convergence issues."
+	},
+	{
+		"original_line": "parameter real trise=1n;", 
+		"bug_line": "parameter real trise=0;",
+		"error_description": "Setting rise time to zero causes instantaneous transitions, violating real-world signal behavior requirements and potentially creating discontinuities that break analog simulation convergence."
+	},
+	{
+		"original_line": "electrical vout_b0, vout_b1, vout_b2, vout_b3;", 
+		"bug_line": "electrical vout_b0, vout_b1, vout_b2, vout_b4;",
+		"error_description": "Changed vout_b3 to vout_b4, leaving the actual vout_b3 port undeclared. This causes a compilation error since voltage contributions (V(vout_b3)) reference an undefined net, breaking the 4-bit output functionality."
+	}
+]

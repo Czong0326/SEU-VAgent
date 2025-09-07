@@ -1,0 +1,93 @@
+// VerilogA for sources_modules, wcdma_qpsk, veriloga
+// 
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+(* instrument_module *)
+module wcdma_qpsk(I_in, Q_in, outi, outq);
+electrical I_in, Q_in, outi, outq;
+input I_in, Q_in;
+output outi, outq;
+
+parameter real frame_time = 1.0/15000.0 from (0:inf);
+parameter string mapping_mode = "user_defined";
+parameter integer usr_mappig_vec[0:3] = {0, 3, 1, 2};
+parameter real phase_offset = 0.0;
+parameter integer disable_input = 0 from [0:1];
+parameter integer seed = 12345;
+parameter integer samples  = 2;
+
+integer InBit_i, InBit_q, mode, integerOut, tmpInteger;
+real  r_odd, r_even;
+integer mappingArray[0:3];
+integer i, use_seed;
+real PhaseImag[0:3], PhaseReal[0:3];
+real tmp;
+real tmpI, tmpQ;
+real local_sample;
+integer symbol_set_size;
+real start_time;
+
+
+analog begin
+  @(initial_step) begin
+    symbol_set_size = 4;
+    if ( mapping_mode == "binary_gray" ) begin
+      mode = 1;
+      for (i = 0; i < symbol_set_size; i = i + 1)
+        mappingArray[i] = i ^ (i>>1);
+    end else if ( mapping_mode == "gray_binary" ) begin
+      mode = 2;
+      for (i = 0; i < symbol_set_size; i = i + 1) begin
+        tmpInteger      = i ^ (i>>8);
+        tmpInteger      = tmpInteger ^ (tmpInteger>>4);
+        tmpInteger      = tmpInteger ^ (tmpInteger>>2);
+        tmpInteger      = tmpInteger ^ (tmpInteger>>1);
+        mappingArray[i] = tmpInteger ^ (tmpInteger>>8);
+      end
+    end else if ( mapping_mode == "user_defined" ) mode = 3;
+    tmp = cos(`M_PI_4 + phase_offset);
+    PhaseReal[0] =  tmp; PhaseImag[0] =  tmp;
+    PhaseReal[1] = -tmp; PhaseImag[1] =  tmp;
+    PhaseReal[2] = -tmp; PhaseImag[2] = -tmp;
+    PhaseReal[3] =  tmp; PhaseImag[3] = -tmp;
+    integerOut = 0;
+    use_seed  = seed;
+    tmpInteger = 1;
+    local_sample = frame_time / samples;
+    start_time = local_sample / 128;
+  end
+
+  @(timer( start_time/100000, local_sample, start_time/100000)) begin
+
+    if ( disable_input ) begin
+      r_odd = $rdist_uniform(use_seed, 0, 1);
+      r_even = $rdist_uniform(use_seed, 0, 1);
+      tmpI = r_odd;
+      tmpQ = r_even;
+    end else begin
+      tmpI = V(I_in);
+      tmpQ = V(Q_in);
+    end
+
+    if ( tmpI > 0.5 ) InBit_i = 1;
+    else InBit_i = 0;
+    if ( tmpQ > 0.5 ) InBit_q = 1;
+    else InBit_q = 0;
+
+    if (InBit_i ) integerOut = 2;
+    else integerOut = 0;
+    if ( InBit_q ) integerOut = integerOut + 1;
+    
+
+    if ( mode == 3 ) tmpInteger = usr_mappig_vec[integerOut];
+    else tmpInteger = mappingArray[integerOut];
+  end
+
+  V(outi)  <+ PhaseReal[tmpInteger];
+  V(outq) <+ PhaseImag[tmpInteger];
+
+end
+
+endmodule

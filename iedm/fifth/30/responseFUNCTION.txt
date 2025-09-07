@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "real vout0_val, vout1_val;", 
+		"bug_line": "integer vout0_val, vout1_val;",
+		"error_description": "Variables vout0_val and vout1_val are changed to integers, causing truncation of real voltage values (vlogic_high/vlogic_low) during assignment, resulting in incorrect analog output voltages."
+	},
+	{
+		"original_line": "real vout0_val, vout1_val;", 
+		"bug_line": "integer vout0_val, vout1_val;",
+		"error_description": "Changed variable type from real to integer, causing truncation of calculated voltage values. This results in incorrect analog output voltages when vlogic_high/vlogic_low have fractional values, as integer conversion drops decimal precision."
+	},
+	{
+		"original_line": "integer iseed;", 
+		"bug_line": "real iseed;",
+		"error_description": "Changing the seed variable from integer to real causes a type mismatch in the $random function call (which requires an integer seed). This breaks the random number generation functionality since real values cannot properly seed the RNG, violating the design's requirement for configurable random sequences."
+	},
+	{
+		"original_line": "   real next;", 
+		"bug_line": "   integer next;",
+		"error_description": "Changing 'next' from real to integer causes truncation of fractional time values during timer scheduling. This results in incorrect event timing (e.g., tperiod=1.5ns becomes 1ns), violating the periodic code generation specification."
+	},
+	{
+		"original_line": "      @ ( initial_step ) begin", 
+		"bug_line": "      @ ( final_step ) begin",
+		"error_description": "Changed 'initial_step' to 'final_step'. This causes the initialization block (setting random seed, output values, and next event time) to execute at simulation end instead of start. The module will use uninitialized variables (seed=0, next=0.0) during simulation, violating the seed parameter and producing incorrect random sequences while outputs remain at default low values until simulation completion."
+	},
+	{
+		"original_line": "output vout1, vout0;", 
+		"bug_line": "input vout1, vout0;",
+		"error_description": "Changed port direction from output to input, causing functional error as the analog block attempts to drive input ports (violates module's intended output behavior)."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( timer(next) ) begin",
+		"error_description": "Replaced initial_step with timer(next) event, causing the initialization block to execute periodically instead of once at simulation start. This resets the seed and state variables every period, disrupting the random sequence generation and corrupting the output timing."
+	},
+	{
+		"original_line": "b0 = (bit_reg & 01);", 
+		"bug_line": "b0 = (bit_reg & 03);",
+		"error_description": "Changing the mask from 01 to 03 (octal) captures two bits instead of one, causing b0 to range from 0-3 instead of 0-1. This results in vout0 producing four invalid voltage levels instead of two distinct logic levels."
+	},
+	{
+		"original_line": "vout0_val = (vlogic_high-vlogic_low)*b0 + vlogic_low;", 
+		"bug_line": "vout0_val = (vlogic_high-vlogic_low)*b1 + vlogic_low;",
+		"error_description": "Assigned the wrong bit (b1) to vout0_val, causing vout0 to output the same value as vout1 (the high bit) instead of the low bit."
+	},
+	{
+		"original_line": "parameter real tdel=0 from [0:inf);", 
+		"bug_line": "parameter real tdelay=0 from [0:inf);",
+		"error_description": "The parameter name was changed from 'tdel' to 'tdelay', making the variable 'tdel' used in the transition functions undefined. This will cause a compilation error since 'tdel' is referenced in lines 48-49 but no longer declared."
+	},
+	{
+		"original_line": "V(vout1) <+ transition(vout1_val,tdel,trise,tfall);", 
+		"bug_line": "V(vout0) <+ transition(vout1_val,tdel,trise,tfall);",
+		"error_description": "Both outputs incorrectly drive vout0: vout1 is never assigned, while vout0 receives both bit values. This violates the 2-bit output requirement by shorting both signals to the same node."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Replaced 'analog' with 'initial', causing the entire block to execute only once at time zero instead of continuously. This prevents periodic updates of output values vout0_val and vout1_val, freezing the outputs at their initial states."
+	},
+	{
+		"original_line": "b1 = (bit_reg >> 1) & 01;", 
+		"bug_line": "b1 = (bit_reg >> 1) & 10;",
+		"error_description": "Changed bitmask from 01 (binary 1) to 10 (binary 2), causing b1 to always evaluate to 0 since right-shifted bit_reg's LSB is masked with 2's bit position (0b10). This forces the second output bit to always be low."
+	},
+	{
+		"original_line": "vout0_val = (vlogic_high-vlogic_low)*b0 + vlogic_low;", 
+		"bug_line": "vout0_val = (vlogic_high-vlogic_low)*b1 + vlogic_low;",
+		"error_description": "The voltage for vout0 is incorrectly set using bit b1 instead of b0. This causes both outputs (vout0 and vout1) to reflect the same bit value (b1), violating the requirement for independent 2-bit generation."
+	},
+	{
+		"original_line": "electrical vout1, vout0;", 
+		"bug_line": "electrical vout1, vout0_wrong;",
+		"error_description": "The output port vout0 is incorrectly declared as 'vout0_wrong', leaving the actual vout0 port without a discipline. This causes compilation errors due to missing discipline for vout0 and prevents proper voltage contribution to the correct output."
+	},
+	{
+		"original_line": "real vout0_val, vout1_val;", 
+		"bug_line": "real vout0_val = vlogic_low, vout1_val = vlogic_high;",
+		"error_description": "Initializing vout0_val to vlogic_low and vout1_val to vlogic_high creates asymmetric startup states. Both outputs should start identically low per the initial_step block. This forces vout1 to begin high (violating initial low state) and persists until the first @(timer) event, causing incorrect startup behavior."
+	},
+	{
+		"original_line": "parameter real tfall=1n;", 
+		"bug_line": "parameter real tfall=-1n;",
+		"error_description": "Negative fall time (-1ns) violates physical constraints in transition functions, causing simulation errors as time parameters must be non-negative."
+	},
+	{
+		"original_line": "parameter real vlogic_high = 5;", 
+		"bug_line": "parameter real vlogic_high = vlogic_low;",
+		"error_description": "Sets the high logic level equal to the low logic level. This causes both logic states to output identical voltages, eliminating the voltage difference needed for digital signal representation and violating the requirement for distinct output levels."
+	},
+	{
+		"original_line": "electrical vout1, vout0;", 
+		"bug_line": "voltage vout1, vout0;",
+		"error_description": "Using 'voltage' instead of 'electrical' discipline prevents access to branch currents through these nodes, breaking compatibility with models requiring full conservative signal semantics. While voltage contributions would still work, any current sensing or KCL-related operations on these nodes would fail silently."
+	},
+	{
+		"original_line": "parameter real trise=1n;", 
+		"bug_line": "parameter real trise=-1n;",
+		"error_description": "Negative rise time (-1n) violates physical reality and will cause simulation failures in the transition function, as rise time must be non-negative."
+	}
+]

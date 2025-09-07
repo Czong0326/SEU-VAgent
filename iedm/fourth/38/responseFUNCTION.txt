@@ -1,0 +1,105 @@
+[
+	{
+		"original_line": "| **Nonlinearity** | Gap-dependent capacitance | Linear R/C |", 
+		"bug_line": "| **Nonlinearity** | Gap-dependent capacitance | Voltage-dependent R/C |",
+		"error_description": "The modified line incorrectly states that rbtParasitics implements voltage-dependent nonlinear parasitics, when the module actually uses strictly linear R/C components. This violates the design specification of linear parasitics, potentially causing users to expect nonlinear behavior that isn't implemented, leading to inaccurate simulations of parasitic effects."
+	},
+	{
+		"original_line": "- **Parasitic-aware optimization** for minimizing crosstalk and losses.", 
+		"bug_line": "- **Parasitic-aware optimization** for maximizing crosstalk and losses.",
+		"error_description": "Changed design goal from minimization to maximization of crosstalk/losses, fundamentally inverting the module's intended purpose and violating core functionality requirements."
+	},
+	{
+		"original_line": "- Represents the **substrate/body resistance** between the negative terminal (`n`) and body (`b`).", 
+		"bug_line": "- Represents the **substrate/body resistance** between the positive terminal (`p`) and body (`b`).",
+		"error_description": "Changes body resistance path from negative (n) to positive (p) terminal, fundamentally altering DC biasing and creating incorrect substrate coupling. This violates the design specification requiring body resistance between the negative terminal and body."
+	},
+	{
+		"original_line": "   - Supports **future thermal-dependent modeling** (currently not implemented).  ", 
+		"bug_line": "   - Supports **future thermal-dependent modeling** (rbt_Rfnb = 0);  ",
+		"error_description": "Parameter assignment inside comment creates syntax error by attempting to set resistance value in documentation section. VerilogA compilers interpret 'rbt_Rfnb = 0' as invalid code outside parameter declaration block."
+	},
+	{
+		"original_line": "#### **Critical Equations:**  ", 
+		"bug_line": "#### **Critical Equations:**  
+I(p, pd) <+ V(p, pd) / rbt_Rfpd;",
+		"error_description": "Added resistive feedthrough equation without specifying branch direction, creating a directional error. Current should flow from p to internal node pd, but the equation incorrectly models current flowing into terminal p."
+	},
+	{
+		"original_line": "- **Body Resistance:**", 
+		"bug_line": "- **Body Resistance: 0**",
+		"error_description": "Sets body resistance (rbt_Rfnb) to 0 Ω by modifying documentation, causing unintended short circuit between body (b) and negative terminal (n) during simulation."
+	},
+	{
+		"original_line": "- **Resistive Feedthrough:** `rbt_Rfpd`, `rbt_Rfpg`, `rbt_Rfps`, `rbt_Rfpb`", 
+		"bug_line": "- **Resistive Feedthrough:** `rbt_Rfpd`, `rbt_Rfpg`, `rbt_Rfps`, `rbt_Cfpb`",
+		"error_description": "Changed body terminal feedthrough resistance parameter `rbt_Rfpb` to `rbt_Cfpb` (capacitance parameter). This swaps resistive and capacitive modeling for the body terminal, causing incorrect current calculations in feedthrough paths and violating the fundamental R-C separation in parasitics modeling."
+	},
+	{
+		"original_line": "| **Domain**       | Electro-mechanical | Electrical-only |", 
+		"bug_line": "| **Domain**       | Electro-mechanical | Electro-mechanical |",
+		"error_description": "Incorrectly marks rbtParasitics as electro-mechanical instead of electrical-only, violating its design as a purely electrical parasitic module and creating confusion about its physical behavior."
+	},
+	{
+		"original_line": "1. **Feedthrough Parasitics Modeling**  ", 
+		"bug_line": "1. **Feedthrough Parasitics Modeling** (rbt_Rfnb removed)",
+		"error_description": "Removes critical body resistance parameter rbt_Rfnb from the documentation, causing inconsistency between design specs and implementation. Designers may omit this essential substrate resistance in simulations, leading to inaccurate loss modeling and potential circuit failures."
+	},
+	{
+		"original_line": "- Represents the **substrate/body resistance** between the negative terminal (`n`) and body (`b`).", 
+		"bug_line": "- Represents the **substrate/body resistance** between the positive terminal (`p`) and body (`b`).",
+		"error_description": "Terminal misconnection changes resistance path from negative (n) to positive (p) terminal, fundamentally altering the substrate coupling path and creating incorrect DC biasing for the body node."
+	},
+	{
+		"original_line": "   - Uses **internal nodes (`pd`, `pg`, `ps`, `pb`)** to decouple feedthrough paths for numerical stability.", 
+		"bug_line": "   - Uses **internal nodes (`pd`, `pg`, `ps`, `n`)** to decouple feedthrough paths for numerical stability.",
+		"error_description": "Changed body node 'pb' to substrate node 'n', creating a short between body and substrate. This violates node isolation since 'n' is a global terminal, causing incorrect current paths through rbt_Rfnb."
+	},
+	{
+		"original_line": "- **Author:** Bichoy Bahr (MIT), developed under the **MIT Computational Prototyping Group** (permissive license).", 
+		"bug_line": "I(p, pd) <+ V(p, pd) * rbt_Rfpd; // Author: Bichoy Bahr (MIT)...",
+		"error_description": "Replaced author comment with faulty conductance equation. Multiplies voltage by resistance instead of dividing, converting feedthrough path from resistor (V=IR) to conductor (I=GV). This inverts the impedance behavior, causing incorrect current calculation in resistive feedthrough paths."
+	},
+	{
+		"original_line": "\( V(n, b) = I(n, b) \cdot R_{fnb} \)", 
+		"bug_line": "\( V(n, b) = I(n, b) \cdot C_{fpb} \)",
+		"error_description": "Replaced resistance parameter R_{fnb} with capacitance parameter C_{fpb}. This violates dimensional consistency (ohms vs farads) and injects incorrect feedthrough capacitance into body resistance calculation, corrupting DC operating point analysis."
+	},
+	{
+		"original_line": "#### **Critical Equations:**  ", 
+		"bug_line": "#### **Critical Equations:**  
+- **Resistive Feedthrough:**  
+  \( V(p_x, p) = I(p, p_x) \cdot R_{fp_x} \)",
+		"error_description": "Reversed voltage polarity in resistive feedthrough equation (V(p_x,p) instead of V(p,p_x)). This directional error swaps terminal connections, inverting voltage drops across parasitic resistors and corrupting coupling calculations."
+	},
+	{
+		"original_line": "   - Capacitive currents computed via `ddt()` for transient simulations.", 
+		"bug_line": "   - Capacitive currents computed via `idt()` for transient simulations.",
+		"error_description": "Replaced derivative operator `ddt()` with integral operator `idt()`. Capacitive current requires voltage differentiation (I = C·dV/dt), while integration would produce physically incorrect current values that accumulate charge indefinitely, causing simulation divergence in transient analysis."
+	},
+	{
+		"original_line": "- **Resistive Feedthrough:**", 
+		"bug_line": "- **Resistive Feedthrough:** `rbt_Rfp* = 0`",
+		"error_description": "Forces all resistive feedthrough parameters to zero, eliminating parasitic resistance paths. This violates the design requirement to model unintended signal coupling and loss mechanisms, making simulations unrealistically ideal by removing critical signal attenuation effects."
+	},
+	{
+		"original_line": "- **Resistive Feedthrough:** `rbt_Rfpd`, `rbt_Rfpg`, `rbt_Rfps`, `rbt_Rfpb`", 
+		"bug_line": "- **Resistive Feedthrough:** `rbt_Rfpd`, `rbt_Rfpg`, `rbt_Rfps`, `rbt_Rfpd`",
+		"error_description": "Duplicate parameter `rbt_Rfpd` replaces `rbt_Rfpb`, omitting body terminal feedthrough resistance. This causes the body terminal parasitic resistance to be uncontrolled (defaults to 0), creating incorrect coupling between drive port and body terminal."
+	},
+	{
+		"original_line": "### **Comparison with `rbtCapTrans.va`**  ", 
+		"bug_line": "assign V(p, b) = 0;",
+		"error_description": "Replaced documentation line with a direct voltage assignment, creating a short circuit between drive port (p) and body (b). This violates feedthrough modeling by forcing 0V potential difference regardless of actual signals."
+	},
+	{
+		"original_line": "   - Supports **future thermal-dependent modeling** (currently not implemented).  ", 
+		"bug_line": "   - Supports **thermal-dependent modeling** (implemented with `rbt_Rfnb * temp`).  ",
+		"error_description": "Introduces an incorrect temperature-dependent body resistance calculation that violates the design specification. The module explicitly states no thermal modeling is implemented, but the modified line falsely claims temperature scaling of rbt_Rfnb, creating a non-existent dependency and functional error in simulations."
+	},
+	{
+		"original_line": "#### **Critical Equations:**  ", 
+		"bug_line": "V(n, b) <+ I(n, b) * 0; // Body Resistance equation",
+		"error_description": "Sets body resistance to 0Ω by multiplying current by 0, eliminating voltage drop across rbt_Rfnb and creating incorrect short-circuit behavior between body and negative terminal."
+	}
+]

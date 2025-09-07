@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "if (msgFlag == `NO) begin", 
+		"bug_line": "if (msgFlag == `YES) begin",
+		"error_description": "The condition is reversed, causing the time capture block to never execute since msgFlag is initially `NO. This prevents capturing signal values at required time points, resulting in no slope calculation."
+	},
+	{
+		"original_line": "    $strobe("    Argument  = %2.12g\n", argValue1);", 
+		"bug_line": "    $strobe("    Argument  = %2.12g\n", slope);",
+		"error_description": "Prints slope value instead of argument value. The output incorrectly labels the slope measurement as the argument value, misreporting critical measurement data and causing user confusion about which parameter is being displayed."
+	},
+	{
+		"original_line": "real slope;", 
+		"bug_line": "real slope = 0.0;",
+		"error_description": "Initializing slope to 0.0 causes incorrect slope calculation. The variable slope is overwritten during simulation, but the initial value introduces a race condition where the final_step block may use the uninitialized value if the timer events don't trigger, leading to reporting 0.0 instead of undefined behavior."
+	},
+	{
+		"original_line": "module find_slope (out_pos, out_neg);", 
+		"bug_line": "module find_slope (out_pos);",
+		"error_description": "Removed the negative port 'out_neg', breaking the differential voltage measurement. The module now references an undefined 'out_neg' internally, causing incorrect voltage calculations between undefined nodes."
+	},
+	{
+		"original_line": "outCur = V(out_pos, out_neg);", 
+		"bug_line": "outCur = V(out_neg, out_pos);",
+		"error_description": "The voltage measurement is inverted by swapping the node order, causing negative slope values where positive should exist and vice versa, fundamentally corrupting the slope calculation."
+	},
+	{
+		"original_line": "`define YES 1", 
+		"bug_line": "`define NO 1",
+		"error_description": "Redefining `NO as 1 creates conflicting truth values where both YES and NO are 1. This causes flag checks like (msgFlag == `NO) to incorrectly pass when events occur, skipping slope calculations while falsely reporting missed events."
+	},
+	{
+		"original_line": "real loc_arg_val2;", 
+		"bug_line": "integer loc_arg_val2;",
+		"error_description": "Changed loc_arg_val2 from real to integer type. This causes truncation of fractional values when storing the timer argument (1.001*arg_val1 or arg_val2), leading to incorrect timing for the second measurement point and inaccurate slope calculation."
+	},
+	{
+		"original_line": "                   end else begin", 
+		"bug_line": "                   end if (msgFlag == `NO) begin",
+		"error_description": "The condition is inverted: slope calculation now only runs when events DID NOT occur (msgFlag == NO) instead of when events occurred. This prevents slope computation when valid data exists and attempts calculation when no data was captured, causing incorrect output."
+	},
+	{
+		"original_line": "inout out_pos, out_neg;", 
+		"bug_line": "input out_pos, out_neg;",
+		"error_description": "Changing port direction from inout to input prevents the module from properly measuring voltage differences between nodes, as input ports cannot be used in differential voltage measurements (V(out_pos, out_neg)) which require bidirectional access."
+	},
+	{
+		"original_line": "if (msgFlag == `NO) begin", 
+		"bug_line": "if (msgFlag != `NO) begin",
+		"error_description": "The condition now incorrectly triggers when msgFlag is set (YES) instead of unset (NO). This prevents capturing signal values at the required timer events since the condition blocks execute only after the second point is recorded, leaving the measurement values uninitialized for slope calculation."
+	},
+	{
+		"original_line": "            @ ( timer(loc_arg_val2)) begin", 
+		"bug_line": "            @ ( timer(arg_val2)) begin",
+		"error_description": "Replaces the local variable loc_arg_val2 (which handles default values) with raw parameter arg_val2. This breaks the default case where arg_val2 is unset (-1M) as the timer event will never trigger for negative time, preventing slope calculation when only arg_val1 is provided."
+	},
+	{
+		"original_line": "`define rise  1", 
+		"bug_line": "`define rise  0",
+		"error_description": "Changes the rise event identifier value to 0 which conflicts with the 'NO' macro (also 0). This causes logical errors in event detection since conditional checks for rise events would incorrectly evaluate as false/NO."
+	},
+	{
+		"original_line": "    $strobe("    Signal slope = %2.12g\n", slope);", 
+		"bug_line": "    $strobe("    Signal slope = %2.12g\n", outValue1);",
+		"error_description": "Prints the initial signal value (outValue1) instead of the computed slope (slope), causing incorrect slope reporting while maintaining valid syntax."
+	},
+	{
+		"original_line": "slope = (outValue2 - outValue1) / (argValue2 - argValue1);", 
+		"bug_line": "slope = (outValue2 - outValue1) * (argValue2 - argValue1);",
+		"error_description": "Multiplication operator replaces division, incorrectly calculating slope as the product of output difference and time difference instead of their ratio."
+	},
+	{
+		"original_line": "electrical out_pos, out_neg;", 
+		"bug_line": "electrical out_pos;",
+		"error_description": "The pin 'out_neg' is not declared, causing a compilation error and breaking the differential voltage measurement (V(out_pos, out_neg)) since the second node is undefined."
+	},
+	{
+		"original_line": "`define YES 1", 
+		"bug_line": "`define YES 0",
+		"error_description": "Setting `YES to 0 (same as `NO) causes msgFlag to remain in unset state after event capture, making final_step logic incorrectly report 'Event did not occur' even when measurements were taken."
+	},
+	{
+		"original_line": "loc_arg_val2 = 1.001 * arg_val1;", 
+		"bug_line": "loc_arg_val2 = arg_val1 + 0.001;",
+		"error_description": "Replaced relative 0.1% increase with absolute offset. Instead of scaling arg_val1 by 1.001 for a relative increase, it incorrectly adds a fixed 0.001 absolute value, breaking functionality for signals where arg_val1 isn't near 1.0."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* instrument_not *)",
+		"error_description": "Changed attribute name to 'instrument_not', causing the instrumentation tool to ignore the module. This breaks functionality as the tool relies on the correct attribute name to identify and process instrumentation modules."
+	},
+	{
+		"original_line": "       if (arg_val2 == -1M) ", 
+		"bug_line": "       if (arg_val1 == -1M) ",
+		"error_description": "The condition incorrectly checks arg_val1 instead of arg_val2. This causes the module to mistakenly use the default value calculation (1.001 * arg_val1) when the first argument is unset, rather than when the second argument is unset as intended."
+	},
+	{
+		"original_line": "@ ( timer(arg_val1)) begin", 
+		"bug_line": "@ ( timer(arg_val2)) begin",
+		"error_description": "Changed trigger condition from arg_val1 to arg_val2. This causes both measurement points to be captured at the same time (or equivalent times if arg_val2 is undefined), resulting in zero slope calculation regardless of actual signal behavior."
+	}
+]

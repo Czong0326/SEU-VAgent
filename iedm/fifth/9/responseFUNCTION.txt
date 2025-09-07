@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "tmpOut[1] = x2[i] + y2[i];", 
+		"bug_line": "tmpOut[1] = x[i] + y[i];",
+		"error_description": "The imaginary component calculation incorrectly uses the real part sequences (x and y) instead of the dedicated imaginary sequences (x2 and y2). This causes identical real and imaginary outputs, violating the scrambling code's required complex signal structure."
+	},
+	{
+		"original_line": "y2[i] = 1;", 
+		"bug_line": "y2[i] = 0;",
+		"error_description": "Initializes the imaginary shift register (y2) to all zeros instead of ones, causing the linear feedback shift register to lock in a zero state and fail to generate the required pseudo-random scrambling sequence for the Q channel."
+	},
+	{
+		"original_line": "y2[j] = y2[j+1];", 
+		"bug_line": "y2[j] = y2[j];",
+		"error_description": "The assignment creates a stuck-at fault where each register element retains its current value instead of shifting, freezing the state of the imaginary part shift register and corrupting the scrambling sequence generation."
+	},
+	{
+		"original_line": "integer i, j, xshift ;", 
+		"bug_line": "integer i, j, xshift;",
+		"error_description": "Removed the space between 'xshift' and semicolon. This introduces a syntax ambiguity where the compiler may interpret 'xshift;' as a function call instead of a variable declaration, leading to compilation failure."
+	},
+	{
+		"original_line": "end else begin", 
+		"bug_line": "end if (i >= 0) begin",
+		"error_description": "The modification replaces the 'else' with an 'if (i >= 0)', making the zero-initialization block execute unconditionally for all indices. This overrides the seed value (1) set for index 0 in the preceding if-block, resulting in an all-zero initial state for the real part shift registers. Consequently, the generated scrambling sequence becomes permanently stuck at zero."
+	},
+	{
+		"original_line": "parameter integer poly_order  = 18;", 
+		"bug_line": "parameter integer poly_order  = 17;",
+		"error_description": "Reducing poly_order to 17 causes array index overflow since the code accesses x[18] and y[18], which exceed the declared array bounds [0:17]. This leads to undefined behavior during shift operations."
+	},
+	{
+		"original_line": "x2[i]= 1;", 
+		"bug_line": "x2[i]= 0;",
+		"error_description": "Initializes the first tap of the imaginary shift register to 0 instead of 1. This corrupts the initial state of the pseudorandom sequence generator for the Q channel, causing incorrect scrambling code generation throughout the simulation."
+	},
+	{
+		"original_line": "x2_back[i] = x2[i];", 
+		"bug_line": "x2_back[i] = x[i];",
+		"error_description": "The backup for the imaginary shift register (x2_back) incorrectly saves values from the real shift register (x) instead of its own state. This corrupts the imaginary component's initialization during periodic resets, causing incorrect Q-output generation."
+	},
+	{
+		"original_line": "tmpOut[0] = x[i] + y[i];", 
+		"bug_line": "tmpOut[0] = x[i] + y[0];",
+		"error_description": "Changed y[i] to y[0], making the real part always use the initial y[0] value instead of the current y[i] tap. This breaks the scrambling sequence generation for the real component by losing dynamic state updates."
+	},
+	{
+		"original_line": "x2[i] = 0;", 
+		"bug_line": "x2[i] = 1;",
+		"error_description": "Initializes image-part shift register (x2) with incorrect values (all 1s instead of 0s for non-first elements), corrupting the pseudo-random sequence generation for Q_out by altering the initial state of the shift register."
+	},
+	{
+		"original_line": "real  tmpReal, tmpImag;", 
+		"bug_line": "integer tmpReal, tmpImag;",
+		"error_description": "Changed data type from real to integer. This causes truncation of ±0.707 floating-point values to ±1 integers during assignment, altering output amplitude from ±1/√2 to ±1 and distorting signal modulation."
+	},
+	{
+		"original_line": "i = i+1;", 
+		"bug_line": "i = i+38400;",
+		"error_description": "The counter 'i' increments by 38400 instead of 1 at each timer event, causing immediate reset to 0 on every step. This collapses the entire sequence generation to a single repeated chip value instead of producing 38400 unique chips per frame."
+	},
+	{
+		"original_line": "real local_sample;", 
+		"bug_line": "integer local_sample;",
+		"error_description": "Changing 'local_sample' from real to integer causes truncation of the computed period (frame_time/numChipsOut) to zero. This breaks the timer event generation since zero-period timing is invalid, halting all subsequent signal processing."
+	},
+	{
+		"original_line": "x2[j] = x2[j+1];", 
+		"bug_line": "x2[j] = x2[j];",
+		"error_description": "The assignment fails to shift the x2 register values left. By assigning each element to itself instead of the next element, the shift register state remains static. This freezes the imaginary component's sequence generation, breaking the required pseudorandom code progression."
+	},
+	{
+		"original_line": "parameter integer poly_order  = 18;", 
+		"bug_line": "parameter integer poly_order  = 17;",
+		"error_description": "Reducing poly_order to 17 causes array bounds violations since shift registers (x, y, x2, y2) require 18+1 indices (0-18). Subsequent accesses to index 18 in shift operations become out-of-bounds, corrupting memory and scrambling logic."
+	},
+	{
+		"original_line": "        end else begin", 
+		"bug_line": "        end if (i >= 0) begin",
+		"error_description": "Replaced 'else' with 'if (i>=0)', causing the zero-initialization block to execute for ALL indices (including i=0). This overwrites the x[0]/x2[0]=1 initialization with zeros, resulting in all shift registers starting at 0. The sequence generator requires x[0]=1 to produce correct outputs."
+	},
+	{
+		"original_line": "y[18] = ( y[10] + y[7] + y[5] + y[0] ) % 2;", 
+		"bug_line": "y[18] = ( y[10] + y[7] + y[6] + y[0] ) % 2;",
+		"error_description": "Changed tap index from 5 to 6 in the LFSR feedback polynomial, corrupting the pseudo-random sequence generation for the imaginary component by altering the recurrence relation."
+	},
+	{
+		"original_line": "if ( tmpOut[1] > 0 ) tmpImag = - `M_SQRT1_2;", 
+		"bug_line": "if ( tmpOut[1] > 0 ) tmpImag = `M_SQRT1_2;",
+		"error_description": "Removed the negative sign in the assignment, causing the imaginary component to output positive values when it should be negative for tmpOut[1] > 0, effectively inverting the Q-channel signal polarity."
+	},
+	{
+		"original_line": "integer y2[0:poly_order]; ", 
+		"bug_line": "integer y2[0:poly_order-1]; ",
+		"error_description": "Reduced array size causes out-of-bound access during shift operations. The code requires index [poly_order] (18) for shift register updates, but the modified array only supports indices 0-17. This leads to undefined values when accessing y2[18], corrupting the complex scrambling sequence."
+	},
+	{
+		"original_line": "y_back[i] = y[i];", 
+		"bug_line": "y_back[i] = x[i];",
+		"error_description": "Assigns real part (x) to imaginary backup (y_back) instead of imaginary part (y), causing incorrect state restoration during reset and corrupting the imaginary component of the output sequence."
+	}
+]

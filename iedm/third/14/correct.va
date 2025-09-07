@@ -1,0 +1,105 @@
+// VerilogA for sources_modules, root_raised_cos, veriloga
+//
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+(* instrument_module *)
+module root_raised_cos(I_in, Q_in, I_out, Q_out);
+input  I_in,  Q_in;
+output I_out, Q_out;
+electrical I_in, Q_in, I_out, Q_out;
+
+parameter integer group_delay = 6;
+parameter real frame_time = 1.0/15000.0;
+parameter real alpha = 0.22;
+parameter integer over_samples = 8;
+parameter integer numChipsOut = 256;
+
+real filter_taps[0:(2*group_delay*over_samples+1)],
+       i_input_data[0:(2*group_delay*over_samples+1)],
+       q_input_data[0:(2*group_delay*over_samples+1)];
+real tmp, tmp1, tmp2, tmp3, tmp4, gain, alpha1, alpha2;
+real period, i_out, q_out, delay;
+integer i, tmpInteger, middle, taps;
+real start_time;
+integer Upflag;
+integer t1;
+
+analog begin
+  @(initial_step) begin
+    delay = group_delay*over_samples;
+    taps =2*delay+1;
+//    gain = sqrt ( over_samples ) / over_samples / 2.0;
+//    gain = gain * sqrt(over_samples)
+    gain =  1;
+    alpha1 = 1 - alpha;
+    alpha2 = 1 + alpha;
+    middle = floor(taps / 2.0);
+    tmp3   = alpha * 4 ;
+
+    if ( ceil(over_samples/(4*alpha)) == floor( over_samples/(4*alpha)) )
+        t1 = group_delay*over_samples - ceil(over_samples/(4*alpha));
+    else
+        t1 = -1;
+        
+    for ( i = 0; i < middle; i = i + 1 ) begin
+      tmpInteger = taps-i-1;
+      i_input_data[i]  = 0;
+      q_input_data[i] = 0;
+      i_input_data[tmpInteger]  = 0;
+      q_input_data[tmpInteger] = 0;
+      tmp  = ( i - delay ) / over_samples;
+      tmp4 = tmp3 * tmp;
+      tmp1 = cos ( alpha2 * tmp * `M_PI);
+      tmp2 = sin  ( alpha1 * tmp * `M_PI) / tmp4;
+      if ( i != t1 )
+        filter_taps[i] = tmp3 * ( tmp1 + tmp2 ) / ( 1 - tmp4 * tmp4 ) / `M_PI * gain;
+      else
+        filter_taps[i] = alpha/sqrt(2)*((1+2/`M_PI)*sin(`M_PI/tmp3) + (1-2/`M_PI)*cos(`M_PI/tmp3)) * gain;
+      filter_taps[tmpInteger] =  filter_taps[i];
+    end
+    i_input_data[middle]  = 0;
+    q_input_data[middle] = 0;
+    tmp =  `M_PI * alpha1 + tmp3;
+    tmp =  tmp / `M_PI;
+    filter_taps[middle] =  tmp * gain;
+    period = frame_time / over_samples / numChipsOut;
+    i_out  = 0;
+    q_out  = 0;
+    start_time = frame_time / numChipsOut ;
+    start_time = start_time / 500 ;
+    Upflag = 0;
+  end
+
+  @(timer(start_time, period)) begin
+    i_out  = 0;
+    q_out = 0;
+    for ( i = taps - 1 ; i > 0; i = i - 1 ) begin
+       i_input_data[i] =  i_input_data[i-1];
+       q_input_data[i] =  q_input_data[i-1];
+      i_out  = i_out   +  i_input_data[i] * filter_taps[i];
+      q_out = q_out + q_input_data[i] * filter_taps[i];
+    end
+
+    if ( Upflag ==  0 ) begin
+        i_input_data[0]  = V(I_in);
+        q_input_data[0] = V(Q_in);
+    end else begin
+        i_input_data[0] = 0 ;
+        q_input_data[0] = 0 ;
+    end
+
+    i_out  = i_out   +  i_input_data[0] * filter_taps[0];
+    q_out = q_out + q_input_data[0] * filter_taps[0];
+    
+    Upflag = Upflag + 1;
+    if ( Upflag == over_samples )
+        Upflag = 0 ;  
+  end
+
+  V(I_out)  <+  i_out;
+  V(Q_out) <+ q_out;
+end
+
+endmodule

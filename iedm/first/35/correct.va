@@ -1,0 +1,154 @@
+//======================================================================
+//Copyright @ 2016 Massachusetts Institute of Technology (MIT)
+// 
+// The terms under which the software and associated documentation
+// (the Software) is provided are as the following:
+// 
+// The Software is provided "as is", without warranty of any kind,
+// express or implied, including but not limited to the warranties of
+// merchantability, fitness for a particular purpose and noninfringement.
+// In no event shall the authors or copyright holders be liable for any claim,
+// damages or other liability, whether in an action of contract,
+// tort or otherwise, arising from, out of or in connection with the Software
+// or the use or other dealings in the Software.
+// 
+// MIT grants, free of charge, to any users the right to modify, copy,
+// and redistribute the Software, both within the user's organization and
+// externally, subject to the following restrictions:
+// 
+// 1. The users agree not to charge for the MIT code itself but may charge
+//      for additions, extensions, or support.
+// 
+// 2. In any product based on the Software, the users agree to acknowledge
+//      the MIT Computational Prototyping Research Group that developed
+//      the software. This acknowledgment shall appear in the product
+//      documentation.
+// 
+// 3. The users agree to obey all U.S. Government restrictions governing
+//      redistribution or export of the software.
+// 
+// 4. The users agree to reproduce any copyright notice which appears on
+//      the software on any copy or modification of such made available to others.
+// 
+// Agreed to by 
+// Luca Daniel, MIT
+// March 1st, 2016
+//======================================================================
+// rbtCapTrans.va
+//======================================================================
+// Capacitive transduction module
+//
+// Version: 1.0.0
+// Tested on: Cadence Spectre 15.1.0.284.isr1
+//
+// Author: Bichoy Bahr [bichoy at mit dot edu]
+// Last Modified: March 31st, 2016
+
+
+`ifdef __RBT_CAP_TRANS_VA__
+`else
+`define __RBT_CAP_TRANS_VA__
+
+`include "constants.vams"
+`include "disciplines.vams"
+`include "rbtConst.va"
+
+
+module rbtCapTrans(p,n,x,vss);
+
+inout p,n;
+inout x;
+inout vss;
+
+electrical p,n;
+electrical x;
+electrical vss;
+
+// Model parameters
+parameter real version   = 1.00;		   // version
+parameter real rbt_g     = `RBT_G    from (0:inf); // Drive dielectric thickness
+parameter real rbt_epsd  = `RBT_EPSD from [1:inf); // Drive dielectric permittivity
+parameter real rbt_L     = `RBT_L    from (0:inf); // Resonator Length
+parameter real rbt_W     = `RBT_W    from (0:inf); // Width of the bar
+parameter real rbt_THK   = `RBT_THK  from (0:inf); // Thickness of the bar
+
+parameter real rbt_LTC   = `RBT_LTC  from [0:inf); // Expansion coefficient
+parameter real rbt_LDTC  = `RBT_LTC  from [0:inf); // Drive dielectric expansion coefficient
+
+parameter real rbt_rind  = `RBT_RIND from [0:inf); // Input resistance for the capacitive drive module
+
+parameter real rbt_rho   = `RBT_RHO  from (0:inf); // Density for material A
+parameter real rbt_Y     = `RBT_Y    from (0:inf); // Young's Modulus for material A
+parameter real rbt_nu    = `RBT_NU   from [0:0.5]; // Poisson's ratio for material A
+
+parameter real rbt_rhoTC = `RBT_RHOTC;		   // Density TC for material A
+parameter real rbt_YTC   = `RBT_YTC;		   // Young's Modulus TC for material A
+parameter real rbt_nuTC  = `RBT_NUTC;		   // Poisson's ratio TC for material A
+
+parameter real rbt_driveMSF = 0.6;		   // Mode shape multiplier for gap calculation
+
+parameter real rbt_wgVtoT   = `RBT_WGVTOT   from (0:inf); // scaling parameter from voltage to stress
+parameter real rbt_wgLtoRho = `RBT_WGLTORHO from (0:inf); // scaling parameter from inductance to density
+
+parameter real rbt_dT = 0;
+
+electrical pi; // Intrinsic p node
+
+// Temperature effect on parameters
+localparam real	Leff = rbt_L * ( 1 + rbt_LTC * rbt_dT);
+localparam real	Weff = rbt_W * ( 1 + rbt_LTC * rbt_dT);
+localparam real	teff = rbt_THK * ( 1 + rbt_LTC * rbt_dT);
+localparam real	geff = rbt_g * ( 1 + rbt_LDTC * rbt_dT);
+
+// Geometrical parameters
+localparam	A = Weff * teff;
+
+// local parameters
+localparam real rhoeff = rbt_rho * ( 1 + rbt_rhoTC * rbt_dT );
+localparam real Yeff   = rbt_Y   * ( 1 + rbt_YTC   * rbt_dT );
+localparam real nueff  = rbt_nu  * ( 1 + rbt_nuTC  * rbt_dT );
+
+localparam c11  = Yeff  * ( 1 - nueff ) / ((1 + nueff )*(1 - 2*nueff ));
+
+localparam mtline_l = rhoeff/rbt_wgLtoRho; // mtline inductance per unit length
+localparam mtline_c = rbt_wgLtoRho/c11; // mtline capacitance per unit length
+
+localparam Zl = sqrt(mtline_l/mtline_c);
+localparam tanhSmooth = `RBT_GAP_SMOOTHTANH;
+
+// Driving force constant, 1st -ve is for compressive stress,
+// 2nd -ve is for conversion between voltage and stress
+localparam real fdo =  (-0.5 * `P_EPS0 * rbt_epsd)/(- rbt_wgVtoT * Zl); 
+
+real strain; // Strain in dielectric
+real gapt;   // Time dependent gap
+real Cin;    // Input capacitance
+real Qin;    // Input charge
+real iin;    // Input current
+
+analog begin
+	
+	// Input resistance
+	V(p,pi) <+ rbt_rind * I(p,pi)
+		+ white_noise(4*`P_K*$temperature*rbt_rind, "Rin");
+	
+	// Strain in dielectric (tanh to limit to 1 as it should be very small
+	strain = tanhSmooth *  tanh((1/tanhSmooth)* rbt_driveMSF*(-rbt_wgVtoT)*V(x,vss)*nueff/Yeff);
+
+	// Time dependent dielectric thickness
+	gapt =  geff*(1 - strain);
+
+	// Contribution to stress node (-ve for Verilog-A contribution)
+	I(x,vss) <+ -fdo * pow(V(pi,n),2) * limexp( -2 * ln (gapt));
+
+	// Input capacitance and charge
+	Cin = `P_EPS0 * rbt_epsd * A/gapt;
+	Qin = Cin * V(pi,n);
+	iin = ddt(Qin);
+	I(pi,n) <+ iin;
+	
+end // analog end
+
+endmodule
+
+`endif

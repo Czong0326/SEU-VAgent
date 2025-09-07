@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "bits = bits + 1;", 
+		"bug_line": "if (V(vin1) > vtrans) bits = bits + 1;",
+		"error_description": "The bit counter is only incremented when vin1 is high, violating the requirement to count every compared bit. This causes incorrect total bit count and miscalculated bit error rate, as low bits on vin1 are excluded from the denominator."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* no_instrument *)",
+		"error_description": "Changing the attribute to 'no_instrument' instructs the simulator to disable instrumentation for this module, preventing the bit error measurement events from triggering and making the module non-functional."
+	},
+	{
+		"original_line": "if (bits > 0 )", 
+		"bug_line": "if (bits >= 0 )",
+		"error_description": "The condition 'bits >= 0' always evaluates to true since 'bits' is a non-negative integer. This causes the division-by-zero error in the strobe statement when no bits are measured, crashing the simulation instead of handling the zero-bit case safely."
+	},
+	{
+		"original_line": "tnext = (tstart + tperiod/2);", 
+		"bug_line": "tnext = tstart;",
+		"error_description": "Sets initial comparison time to tstart instead of tstart+tperiod/2, causing the first bit comparison to occur half a period too early and misaligning all subsequent sampling events relative to the intended mid-period timing."
+	},
+	{
+		"original_line": "parameter real tstart  = 0 from [0:inf);", 
+		"bug_line": "parameter real tstart  = -1 from [0:inf);",
+		"error_description": "The default tstart value is changed to -1, violating the non-negative range constraint [0:inf). This negative start time causes the initial tnext calculation (tstart + tperiod/2) to schedule timer events in the past, preventing the @(timer) block from ever executing and making the module fail to measure any bits."
+	},
+	{
+		"original_line": "parameter real tperiod = 1 from (0:inf);", 
+		"bug_line": "parameter real tperiod = 1 from (0:inf) exclude 1;",
+		"error_description": "The 'exclude 1' clause prevents tperiod from being set to 1, the default value. Since the model relies on periodic comparisons at tperiod intervals, excluding the default value breaks normal operation unless explicitly overridden, violating the design requirement for periodic bit comparisons."
+	},
+	{
+		"original_line": "   integer bits;", 
+		"bug_line": "   integer bits = -1;",
+		"error_description": "Initializing 'bits' to -1 causes negative bit count. This violates the requirement that bit count must start at 0, leading to incorrect error rate calculation (negative denominator) and potential arithmetic errors."
+	},
+	{
+		"original_line": "tnext = tnext + tperiod;", 
+		"bug_line": "tnext = tnext + tperiod/2;",
+		"error_description": "Changed period increment from full tperiod to half tperiod. This causes comparison events to occur at twice the specified frequency (every tperiod/2 seconds instead of tperiod), violating the periodic measurement requirement and altering the bit error calculation basis."
+	},
+	{
+		"original_line": "if ((V(vin1) > vtrans) != (V(vin2) > vtrans)) begin", 
+		"bug_line": "if ((V(vin1) > vtrans) == (V(vin2) > vtrans)) begin",
+		"error_description": "Changed '!=' to '==', causing the model to detect errors when signals MATCH (both high/low) instead of when they differ. This inverts the error detection logic."
+	},
+	{
+		"original_line": "parameter real vtrans = 0.5;", 
+		"bug_line": "parameter real vtrans = 1000.0;",
+		"error_description": "The threshold voltage is set too high (1000V). For typical digital signals (0-1V), both inputs will always register as low, preventing error detection when signals differ."
+	},
+	{
+		"original_line": "input vin1, vin2;", 
+		"bug_line": "output vin1, vin2;",
+		"error_description": "Changed input ports to output direction. This violates the design specification requiring input signals for comparison. The module cannot read external signals through output ports, resulting in indeterminate values during voltage checks and incorrect error rate calculations."
+	},
+	{
+		"original_line": "parameter real tstart  = 0 from [0:inf);", 
+		"bug_line": "parameter real tstart  = -1 from [0:inf);",
+		"error_description": "Default tstart value changed to -1 which violates the non-negative range constraint [0:inf). This causes the initial timer event to schedule at negative time (-1 + tperiod/2), preventing bit comparisons since simulation time starts at 0."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* not_an_instrument *)",
+		"error_description": "Changing the attribute to 'not_an_instrument' causes the simulation tool to skip instrumentation processing. This prevents the analog block from executing, resulting in no bit error counting or final report generation."
+	},
+	{
+		"original_line": "$strobe( "%m: bits measured = %d, bit errs detected = %d, bit err rate = %g.\n",bits,errors,errors/(1.0*bits) );", 
+		"bug_line": "$strobe( "%m: bits measured = %d, bit errs detected = %d, bit err rate = %g.\n",bits,errors,errors/(1.0*10) );",
+		"error_description": "Changed divisor from 'bits' to constant 10 in error rate calculation, making the result independent of actual bit count and always based on 10 bits."
+	},
+	{
+		"original_line": "parameter real tperiod = 1 from (0:inf);", 
+		"bug_line": "parameter real tperiod = 0 from [0:inf);",
+		"error_description": "Setting tperiod default to 0 and allowing 0 in the range causes infinite event scheduling at the same simulation time, hanging the simulation. The timer event at tstart + tperiod/2 becomes tstart + 0, and subsequent events remain at tstart since tperiod=0, violating the requirement for positive periodic comparison."
+	},
+	{
+		"original_line": "         bits = bits + 1;", 
+		"bug_line": "         bits = errors;",
+		"error_description": "The modified line sets the bit counter to the current error count instead of incrementing it. This results in the bit count representing the total errors rather than the total bits compared, causing the final bit error rate calculation to be errors divided by errors (always 1.0 if any errors exist), and triggers the 'No bits detected' case when no errors occur."
+	},
+	{
+		"original_line": "   if (bits > 0 ) ", 
+		"bug_line": "   if (bits < 0 ) ",
+		"error_description": "The condition is incorrectly inverted to bits<0. Since bits (bit count) is always non-negative, this condition will never be true. This prevents the bit error rate calculation from ever executing, causing the model to always report 'No bits detected!!' regardless of actual measurements."
+	},
+	{
+		"original_line": "bits = bits + 1;", 
+		"bug_line": "bits = bits + 0;",
+		"error_description": "The bit counter is never incremented because adding 0 leaves 'bits' unchanged. This causes the final error rate calculation to always report 'No bits detected!!' since bits remain at 0, violating the module's core functionality of counting compared bits."
+	},
+	{
+		"original_line": "parameter real tperiod = 1 from (0:inf);", 
+		"bug_line": "parameter real tperiod = -1 from (-inf:inf);",
+		"error_description": "The modification allows negative tperiod values and sets a negative default. Since tperiod represents time intervals for bit comparisons, negative values are non-physical. This causes timer events to schedule in the past (tstart + negative/2), preventing any bit comparisons and making the error detection logic fail entirely."
+	},
+	{
+		"original_line": "integer bits;", 
+		"bug_line": "integer bits = 1;",
+		"error_description": "Initializing 'bits' to 1 instead of 0 causes the bit counter to start at 1. This results in the first comparison incrementing the counter to 2 instead of 1, making the total bit count always one higher than the actual number of comparisons. This skews the bit error rate calculation by using an incorrect denominator."
+	}
+]

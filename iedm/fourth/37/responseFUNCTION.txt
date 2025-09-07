@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "real x,c;", 
+		"bug_line": "real c;",
+		"error_description": "Removed declaration of variable 'x'. The function smoothg uses 'x' in its calculation, but without local declaration, it will incorrectly reference the global kinematic input port 'x' (array of displacement modes) instead of the intended scalar input argument. This causes type mismatches and invalid calculations in the gap smoothing expression."
+	},
+	{
+		"original_line": "analog function real smoothg;", 
+		"bug_line": "analog function real smoothg_wrong;",
+		"error_description": "Changed function name to 'smoothg_wrong' causing undefined function errors when 'smoothg' is called later in force calculation (line 148) and capacitance calculation (line 153)."
+	},
+	{
+		"original_line": "real kn[0:`RBT_NMODES-1];	// k number of a given mode", 
+		"bug_line": "real kn[1:`RBT_NMODES-1];	// k number of a given mode",
+		"error_description": "The array index now starts at 1 instead of 0, causing the fundamental mode (index 0) to be uninitialized. This breaks displacement calculations for the first harmonic since kn[0] remains undefined, leading to incorrect force generation and mechanical behavior."
+	},
+	{
+		"original_line": "analog function real smoothg;", 
+		"bug_line": "analog function real smoothg(input x,c);",
+		"error_description": "Added 'input' direction to function arguments in declaration. VerilogA requires separate input/output declarations; this syntax error breaks the function definition and prevents gap calculations, disrupting force/capacitance computations."
+	},
+	{
+		"original_line": "dT = $temperature + Temp(T) - rbt_Tnom -`P_CELSIUS0;", 
+		"bug_line": "dT = $temperature - Temp(T) - rbt_Tnom -`P_CELSIUS0;",
+		"error_description": "Changed the sign of Temp(T) from positive to negative. This incorrectly subtracts the temperature rise from the thermal port instead of adding it, resulting in wrong thermal expansion calculations for resonator dimensions."
+	},
+	{
+		"original_line": "        - sin(kn[j] * Pos(Up[`RBT_NMODES-1]))  )", 
+		"bug_line": "        - sin(kn[j] * Pos(Up[j]))  )",
+		"error_description": "Changed the displacement index from total displacement (`RBT_NMODES-1`) to current mode index (j). The force calculation now incorrectly uses only the j-th mode's displacement at the dielectric end instead of the cumulative displacement from all modes, violating the physics of coupled mechanical systems where total displacement determines capacitance."
+	},
+	{
+		"original_line": "inout p,n;", 
+		"bug_line": "output p,n;",
+		"error_description": "Changing ports from inout to output prevents reading external voltage values needed for capacitance calculations. The module requires bidirectional access to measure V(p,n) for charge computation and thermal power calculations."
+	},
+	{
+		"original_line": "electrical p,n;", 
+		"bug_line": "electrical p; thermal n;",
+		"error_description": "Changed node 'n' discipline from electrical to thermal. This violates the port definition since 'n' must be electrical for voltage/current interactions, but thermal discipline only supports temperature/power flow. This causes illegal voltage references (V(pi,n)) and current calculations in the analog block."
+	},
+	{
+		"original_line": "`include "rbtConst.vams"", 
+		"bug_line": "`include "rbtConst_wrong.vams"",
+		"error_description": "Changed include filename to a non-existent file, causing undefined constants (RBT_G, RBT_EPSD, etc.). This breaks geometric/electrical calculations and force computations since required parameters are missing."
+	},
+	{
+		"original_line": "real iin;	// Input current", 
+		"bug_line": "real iin = 0;	// Input current",
+		"error_description": "Initializing iin to zero creates a constant DC offset in the current calculation. This violates Kirchhoff's current law as the input current (ddt(Qin)) is now incorrectly forced to zero at every time step instead of dynamically tracking the charge derivative."
+	},
+	{
+		"original_line": "parameter real rbt_THK = `RBT_THK from (0:inf);	// Thickness of the bar", 
+		"bug_line": "parameter real rbt_THK = `RBT_THK from [0:inf);	// Thickness of the bar",
+		"error_description": "Changed thickness parameter range from (0:inf) to [0:inf), allowing zero thickness. This causes division by zero in capacitance calculation (Cin = εA/gapt) when rbt_THK=0, making A=0 and leading to simulation failure."
+	},
+	{
+		"original_line": "module rbtCapTrans(p,n,x,T);", 
+		"bug_line": "module rbtCapTrans(p,n,x,input T);",
+		"error_description": "Changed thermal port T from inout to input direction. This prevents the module from outputting power (Pwr(T)) to the thermal node, breaking thermal modeling since the thermal port requires bidirectional capability for both reading temperature and dissipating power."
+	},
+	{
+		"original_line": "kinematic [0:`RBT_NMODES-1] x;", 
+		"bug_line": "kinematic [0:`RBT_NMODES] x;",
+		"error_description": "Changed array size from `RBT_NMODES-1` to `RBT_NMODES`, creating an off-by-one error. This causes array index overflow when accessing x[`RBT_NMODES-1] in later calculations, leading to undefined behavior in displacement amplitude computations."
+	},
+	{
+		"original_line": "parameter real rbt_epsd = `RBT_EPSD from [1:inf);	// Drive dielectric permittivity", 
+		"bug_line": "parameter real rbt_epsd = `RBT_EPSD from [0:1];	// Drive dielectric permittivity",
+		"error_description": "The valid range for dielectric permittivity is incorrectly set to [0:1], which is too low for typical dielectrics (e.g., SiO2 has permittivity ~3.9). This will cause simulation errors when `RBT_EPSD > 1, as the parameter will violate the range constraint during initialization."
+	},
+	{
+		"original_line": "`include "rbtConst.vams"", 
+		"bug_line": "`include "rbtConst_wrong.vams"",
+		"error_description": "Changed include filename to a non-existent file, causing all subsequent constant references (e.g., `RBT_G, `RBT_EPSD) to be undefined during compilation, which breaks model functionality."
+	},
+	{
+		"original_line": "Pos(Up[j]) <+ Pos(Up[j-1]) +  Pos(x[j]) * sin( kn[j] * gp);", 
+		"bug_line": "Pos(Up[j]) <+ Pos(Up[j-1]) +  Pos(x[j]) * sin( kn[j] * gn);",
+		"error_description": "Changed gp (dielectric end position) to gn (dielectric start position). This incorrectly calculates the displacement at the drive dielectric end using the start position coordinate, violating the position-dependent mode shape evaluation required for accurate capacitance calculation."
+	},
+	{
+		"original_line": "real Cin;	// Input capacitance", 
+		"bug_line": "real Cin = 0;	// Input capacitance",
+		"error_description": "Initializing Cin to zero makes the capacitance calculation permanently zero, preventing proper charge accumulation and current flow through the capacitor."
+	},
+	{
+		"original_line": "parameter real rbt_W = `RBT_W from (0:inf);	// Width of the bar", 
+		"bug_line": "parameter real rbt_W = 0;	// Width of the bar",
+		"error_description": "Setting the default width to 0 causes the cross-sectional area (A = Weff * teff) to be zero. This results in zero capacitance (Cin) and zero electrostatic force, completely disabling the capacitive transduction functionality."
+	},
+	{
+		"original_line": "* limexp( -2 * ln (smoothg(Pos(gapt), `RBT_SMALL_GAP)));", 
+		"bug_line": "* limexp( -1 * ln (smoothg(Pos(gapt), `RBT_SMALL_GAP)));",
+		"error_description": "Changed exponent from -2 to -1, making the electrostatic force proportional to 1/gap instead of 1/gap². This violates the fundamental physics of parallel-plate capacitors where force scales inversely with the square of the gap distance."
+	},
+	{
+		"original_line": "* ( sin(kn[j] * Pos(Un[`RBT_NMODES-1]))  // g_start - g_end", 
+		"bug_line": "* ( sin(kn[j] * Pos(Up[`RBT_NMODES-1]))  // g_start - g_end",
+		"error_description": "Swapped Un (dielectric start position) with Up (dielectric end position) in the sine argument. This incorrectly calculates the displacement at the wrong dielectric edge, corrupting the force computation for all vibration modes."
+	}
+]

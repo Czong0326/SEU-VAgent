@@ -1,0 +1,68 @@
+// VerilogA for fix, quadrature, veriloga
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+
+`define db20_real(x) pow(10, (x)/20)
+`define db10_real(x) pow(10, (x)/10)
+
+module quadrature(lag, lead);
+inout lag;
+electrical lag;
+inout lead;
+electrical lead;
+parameter real fc = 0 ;
+parameter real n1 = -40 ;
+parameter real f1 = 1000 ;
+parameter real bottom = -60 ;
+parameter real phase_shift = 90 ;
+parameter real rout = 50 ;
+parameter real power = 10 ;
+parameter real freq = 1e+09 ;
+parameter string fundname = "LO" ;
+parameter real amp = sqrt(2.0)*sqrt(4*`db10_real(power-30)/rout);
+
+electrical int, gnd;
+ground gnd;
+
+  real vc;
+  real kw, kf;   // coefficients of white and flicker noise
+  real kb;       // white noise coeff for the noise floor
+  real y1;
+  
+  isource #(.type("sine"),.ampl(amp),.fundname(fundname),.freq(freq),.sinephase(phase_shift)) is1(gnd, lead);
+  isource #(.type("sine"),.ampl(amp),.fundname(fundname),.freq(freq)) is2(gnd, lag);
+  
+  analog begin
+  
+    @( initial_step ) begin
+        kb = `db10_real(bottom);
+        if(fc == 0) begin  // no flicker noise
+          y1 = `db10_real(n1)-kb;
+          kw = f1*sqrt(y1);
+          kf = 0;
+        end else begin 
+          y1 = `db10_real(n1)-kb;
+          kw = sqrt(y1/(1/(f1*f1)+fc/(f1*f1*f1)));
+          kf = sqrt(fc)*kw;
+        end    
+    end
+    
+    // form the integral of noise 
+    I(int) <+ white_noise(amp*amp*kw*kw, "osc");
+    I(int) <+ flicker_noise(amp*amp*kf*kf, 1, "osc");
+    I(int) <+ 1/(2*`M_PI) * ddt(V(int));
+      
+    I(lead) <+ V(lead)/rout;
+    I(lag) <+ V(lag)/rout;
+    vc = sqrt(2.0)*V(int)/amp;
+
+    // insert the phase noise into the real signal
+    I(lead) <+ -amp*cos(2*`M_PI*freq*$abstime+`M_PI*phase_shift/180)*sin(vc);
+    I(lag) <+ -amp*cos(2*`M_PI*freq*$abstime)*sin(vc);
+    // insert the white noise floor
+    I(lead) <+ white_noise(amp*amp*kb/2, "quadrature");
+    I(lag) <+ white_noise(amp*amp*kb/2, "quadrature");  
+   end
+endmodule

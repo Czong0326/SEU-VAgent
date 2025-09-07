@@ -1,0 +1,96 @@
+// VerilogA for MyLib_Ihor, PB_to_BB, veriloga
+//
+//  Behavioral model of Passband_to_Baseband converter
+//
+//  PB_input_signal is
+//  I(t)*cos(w_carrier*t) - Q(t)*sin(w_carrier*t)
+//  and BB_output_signals are I(t) and Q(t)
+//
+// This conversion needs a Hilbert filter in order to generate
+// the image part of complex signal using PB input signal
+// which is real part of this one.
+//
+// But for bandlimited I(t) and  Q(t)
+// (i.e., max_frequecy of I(t) and Q(t) is much less then f_carrier)
+// the Hilbert filter can be replaced
+// with a time delay = T_carrier/4.
+//
+// Notice, that for all t from [0,T_carrier/4] I(t) and Q(t) have
+// errors, because the output of time delay block during this
+// initial interval is equal to 0.
+//
+
+//  Copyright (c) 2002
+//  by Cadence Design Systems, Inc.  All rights reserved.
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+module PB2BB_demod(in, I_out, Q_out);
+
+inout in, I_out, Q_out;
+electrical in, I_out, Q_out;
+
+/* PARAMETER DEFINITIONS:
+======================
+- f_carrier: carrier frequency
+- f_LPF : bandwidth frequency of low-pass filters;
+=====================
+*/
+
+parameter real f_carrier = 2.400e+9 from (0:inf);
+parameter real f_LPF = 100M from (0:inf);
+parameter real N_points = 32 from [8:128];
+
+real w_carrier, vin_d, time_delay, vin;
+real phi, vcos, vsin, max_step;
+real viout, vqout;
+
+// LPF 1st order (Butterworth )
+real  w_LPF, numPB[0:0], denomPB[0:1];
+/*
+// all pass 1st order filter
+real  numAP[0:1], denomAP[0:1];
+*/
+// all pass 2nd order filter
+real  numAP[0:2], denomAP[0:2];
+
+analog begin
+
+@(initial_step) begin
+  $strobe("PB_to_BB from wlanLib");
+ time_delay = 0.25/f_carrier;
+ w_carrier = `M_TWO_PI * f_carrier;
+ w_LPF = `M_TWO_PI * f_LPF;
+
+ // LPF 1st order (Butterworth )
+ numPB[0] = 1.0;
+ denomPB[0]= 1.0;
+ denomPB[1]= 1.0/w_LPF;
+
+// all pass 2nd order filter
+numAP[0]= 1.0;
+numAP[1]= -0.5*time_delay;
+numAP[2]= time_delay*time_delay/12.0;
+denomAP[0]= 1.0;
+denomAP[1]= 0.5*time_delay;
+denomAP[2]= time_delay*time_delay/12.0;
+
+end //initial_step
+
+vin = V(in);
+vin_d =laplace_nd(V(in), numAP, denomAP);
+
+//phi = w_carrier * $abstime;
+phi = `M_TWO_PI * idtmod(f_carrier,0.0,1.0);
+vcos = cos(phi);
+vsin = sin(phi);
+
+viout = ( vcos * vin + vsin * vin_d );
+vqout = ( vcos * vin_d - vsin * vin );
+
+V(I_out) <+  laplace_nd(viout, numPB, denomPB);
+V(Q_out) <+  laplace_nd(vqout, numPB, denomPB);
+
+end
+endmodule // PB2BB_demod

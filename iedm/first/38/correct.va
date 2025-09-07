@@ -1,0 +1,116 @@
+//======================================================================
+//Copyright @ 2016 Massachusetts Institute of Technology (MIT)
+// 
+// The terms under which the software and associated documentation
+// (the Software) is provided are as the following:
+// 
+// The Software is provided "as is", without warranty of any kind,
+// express or implied, including but not limited to the warranties of
+// merchantability, fitness for a particular purpose and noninfringement.
+// In no event shall the authors or copyright holders be liable for any claim,
+// damages or other liability, whether in an action of contract,
+// tort or otherwise, arising from, out of or in connection with the Software
+// or the use or other dealings in the Software.
+// 
+// MIT grants, free of charge, to any users the right to modify, copy,
+// and redistribute the Software, both within the user's organization and
+// externally, subject to the following restrictions:
+// 
+// 1. The users agree not to charge for the MIT code itself but may charge
+//      for additions, extensions, or support.
+// 
+// 2. In any product based on the Software, the users agree to acknowledge
+//      the MIT Computational Prototyping Research Group that developed
+//      the software. This acknowledgment shall appear in the product
+//      documentation.
+// 
+// 3. The users agree to obey all U.S. Government restrictions governing
+//      redistribution or export of the software.
+// 
+// 4. The users agree to reproduce any copyright notice which appears on
+//      the software on any copy or modification of such made available to others.
+// 
+// Agreed to by 
+// Luca Daniel, MIT
+// March 1st, 2016
+//======================================================================
+// rbtParasitics.va
+//======================================================================
+// Module to model the different parasitics of the RBT
+//
+// Version: 1.0.0
+// Tested on: Cadence Spectre 15.1.0.284.isr1
+//
+// Author: Bichoy Bahr [bichoy at mit dot edu]
+// Last Modified: March 31st, 2016
+
+`ifdef __RBT_PARASITICS_VA__
+`else
+`define __RBT_PARASITICS_VA__
+
+`include "constants.vams"
+`include "disciplines.vams"
+`include "rbtConst.va"
+
+
+module rbtParasitics(p,n,d,g,s,b,x,T);
+
+inout p,n;
+inout d, g, s, b;
+inout x;
+inout T;
+
+electrical p,n;
+electrical d, g, s, b;
+electrical x;
+thermal T;
+
+//======================================================================
+// Model parameters
+//======================================================================
+parameter real version = 1.00;
+
+// Feed-through capacitances
+parameter real rbt_Cfpd = `RBT_CFPD from [0:inf); // p to d series R
+parameter real rbt_Cfpg = `RBT_CFPG from [0:inf); // p to g series R
+parameter real rbt_Cfps = `RBT_CFPS from [0:inf); // p to s series R
+parameter real rbt_Cfpb = `RBT_CFPB from [0:inf); // p to b series R
+
+// Feed-through resistances
+parameter real rbt_Rfpd = `RBT_RFPD from [0:inf); // p to d series C
+parameter real rbt_Rfpg = `RBT_RFPG from [0:inf); // p to g series C
+parameter real rbt_Rfps = `RBT_RFPS from [0:inf); // p to s series C
+parameter real rbt_Rfpb = `RBT_RFPB from [0:inf); // p to b series C
+
+// Body resistance
+parameter real rbt_Rfnb = `RBT_RFNB from (0:inf); // n to b series R
+
+// Temperature dependent (not implemented yet)
+parameter real rbt_Tnom = `RBT_T0;
+
+//======================================================================
+// Internal nodes and variables
+//======================================================================
+
+electrical pd, pg, ps, pb;
+
+analog begin
+	// Feedthrough resistance
+	V(p,pd) <+ I(p,pd) * rbt_Rfpd;
+	V(p,pg) <+ I(p,pg) * rbt_Rfpg;
+	V(p,ps) <+ I(p,ps) * rbt_Rfps;
+	V(p,pb) <+ I(p,pb) * rbt_Rfpb;
+	
+	// Feedthrough capacitance
+	I(pd, d) <+ ddt( rbt_Cfpd * V(pd,d) );
+	I(pg, g) <+ ddt( rbt_Cfpg * V(pg,g) );
+	I(ps, s) <+ ddt( rbt_Cfps * V(ps,s) );
+	I(pb, b) <+ ddt( rbt_Cfpb * V(pb,b) );
+	
+	// Body resistance
+	V(n,b) <+ I(n,b) * rbt_Rfnb;
+end // analog end
+
+endmodule
+
+`endif

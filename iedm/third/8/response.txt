@@ -1,0 +1,152 @@
+[
+	{
+		"original_line": "`define  CHARGE_ABSTOL  1.0e-15", 
+		"bug_line": "`define  CHARGE_ABSTOL  1.0e-12",
+		"error_description": "Increased charge absolute tolerance beyond side gate capacitance scale (Cs=29aF). 1e-12 C tolerance exceeds Q=Cs*V (~1e-17C @1V), causing convergence failures in capacitance coupling simulation."
+	},
+	{
+		"original_line": "I(Back, Side) <+ V(Back, Side)/Rg;", 
+		"bug_line": "I(Back, Side) <+ V(Back, Side)/Rsubs;",
+		"error_description": "Replaced gate resistance Rg with substrate resistance Rsubs, creating incorrect 10TΩ path between Back-Side instead of designed 263kΩ gate coupling."
+	},
+	{
+		"original_line": "piezoResVA #(.L(L),.W(W),.H(H),.RESIS(RESIS),.POIS(POIS),.piEff(piEff)) I1(Drain,net9,net10);", 
+		"bug_line": "piezoResVA #(.L(L),.W(W),.H(H),.RESIS(RESIS),.POIS(POIS),.piEff(piEff)) I1(net9,Drain,net10);",
+		"error_description": "Reverses electrical terminal connections in piezoresistive module, causing inverted voltage polarity across the beam resistor. This corrupts strain-resistance coupling by applying wrong potential direction to the piezoresistive element."
+	},
+	{
+		"original_line": "gateInteractionVA #(.L(L),.W(W),.H(H),.gap(gap),.C(C),.Sr(Sr)) I2(net9,Back,net10);", 
+		"bug_line": "gateInteractionVA #(.L(L),.W(W),.H(H),.gap(gap),.C(C),.Sr(Sr)) I2(Back,net9,net10);",
+		"error_description": "Swapped the first two terminals (Back and net9) in the gateInteractionVA instance, incorrectly connecting the Back gate to the beam's internal node and vice versa. This inverts the electrostatic potential reference in the capacitance model, leading to erroneous force calculations and charge modulation."
+	},
+	{
+		"original_line": "        parameter real L = 6.0e-6                     from (0:inf);         // length of the beam [m]", 
+		"bug_line": "        parameter real L = 0.0                     from (0:inf);         // length of the beam [m]",
+		"error_description": "Setting beam length L=0 creates physical impossibility (zero-length structure) causing division-by-zero in mechanical equations and invalidating all geometry-dependent calculations (capacitance, stress, resistance)."
+	},
+	{
+		"original_line": "real Q;", 
+		"bug_line": "integer Q;",
+		"error_description": "Changing Q from real to integer truncates charge values, causing ddt(Q) to lose fractional components. This destroys the capacitive current calculation between Side and net9 as nano-scale charges become quantized to integers."
+	},
+	{
+		"original_line": "`define  CURRENT_ABSTOL 1.0e-15", 
+		"bug_line": "`define  CURRENT_ABSTOL 1.0e-6",
+		"error_description": "Excessive current tolerance (1μA vs required 1fA) fails to resolve nanoampere-scale piezoresistive currents and substrate leakage through Rsubs=10TΩ, violating μΩ-level contact modeling requirements."
+	},
+	{
+		"original_line": "`define  CURRENT_ABSTOL 1.0e-15", 
+		"bug_line": "`define  CURRENT_ABSTOL 1.0e15",
+		"error_description": "Excessive current absolute tolerance (1e15 vs 1e-15) causes simulator to ignore critical nanoampere-level current variations in piezoresistive coupling, breaking electromechanical feedback loop."
+	},
+	{
+		"original_line": "module NEMS_model_verilog_A(Back,Drain,Side,Source);", 
+		"bug_line": "module NEMS_model_verilog_A(Drain,Back,Side,Source);",
+		"error_description": "Swapped Back/Drain port order causes terminal misconnection - Back gate electrical interactions now incorrectly routed to Drain terminal while piezoresistive effects get gate voltages, inverting the electromechanical coupling directions."
+	},
+	{
+		"original_line": "        real Q;", 
+		"bug_line": "        integer Q;",
+		"error_description": "Changing Q from real to integer type causes charge truncation, invalidating capacitance calculation. The extremely small Cs (29aF) combined with integer storage forces Q=0, eliminating side gate capacitance effect."
+	},
+	{
+		"original_line": "parameter real Cs = 2.9218e-17                from [0:inf);         // side gate capacitance", 
+		"bug_line": "parameter real Cs = 2.9218e-12                from [0:inf);         // side gate capacitance",
+		"error_description": "Increases side gate capacitance by 5 orders of magnitude (29.218aF→2.9218pF), creating excessive displacement current through Cs that overwhelms the piezoresistive detection mechanism, violating the nano-scale capacitance specification."
+	},
+	{
+		"original_line": "real Q;", 
+		"bug_line": "electrical Q;",
+		"error_description": "Changing Q from real variable to electrical node incorrectly models charge storage. The analog block now attempts to use node voltage Q for charge calculation instead of storing computed charge value, breaking the capacitive current (ddt(Q)) implementation."
+	},
+	{
+		"original_line": "analog begin", 
+		"bug_line": "analog if (V(Back) > 0) begin",
+		"error_description": "Conditionally enables the entire analog block only when Back voltage is positive, omitting Rg, Rsubs, and Cs components when V(Back) ≤ 0, violating the requirement for these elements to be always active regardless of bias conditions."
+	},
+	{
+		"original_line": "`define  POSITION_ABSTOL 1.0e-13", 
+		"bug_line": "`define  POSITION_ABSTOL 1.0e-6",
+		"error_description": "Excessive position tolerance (1μm) exceeds typical beam displacement scales (~0.1nm), causing inaccurate convergence in mechanical state calculations and missing nonlinear pull-in effects."
+	},
+	{
+		"original_line": "                inout Back,Drain,Side,Source;", 
+		"bug_line": "                inout Back,Drain,Source,Side;",
+		"error_description": "Swapped Side and Source port order causes terminal misassignment - Source (mechanical reference) becomes Side terminal and vice versa, breaking electrical/mechanical interface connections in analog block"
+	},
+	{
+		"original_line": "        parameter real W = 120.0e-9                   from (0:inf);         // width of the beam [m]", 
+		"bug_line": "        parameter real W = 120.0e-6                   from (0:inf);         // width of the beam [m]",
+		"error_description": "Changed beam width from 120nm to 120μm (120e-6), violating the nanoscale dimension specification. This 1000x scaling error will corrupt mechanical resonance calculations, piezoresistive coefficients, and capacitive coupling ratios critical for NEMS operation."
+	},
+	{
+		"original_line": "`define  CURRENT_ABSTOL 1.0e-15", 
+		"bug_line": "`define  CURRENT_ABSTOL 1.0e-3",
+		"error_description": "Excessive CURRENT_ABSTOL (1mA) fails to resolve nanoampere-level substrate leakage currents through Rsubs=10TΩ, violating μΩ-scale contact resistance modeling requirements. This causes simulator to truncate critical I(Drain,Source) contributions from Rsubs network."
+	},
+	{
+		"original_line": "        kinematic net10;", 
+		"bug_line": "        electrical net10;",
+		"error_description": "Changed net10 discipline from kinematic (mechanical) to electrical, creating a domain mismatch in the gateInteractionVA/piezoResVA submodules that expect mechanical motion signals. This disrupts the electromechanical coupling by treating displacement/velocity as voltage."
+	},
+	{
+		"original_line": "`include "disciplines.vams"", 
+		"bug_line": "`include "discipline.vams"",
+		"error_description": "Changed include filename from plural 'disciplines' to singular 'discipline', causing missing electrical/kinematic discipline definitions needed for mixed-signal simulation. This breaks port type declarations and analog operator support."
+	},
+	{
+		"original_line": "`define  POSITION_ABSTOL 1.0e-13", 
+		"bug_line": "`define  POSITION_ABSTOL 1.0e-6",
+		"error_description": "Excessive position tolerance (1μm vs nanoscale gap) causes solver to miss critical displacement thresholds, invalidating nonlinear capacitance and piezoresistive coupling calculations."
+	},
+	{
+		"original_line": "inout Back,Drain,Side,Source;", 
+		"bug_line": "inout Back,Source,Side,Drain;",
+		"error_description": "Swapped Drain and Source port order, reversing substrate resistance (Rsubs) connection direction and causing inverted current/voltage relationships between drain-source terminals."
+	},
+	{
+		"original_line": "parameter real Sr = 0.0e9                     from (-inf:inf);      // the residual stress in the beam [GPa]", 
+		"bug_line": "parameter real Sr = 0.0e9                     from [0:inf);      // the residual stress in the beam [GPa]",
+		"error_description": "Changed residual stress parameter range to [0:inf) while keeping default value 0.0e9. This creates a range definition conflict since [0:inf) includes zero but violates design requirements by preventing negative stress values needed for compressive pre-load analysis."
+	},
+	{
+		"original_line": "`define  VELOCITY_ABSTOL 1.0e-13", 
+		"bug_line": "`define  VELOCITY_ABSTOL 1.0e-3",
+		"error_description": "Excessive velocity tolerance (1e-3 vs required 1e-13) causes inaccurate mechanical state resolution, failing to capture nano-resonator dynamics. The 10-order magnitude increase violates convergence requirements for MEMS harmonic analysis, leading to missed velocity-dependent nonlinear effects in piezoresistive coupling."
+	},
+	{
+		"original_line": "gateInteractionVA #(.L(L),.W(W),.H(H),.gap(gap),.C(C),.Sr(Sr)) I2(net9,Back,net10);", 
+		"bug_line": "gateInteractionVA #(.L(L),.W(W),.H(H),.gap(gap),.C(C),.Sr(Rg)) I2(net9,Back,net10);",
+		"error_description": "Substitutes residual stress parameter Sr with gate resistance Rg, introducing unintended mechanical stress (263kΩ value as 263e3 Pa) into the beam model, violating the zero residual stress condition specified in design parameters."
+	},
+	{
+		"original_line": "        parameter real H = 110.0e-9                   from (0:inf);         // height of the beam [m]", 
+		"bug_line": "        parameter real H = 110.0e-9                   from (-inf:inf);         // height of the beam [m]",
+		"error_description": "Changes parameter validation range to allow negative beam heights, violating physical constraints. This introduces non-physical configurations where H<0 would cause undefined behavior in mechanical equations."
+	},
+	{
+		"original_line": "I(Back, Side) <+ V(Back, Side)/Rg;", 
+		"bug_line": "I(Back, Side) <+ V(Back, Side)/Rsubs;",
+		"error_description": "Replaced Rg with Rsubs, incorrectly setting the Back-Side resistance to 10 TΩ instead of the specified 263 kΩ. This violates the gate resistor design, creating an open circuit where a defined conductive path is required."
+	},
+	{
+		"original_line": "piezoResVA #(.L(L),.W(W),.H(H),.RESIS(RESIS),.POIS(POIS),.piEff(piEff)) I1(Drain,net9,net10);", 
+		"bug_line": "piezoResVA #(.L(L),.W(W),.H(H),.RESIS(RESIS),.POIS(POIS),.piEff(piEff)) I1(net9,Drain,net10);",
+		"error_description": "Reversed Drain/net9 electrical terminals in piezoresistive module breaks current flow directionality, causing inverted resistance-strain coupling and incorrect DC operating point calculation."
+	},
+	{
+		"original_line": "        electrical Back,Drain,Side,Source;", 
+		"bug_line": "        electrical Back,Drain,Side,Source kinematic;",
+		"error_description": "Incorrectly declares Source terminal with mixed electrical/kinematic discipline, creating domain mismatch in piezoResVA submodule connections and analog behavioral equations requiring electrical potential measurements."
+	},
+	{
+		"original_line": "gateInteractionVA #(.L(L),.W(W),.H(H),.gap(gap),.C(C),.Sr(Sr)) I2(net9,Back,net10);", 
+		"bug_line": "gateInteractionVA #(.L(L),.W(W),.H(H),.gap(gap),.C(C),.Sr(Sr)) I2(Back,net9,net10);",
+		"error_description": "Swapped electrical terminals between Back gate and internal net9, reversing electrostatic coupling polarity. This inverts the capacitive actuation directionality, causing mechanical displacements to oppose applied gate voltages - violating the electromechanical transduction principle in the design."
+	},
+	{
+		"original_line": "parameter real Rsubs = 10.0e12                from [0:inf);         // substrate resistance ", 
+		"bug_line": "parameter real Rsubs = 10.0                from [0:inf);         // substrate resistance ",
+		"error_description": "Reduces substrate resistance from 10 TΩ to 10 Ω, creating a low-impedance path between Drain and Source. This violates the design requirement of a high-resistance substrate (Rsubs=10TΩ), causing excessive leakage current and invalidating the resonator's electrical isolation."
+	}
+]

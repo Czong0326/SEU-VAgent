@@ -1,0 +1,113 @@
+// VerilogA for sources_modules, 16QAM, veriloga
+// This model implement a 16-array QAM baseband modulator
+// 3 modes in ouput constellation: "Gray", "Binary" and "user_defined"
+// When specifing "user_defined", Usr_mappig_vec need to be specified as [0 1 ... M-1].
+// 3 normalization methods: "Min_distance" "Average" "Peak"
+// when specifying "Min_distance", value in Dist_or_power is the minimal distance between symbols
+// when specifying "Average" or "Peak", value in Dist_or_power is power
+// Phase is decided by phase_offset * pi. 
+// Input: MSB...LSB -> [inbit[`Bits -1] ... inbit[1] inbit[0]]
+// Map vec in CDF: [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16], you may change the order.
+// Write on 9/20/2010
+
+`include "constants.vams"
+`include "disciplines.vams"
+`define M 16
+`define Bits 4
+
+(* instrument_module *)
+module Rectangular_16_QAM(inbit, outi, outq);
+input [0:`Bits -1] inbit;
+output outi, outq;
+electrical [0:`Bits -1] inbit;
+electrical outi, outq;
+
+parameter real Symbol_Period = 1e-6 from (0:inf);
+parameter string Constellation_ordering = "Gray";
+parameter string Normalize_method = "Min_distance";
+parameter real Dist_or_power = 2.0;
+parameter integer Usr_mappig_vec[0:`M-1] = {0, 1, 2, 3, 4, 5, 6, 7,8,9,10,11,12,13,14,15};
+parameter real phase_offset = 0.0;
+parameter integer Disable_input = 0 from [0:1];
+parameter integer Seed = 12345;
+
+integer integerOut, tmpInteger, ti, tq;
+integer mappingArray[0:`M-1];
+integer i, use_seed;
+real PhaseImag[0:`M-1], PhaseReal[0:`M-1];
+real tmp[0:`Bits-1];
+real magv, tmpinphase, pha;
+
+
+analog begin
+  @(initial_step) begin
+
+    if ( Constellation_ordering == "Binary" ) begin
+      for (i = 0; i < `M; i = i + 1)
+        mappingArray[i] = i ;
+    end else if ( Constellation_ordering == "Gray" ) begin
+      for (i = 0; i < `M; i = i + 1) begin
+        ti = i >> 2;
+        tq = i & 3 ;
+        ti = ti ^ (ti>>2);
+        ti = ti ^ (ti>>1);
+        tq = tq ^ (tq>>2);
+        tq = tq ^ (tq>>1);
+        mappingArray[i] = (ti << 2) + tq;
+      end
+    end 
+
+    magv = 1;
+    pha = 0.0;
+    if ( Normalize_method == "Min_distance" )
+        magv = Dist_or_power / 2.0 ;
+    else if (Normalize_method == "Average" )
+        magv = 1/sqrt(10) * sqrt(Dist_or_power) ;
+    else if (Normalize_method == "Peak" )
+        magv = 1/sqrt(18) * sqrt(Dist_or_power) ;
+
+    for (i = 0; i < `M; i = i + 1) begin
+        PhaseReal[i] = ( -3 + ( i >> 2 ) * 2 ) * magv;
+        PhaseImag[i] = ( 3 - (i % 4) * 2 ) * magv;
+    end
+
+    if (phase_offset > 0) begin
+        pha = phase_offset * `M_PI ;
+        for (i = 0; i < `M; i = i + 1) begin
+            tmpinphase = PhaseReal[i];
+            PhaseReal[i] = PhaseReal[i] * cos(pha) - PhaseImag[i] * sin(pha);
+            PhaseImag[i] = tmpinphase * sin(pha) + PhaseImag[i] * cos(pha);
+        end
+    end
+
+    integerOut = 0;
+    use_seed  = Seed;
+    tmpInteger = 1;
+  end
+
+  @(timer( 0, Symbol_Period, Symbol_Period/100000)) begin
+
+    generate j (0, `Bits-1) begin
+        if ( Disable_input ) 
+            tmp[j] = $rdist_uniform(use_seed, 0, 1);
+        else 
+            tmp[j] = V(inbit[j]);
+    end
+
+    integerOut = 0;
+    for (i=0; i < `Bits; i = i+1)
+        if ( tmp[i] > 0.5 )
+            integerOut = integerOut + pow(2, i);
+
+    if ( Constellation_ordering == "user_defined" ) 
+        tmpInteger = Usr_mappig_vec[integerOut];
+    else 
+        tmpInteger = mappingArray[integerOut];
+  end
+
+  V(outi) <+ PhaseReal[tmpInteger];
+  V(outq) <+ PhaseImag[tmpInteger];
+
+end
+
+endmodule

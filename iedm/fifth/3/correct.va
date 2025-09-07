@@ -1,0 +1,90 @@
+// VerilogA for sources_modules, wcdma_dl_com_chanl, veriloga
+//
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+(* instrument_module *)
+module wcdma_dl_com_chanl(I_out_p_cpich, I_out_pich, I_out_p_ccpch,
+			Q_out_p_cpich, Q_out_pich, Q_out_p_ccpch ,
+			ran_in_pich_i, ran_in_pich_q, ran_in_ccpch_i, ran_in_ccpch_q);
+output I_out_p_cpich, I_out_pich, I_out_p_ccpch,
+       Q_out_p_cpich, Q_out_pich, Q_out_p_ccpch;
+input    ran_in_pich_i, ran_in_ccpch_i, ran_in_pich_q, ran_in_ccpch_q;
+
+electrical I_out_p_cpich, I_out_pich, I_out_p_ccpch,
+           Q_out_p_cpich, Q_out_pich, Q_out_p_ccpch,
+	   ran_in_pich_i, ran_in_ccpch_i,
+	   ran_in_pich_q, ran_in_ccpch_q;
+
+parameter real sample = 1.0/15000.0;
+parameter integer pich_seed = 12345;
+parameter integer ccpch_seed = 98765;
+parameter integer polarity  = - 1;
+parameter integer enable_input = 1;
+
+real i_out_p_cpich,   i_out_pich,     i_out_p_ccpch,
+                                q_out_pich,    q_out_p_ccpch,
+                                tmp_out_pich, tmp_out_p_ccpch;
+real tmp, tmp1, tmp2, tmp3;
+integer pich_seed_local, ccpch_seed_local;
+real sampled;
+real start_time;
+
+analog begin
+  @(initial_step) begin
+    i_out_p_ccpch  = 0;
+    i_out_pich         = 0;
+    q_out_p_ccpch = 0;
+    q_out_pich        = 0;
+    if ( polarity == 1 ) i_out_p_cpich = `M_SQRT1_2;
+    else i_out_p_cpich = -`M_SQRT1_2;
+    pich_seed_local    = pich_seed;
+    ccpch_seed_local = ccpch_seed;
+    sampled = sample / 2;
+    start_time = sampled / 128;
+  end
+  
+  @(timer(start_time/100000, sampled)) begin
+//     $strobe("timer work time=%g", $realtime);
+     if ( enable_input ) begin
+       tmp  = V( ran_in_pich_i);
+       tmp1 = V( ran_in_pich_q);
+       tmp2 = V( ran_in_ccpch_i );
+       tmp3 = V( ran_in_ccpch_q );
+     end else begin
+       tmp  = $rdist_uniform(pich_seed_local,     0, 1);
+       tmp1 = $rdist_uniform(pich_seed_local,     0, 1);
+       tmp2 = $rdist_uniform(ccpch_seed_local,  0, 1);
+       tmp3 = $rdist_uniform(ccpch_seed_local,  0, 1);
+     end       
+
+
+    if ( tmp > 0.5 ) i_out_pich =  -`M_SQRT1_2;
+    else i_out_pich = `M_SQRT1_2;
+    if ( tmp1 > 0.5 ) q_out_pich =  -`M_SQRT1_2;
+    else q_out_pich = `M_SQRT1_2;
+    if ( tmp2 > 0.5 ) i_out_p_ccpch =  -`M_SQRT1_2;
+    else i_out_p_ccpch = `M_SQRT1_2;
+    if ( tmp3 > 0.5 ) q_out_p_ccpch =  -`M_SQRT1_2;
+    else q_out_p_ccpch = `M_SQRT1_2;
+
+
+    if ( polarity == 1 ) begin
+      i_out_pich         = - i_out_pich;
+      q_out_pich        = - q_out_pich;
+      i_out_p_ccpch  = - i_out_p_ccpch;
+      q_out_p_ccpch = - q_out_p_ccpch;
+    end
+
+  end
+
+  V(I_out_p_cpich)   <+ i_out_p_cpich;
+  V(I_out_pich)         <+ i_out_pich;
+  V(I_out_p_ccpch)  <+ i_out_p_ccpch;
+  V(Q_out_p_cpich)  <+ i_out_p_cpich;
+  V(Q_out_pich)        <+ q_out_pich;
+  V(Q_out_p_ccpch) <+ q_out_p_ccpch;
+
+end
+endmodule

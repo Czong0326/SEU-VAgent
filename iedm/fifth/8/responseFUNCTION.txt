@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "output I_out_p_ccpch, Q_out_p_ccpch;", 
+		"bug_line": "output I_out_p_ccpch, Q_out_p_ccpch_mistake;",
+		"error_description": "The output port Q_out_p_ccpch is misspelled as Q_out_p_ccpch_mistake, disconnecting the internal electrical Q_out_p_ccpch from the port. This leaves the actual Q output undriven while creating an undriven output port, causing signal loss."
+	},
+	{
+		"original_line": "for (j=1; j<=`PSCLENGTH; j=j+1) begin", 
+		"bug_line": "for (j=1; j < `PSCLENGTH; j=j+1) begin",
+		"error_description": "Changed loop condition from j<=256 to j<256, causing the loop to run only 255 times instead of 256. This leaves hada[255] uninitialized. When accessed later in the tmpssc calculation, this undefined value propagates errors in the output synchronization signals."
+	},
+	{
+		"original_line": "sch_sample   = frame_time * 10;", 
+		"bug_line": "sch_sample   = frame_time;",
+		"error_description": "Reduces SCH timing period from 10 frames to 1 frame. This causes premature triggering of Hadamard sequence generation every frame instead of every 10 frames, corrupting slot synchronization by mismatching SSC sequence timing with scrambling code groups."
+	},
+	{
+		"original_line": "for (j=1; j<=`PSCLENGTH; j=j+1) begin", 
+		"bug_line": "for (j=1; j<=`PSCLENGTH; j=j+0) begin",
+		"error_description": "Changing the loop increment to j=j+0 creates an infinite loop that only processes the first element (j=1), causing incorrect Hadamard sequence generation and frozen synchronization signal output."
+	},
+	{
+		"original_line": "tmp2 = tmp2 - pow(2, i);", 
+		"bug_line": "tmp2 = tmp2 + pow(2, i);",
+		"error_description": "Changing subtraction to addition disrupts the bit decomposition logic for Hadamard sequence generation. This causes incorrect parity calculations (tmp) and invalid sequence values in hada[], corrupting the output synchronization codes."
+	},
+	{
+		"original_line": "parameter real frame_time = 1.0/15000.0 from (0:inf);", 
+		"bug_line": "parameter real frame_time = 1.0/15000.0 from (0:inf); // Error: Missing negative sign",
+		"error_description": "The frame_time parameter incorrectly excludes negative values in its range specification. The original design requires support for negative frame times for certain timing operations, but the range restriction (0:inf) prevents valid negative values from being used, causing simulation failures for negative timing scenarios."
+	},
+	{
+		"original_line": "ssc[tmpIndex] = - patternb[i];", 
+		"bug_line": "ssc[tmpIndex] = - patternb[j];",
+		"error_description": "Changed index from i to j in patternb array, causing incorrect secondary sync code generation by using column index j instead of row index i for base pattern lookup, violating sequence mapping requirements."
+	},
+	{
+		"original_line": "if ( a < 0 ) begin", 
+		"bug_line": "if ( a > 0 ) begin",
+		"error_description": "Condition reversal error: The inversion logic now incorrectly triggers when parameter 'a' is positive (default) instead of negative. This flips the sign of PSC/SSC sequences under wrong conditions, corrupting synchronization signal generation."
+	},
+	{
+		"original_line": "`define PSCLENGTH 256", 
+		"bug_line": "`define PSCLENGTH 16",
+		"error_description": "Reducing PSCLENGTH to 16 causes array bounds overflow during PSC/SSC initialization. The nested loops write to indices 0-255 (16x16), but psc/ssc arrays are now only 17 elements long, corrupting adjacent memory and causing undefined output behavior in synchronization channel generation."
+	},
+	{
+		"original_line": "else k = k + 1;", 
+		"bug_line": "else k = k - 1;",
+		"error_description": "Decrementing k instead of incrementing causes k to never reach `PSCLENGTH-1 (255), preventing flag reset. This traps the module in synchronization code transmission mode indefinitely instead of switching to input data after 256 chips."
+	},
+	{
+		"original_line": "        tmpIndex = j * `ALENGTH + i;", 
+		"bug_line": "        tmpIndex = i * `ALENGTH + j;",
+		"error_description": "Swapped loop variables i and j, transposing the pattern matrix. This causes incorrect PSC/SSC sequence generation due to mismatched row/column indexing, breaking synchronization channel encoding."
+	},
+	{
+		"original_line": "for ( i=7; i>=0; i=i-1) begin", 
+		"bug_line": "for ( i=7; i>=0; i=i+1) begin",
+		"error_description": "Changed the loop increment from i=i-1 to i=i+1, causing the loop index to increase instead of decrease. This creates an infinite loop since i starts at 7 and keeps increasing, never satisfying the exit condition i>=0, which freezes the Hadamard sequence generation."
+	},
+	{
+		"original_line": "tmp2 = tmp2 - pow(2, i);", 
+		"bug_line": "tmp2 = tmp2 - pow(2, j);",
+		"error_description": "Changed index variable from 'i' to 'j' in the power calculation. This disrupts the bit decomposition logic since 'j' represents the outer loop index (0-255) instead of the bit position (7-0), causing incorrect Hadamard sequence generation and corrupting the SSC signal."
+	},
+	{
+		"original_line": "ssc[tmpIndex] =   patternb[i];", 
+		"bug_line": "ssc[tmpIndex] =   patternb[j];",
+		"error_description": "Changed index from i to j, causing incorrect pattern mapping. Now uses column index j instead of row index i for patternb, corrupting the SSC sequence generation by breaking the matrix construction logic."
+	},
+	{
+		"original_line": "    end else begin", 
+		"bug_line": "    end if (0) begin",
+		"error_description": "Changed 'else' to 'if (0)', making the negative-X branch unreachable since the condition is always false. This prevents generation of synchronization codes for negative X[i] values, breaking P-SCH/S-SCH signal generation for half the chips."
+	},
+	{
+		"original_line": "integer fptr1, readcode;", 
+		"bug_line": "integer fptr1;",
+		"error_description": "Removed 'readcode' variable declaration, causing the while loop condition ($fscanf return check) and file read assignment to reference an undeclared variable. This disrupts the SSC pattern loading logic since the file parsing exit condition becomes undefined."
+	},
+	{
+		"original_line": "k     = 0;", 
+		"bug_line": "k     = 256;",
+		"error_description": "Initializing k to 256 instead of 0 prevents the flag from ever being cleared (k == 255 condition never met). This causes the module to remain in SCH output mode indefinitely, continuously reading from tmpssc beyond its bounds (0:255) instead of switching to pass-through mode after 256 chips."
+	},
+	{
+		"original_line": "input  I_in_p_ccpch, Q_in_p_ccpch;", 
+		"bug_line": "output I_in_p_ccpch, Q_in_p_ccpch;",
+		"error_description": "Changed input ports to outputs. This direction reversal prevents receiving external I/Q input signals while incorrectly driving these ports, causing undefined values in processing and breaking the input data path."
+	},
+	{
+		"original_line": "for ( j = 0; j < `ALENGTH; j = j +1 ) begin", 
+		"bug_line": "for ( j = 0; j < `ALENGTH; i = i +1 ) begin",
+		"error_description": "Modified inner loop increment from 'j = j +1' to 'i = i +1'. This causes the inner loop variable j to never increment, resulting in an infinite loop since the exit condition (j < `ALENGTH) is never met. Simultaneously, the outer loop variable i gets erroneously incremented within the inner loop, corrupting the nested iteration structure and causing incorrect array indexing."
+	},
+	{
+		"original_line": "@(timer(local_sample/500, local_sample)) begin", 
+		"bug_line": "@(timer(local_sample/500, local_sample*2)) begin",
+		"error_description": "The timer period is doubled, causing output signals to update at half the required rate. This violates timing requirements for the synchronization channel sequence, leading to incorrect data holding duration and frame misalignment."
+	}
+]

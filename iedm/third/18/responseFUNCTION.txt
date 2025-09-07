@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "exp_lower = (vclamp_lower + exp_ampl); // low start of exp clamp", 
+		"bug_line": "exp_lower = (vclamp_lower - exp_ampl); // low start of exp clamp",
+		"error_description": "Changes the exponential clamping threshold calculation for the lower voltage. Instead of starting clamping at (lower_limit + margin), it incorrectly starts at (lower_limit - margin), delaying clamping activation and potentially allowing outputs to violate the specified lower clamp limit."
+	},
+	{
+		"original_line": "   real vin_val;", 
+		"bug_line": "   real vin_val = 0;",
+		"error_description": "Initializing vin_val to 0 forces constant output clamping at startup. The analog block assignment (vin_val = V(vin,vgnd)) becomes ineffective due to Verilog-A's 'last assignment wins' rule, making the module ignore input voltage changes."
+	},
+	{
+		"original_line": "vin_val = V(vin,vgnd);", 
+		"bug_line": "vin_val = V(vin,vout);",
+		"error_description": "Measures voltage between input and output instead of input and ground, causing incorrect clamping since the reference should be vgnd not the output terminal."
+	},
+	{
+		"original_line": "parameter real exp_frac = 0.4;", 
+		"bug_line": "parameter real exp_frac = -0.4;",
+		"error_description": "Negative exp_frac value causes inverted clamping behavior. This makes exponential clamping activate in the wrong direction, distorting the output voltage when input exceeds clamp limits instead of providing smooth saturation."
+	},
+	{
+		"original_line": "exp_ampl     = ( exp_frac ) * vclamp_range / 2;", 
+		"bug_line": "exp_ampl     = ( exp_frac ) * vclamp_range * 2;",
+		"error_description": "Multiplies vclamp_range by 2 instead of dividing by 2, causing exp_ampl to be 4x larger than intended. This dramatically overextends the exponential clamping region, violating the design specification that clamping should start at fraction exp_frac of the voltage range."
+	},
+	{
+		"original_line": "exp_ampl     = ( exp_frac ) * vclamp_range / 2;", 
+		"bug_line": "exp_ampl     = ( exp_frac ) * vclamp_range * 2;",
+		"error_description": "Changed division to multiplication, making exp_ampl twice as large as intended. This causes the exponential clamping region to start too early and extend too far, violating the specified exp_frac parameter by effectively doubling its impact."
+	},
+	{
+		"original_line": "   real exp_decay; // decay factor of exponential clamping", 
+		"bug_line": "   integer exp_decay; // decay factor of exponential clamping",
+		"error_description": "Changed 'exp_decay' from real to integer. The assignment 'exp_decay = exp_ampl' in the initial block truncates the real value to an integer. With default exp_frac=0.4, exp_ampl becomes fractional (e.g., 0.4*vclamp_range/2), truncating to 0 and causing division by zero in exponential clamping formulas."
+	},
+	{
+		"original_line": "parameter real vclamp_lower = -1;", 
+		"bug_line": "parameter real vclamp_lower = 1;",
+		"error_description": "Sets lower clamping voltage equal to default upper clamping voltage (1V). This violates design requirement vclamp_upper > vclamp_lower, triggering simulation termination during initial_step due to invalid range specification."
+	},
+	{
+		"original_line": "exp_ampl     = ( exp_frac ) * vclamp_range / 2;", 
+		"bug_line": "exp_ampl     = ( exp_frac ) * vclamp_range * 2;",
+		"error_description": "Replaced division with multiplication, causing exp_ampl to be 4x larger than intended. This distorts the clamping range by making exponential effects start too early and with excessive amplitude, violating the specified clamping behavior."
+	},
+	{
+		"original_line": "vclamp_range = (vclamp_upper - vclamp_lower);", 
+		"bug_line": "vclamp_range = (vclamp_upper * vclamp_lower);",
+		"error_description": "Multiplication replaces subtraction, making vclamp_range the product of clamp limits instead of their difference. This corrupts all dependent calculations (exp_ampl, exp_upper/lower), causing incorrect exponential clamping thresholds and amplitude."
+	},
+	{
+		"original_line": "vout_val = vin_val;", 
+		"bug_line": "vout_val = exp_ampl;",
+		"error_description": "In the linear region, the output incorrectly uses the exponential amplitude constant (exp_ampl) instead of the input voltage, causing complete signal corruption in the pass-through range."
+	},
+	{
+		"original_line": "parameter real vclamp_upper = 1;", 
+		"bug_line": "parameter real vclamp_upper = -1;",
+		"error_description": "Sets the upper clamp voltage to -1, which equals the default lower clamp voltage (-1). This violates the design requirement that vclamp_upper must be greater than vclamp_lower, triggering a runtime error and halting simulation during initial checks."
+	},
+	{
+		"original_line": "vin_val = V(vin,vgnd);", 
+		"bug_line": "vin_val = V(vout,vgnd);",
+		"error_description": "Changed voltage measurement from input (vin) to output (vout). This causes the clamping logic to incorrectly use the clamped output voltage as its input signal, creating a feedback loop that corrupts the output and violates the design specification of clamping based solely on the input signal."
+	},
+	{
+		"original_line": "inout vgnd;", 
+		"bug_line": "input vgnd;",
+		"error_description": "Changing vgnd to input prevents the module from driving the vgnd terminal. The analog block drives V(vout,vgnd) which requires driving vgnd as a sink terminal. An input port cannot be driven, causing a simulation error when forcing voltage on vgnd."
+	},
+	{
+		"original_line": "parameter real vclamp_lower = -1;", 
+		"bug_line": "parameter real vclamp_lower = 1;",
+		"error_description": "Default vclamp_lower value changed to 1, making it equal to vclamp_upper (1). This violates the requirement that vclamp_upper > vclamp_lower, triggering a fatal error during simulation initialization and halting execution."
+	},
+	{
+		"original_line": "   real vin_val;", 
+		"bug_line": "   integer vin_val;",
+		"error_description": "Changing 'vin_val' to integer causes truncation of the real voltage value from V(vin,vgnd), losing fractional precision and leading to incorrect clamping thresholds and output behavior."
+	},
+	{
+		"original_line": "	 if (vclamp_upper <= vclamp_lower) begin", 
+		"bug_line": "	 if (vclamp_upper < vclamp_lower) begin",
+		"error_description": "Changed condition from <= to <, allowing invalid case where vclamp_upper equals vclamp_lower. This fails to detect zero clamping range errors, causing division by zero in vclamp_range calculation and undefined clamping behavior."
+	},
+	{
+		"original_line": "    $finish;", 
+		"bug_line": "    ;",
+		"error_description": "Removed simulation termination when invalid clamping voltage range is detected. The simulation continues with undefined behavior instead of halting, violating parameter validation requirements."
+	},
+	{
+		"original_line": "      if (vin_val > exp_upper)      begin	", 
+		"bug_line": "      if (vin_val > vclamp_upper)      begin	",
+		"error_description": "Changed condition from exp_upper to vclamp_upper. exp_upper marks the start of exponential clamping region (vclamp_upper - exp_ampl), while vclamp_upper is the hard clamp limit. This error causes premature hard clamping instead of smooth exponential transition."
+	},
+	{
+		"original_line": "electrical vin, vout, vgnd;", 
+		"bug_line": "electrical vin, vgnd; thermal vout;",
+		"error_description": "vout is incorrectly declared as thermal instead of electrical, causing a discipline mismatch in the voltage assignment V(vout,vgnd) and making the output terminal incompatible with electrical potential operations."
+	}
+]

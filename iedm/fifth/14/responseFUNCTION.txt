@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real vref        = 1.0;", 
+		"bug_line": "parameter real vref        = 0.0;",
+		"error_description": "Setting vref to zero causes all comparator reference voltages (comp_vref) to be zero. This forces every bit decision to always be '1' for any positive input voltage, completely disabling the ADC's quantization logic and producing maximum output (11111111) regardless of actual input."
+	},
+	{
+		"original_line": "                    vd[i] = 0;", 
+		"bug_line": "                    vd[i] = vd[i];",
+		"error_description": "The code fails to reset the current bit to zero before conversion. This causes the bit to retain its value from the previous conversion cycle if not overwritten by the condition, resulting in accumulated errors in the digital output."
+	},
+	{
+		"original_line": "if (unconverted > comp_vref) begin", 
+		"bug_line": "if (unconverted > halfref) begin",
+		"error_description": "Changed comparator reference voltage from mismatched comp_vref to nominal halfref, ignoring the intended per-bit mismatch modeling. This eliminates manufacturing variation effects, making all comparators use identical ideal thresholds instead of randomized mismatched thresholds."
+	},
+	{
+		"original_line": "comp_vref = halfref * comp_var[i];", 
+		"bug_line": "comp_vref = vref * comp_var[i];",
+		"error_description": "Uses full reference voltage (vref) instead of half reference (halfref) for comparator thresholds, causing all decision levels to be twice as high as intended and producing incorrect digital outputs."
+	},
+	{
+		"original_line": "parameter real vtrans_clk     = 2.5;", 
+		"bug_line": "parameter real vtrans_clk     = 10.0;",
+		"error_description": "The clock transition threshold is set to 10.0V, exceeding the typical clock high voltage (5V). This prevents the cross event from triggering since V(vclk) never reaches 10V, halting all ADC conversions."
+	},
+	{
+		"original_line": "real unconverted;", 
+		"bug_line": "real unconverted = 0.0;",
+		"error_description": "Initializing unconverted to 0.0 causes persistent value retention between clock cycles. The ADC fails to reset unconverted to the current vin value at each clock event, leading to accumulated conversion errors as previous results contaminate new samples."
+	},
+	{
+		"original_line": "V(vd3) <+ transition( vd[3], tdel, trise, tfall );", 
+		"bug_line": "V(vd3) <+ transition( vd[2], tdel, trise, tfall );",
+		"error_description": "Assigns the value of bit2 (vd[2]) to the output terminal for bit3 (vd3) instead of bit3's value (vd[3]). This causes bit3 to incorrectly display bit2's value, corrupting the ADC output code."
+	},
+	{
+		"original_line": "V(vd0) <+ transition( vd[0], tdel, trise, tfall );", 
+		"bug_line": "V(vd0) <+ transition( vd[1], tdel, trise, tfall );",
+		"error_description": "The least significant bit (LSB) output vd0 incorrectly uses bit1's value (vd[1]) instead of its own bit0 value (vd[0]). This causes bit0 to be overwritten by bit1's value, corrupting the LSB and creating a cascading error where two adjacent bits share the same incorrect value."
+	},
+	{
+		"original_line": "parameter real tfall = 0 from [0:inf);", 
+		"bug_line": "parameter real tfall = 1 from [0:inf);",
+		"error_description": "Changed default fall time from 0 to 1 second. This introduces unintended delay in output signal transitions during falling edges, violating the zero-delay requirement in the original design specification."
+	},
+	{
+		"original_line": "            end else begin", 
+		"bug_line": "            end else if (unconverted > comp_vref) begin",
+		"error_description": "The modification changes the unconditional else block to a conditional 'else if' that rechecks the same comparator condition. This creates a logical error where the low-bit assignment (vd[i] = vlogic_low) only executes if the input is above the reference voltage - an impossible condition. This leaves bits unassigned when below threshold, violating ADC conversion logic."
+	},
+	{
+		"original_line": "V(vd4) <+ transition( vd[4], tdel, trise, tfall );", 
+		"bug_line": "V(vd4) <+ transition( vd[5], tdel, trise, tfall );",
+		"error_description": "The output for bit4 (vd4) is incorrectly assigned the value of bit5 (vd[5]) instead of its own value (vd[4]). This causes the bit4 output to mirror bit5, corrupting the ADC's binary output representation."
+	},
+	{
+		"original_line": "half_dist_range = 0.01;", 
+		"bug_line": "half_dist_range = 0.02;",
+		"error_description": "Doubling half_dist_range breaks the symmetric mismatch modeling. This causes the comparator reference voltage offsets to be asymmetrically distributed (biased negative), violating the ±1% uniform mismatch requirement."
+	},
+	{
+		"original_line": "parameter real tfall = 0 from [0:inf);", 
+		"bug_line": "parameter real tfall = tdel from [0:inf);",
+		"error_description": "Fall time parameter incorrectly set to the delay parameter (tdel), causing fall time to be dependent on delay. This violates the independence of timing parameters and distorts output signal transitions."
+	},
+	{
+		"original_line": "V(vd7) <+ transition( vd[7], tdel, trise, tfall );", 
+		"bug_line": "V(vd7) <+ transition( vd[0], tdel, trise, tfall );",
+		"error_description": "The MSB output (vd7) is incorrectly assigned the LSB value (vd[0]) instead of its own value (vd[7]), causing bit reversal in the ADC output where the most significant bit appears as the least significant."
+	},
+	{
+		"original_line": "parameter real vlogic_low  = 0;", 
+		"bug_line": "parameter real vlogic_low  = 5;",
+		"error_description": "Sets the logic low output voltage to 5V (same as vlogic_high). This causes all output bits (0 and 1) to drive 5V, eliminating the distinction between low/high states and making the digital output undecodable."
+	},
+	{
+		"original_line": "unconverted = V(vin);", 
+		"bug_line": "unconverted = V(vin) * 2;",
+		"error_description": "Doubled the input voltage before conversion, introducing a 100% gain error that scales all conversion results incorrectly."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   analog begin halfref = vref * 2;",
+		"error_description": "Sets halfref to twice the reference voltage instead of half at every analog iteration, overriding the correct initial value (vref/2). This causes comparator thresholds to be 4× higher than intended (2*vref instead of vref/2), leading to grossly incorrect ADC conversions where valid input voltages fail to trigger bit transitions."
+	},
+	{
+		"original_line": "`define NUM_ADC_BITS	8", 
+		"bug_line": "`define NUM_ADC_BITS	7",
+		"error_description": "Reduces ADC resolution from 8-bit to 7-bit. This causes array bounds errors since 'vd[7]' is referenced in output assignments but only indices 0-6 exist, leading to undefined behavior and incorrect bit outputs. The conversion loop also processes only 7 bits instead of 8."
+	},
+	{
+		"original_line": "         comp_var[j] = `FRAC_MM(iseed);", 
+		"bug_line": "         comp_var[j] = `FRAC_MM(0);",
+		"error_description": "Using a fixed seed (0) for all comparators causes identical random mismatch factors for every bit, violating the design requirement for independent random mismatches across comparators."
+	},
+	{
+		"original_line": "half_dist_range = 0.01;", 
+		"bug_line": "half_dist_range = 0.02;",
+		"error_description": "Setting half_dist_range to 0.02 (equal to dist_range) instead of half its value breaks the centering of the comparator mismatch distribution. This causes the fractional mismatches to always be negative, reducing all comparator reference voltages and shifting ADC thresholds downward."
+	}
+]

@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "                amp2 * sin( 2 * `M_PI * freq2 * $abstime ) +", 
+		"bug_line": "                amp2 * sin( 2 * `M_PI * freq1 * $abstime ) +",
+		"error_description": "The frequency parameter for the second sinusoid is incorrectly set to freq1 instead of freq2, violating the design specification that requires independent frequency control for each tone. This causes the first and second sinusoids to share the same frequency."
+	},
+	{
+		"original_line": "amp3 * sin( 2 * `M_PI * freq3 * $abstime ) +", 
+		"bug_line": "amp3 * cos( 2 * `M_PI * freq3 * $abstime ) +",
+		"error_description": "Replaced 'sin' with 'cos' for the third sinusoid, creating a phase shift error where the waveform is offset by 90 degrees, violating the pure sine wave summation design specification."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( final_step ) begin",
+		"error_description": "Changed event trigger from initial_step to final_step, preventing max_freq initialization at simulation start. This leaves max_freq at 0.0, causing division by zero in $bound_step(0.1/max_freq) during analog evaluation."
+	},
+	{
+		"original_line": "$bound_step( 0.1/max_freq );      // ensure 10 time points per period", 
+		"bug_line": "$bound_step( 0.1/freq1 );      // ensure 10 time points per period",
+		"error_description": "Using freq1 instead of max_freq violates the design requirement to ensure 10 time points per period for the highest frequency component. When the maximum frequency (max_freq) differs from freq1, the step size may be too large to accurately sample higher-frequency sinusoids."
+	},
+	{
+		"original_line": "parameter real amp1 = 1 from [0:inf);", 
+		"bug_line": "parameter real amp1 = -1 from [0:inf);",
+		"error_description": "The amplitude parameter amp1 is set to a negative default value (-1) while the range constraint [0:inf) only allows non-negative values. This violates the design's requirement for positive amplitudes, causing simulation errors or unexpected clipping since negative amplitudes are physically invalid for audio waveforms."
+	},
+	{
+		"original_line": "max_freq = max( max_freq, freq3 );", 
+		"bug_line": "max_freq = max( max_freq, freq1 );",
+		"error_description": "Replacing freq3 with freq1 causes the third frequency to be ignored in max_freq calculation. If freq3 is the highest frequency, max_freq will be underestimated, resulting in insufficient time resolution for freq3 component in the output signal."
+	},
+	{
+		"original_line": "module audio_src(vout);", 
+		"bug_line": "module audio_src();",
+		"error_description": "Removed the output port 'vout'. This causes the audio source to have no output connection, making the generated audio signal inaccessible to the circuit. The internal calculations still occur but remain disconnected from external components."
+	},
+	{
+		"original_line": "parameter real freq3 = 2003 from (0:inf);", 
+		"bug_line": "parameter real freq33 = 2003 from (0:inf);",
+		"error_description": "The parameter name is changed from 'freq3' to 'freq33', making the third sinusoid frequency undefined. This causes the analog block to use the default value 0.0 for 'freq3', eliminating the third sinusoid component from the output signal."
+	},
+	{
+		"original_line": "                amp2 * sin( 2 * `M_PI * freq2 * $abstime ) +", 
+		"bug_line": "                amp2 * sin( 2 * `M_PI * freq2 + $abstime ) +",
+		"error_description": "Replaced multiplication (*) between freq2 and $abstime with addition (+), breaking the sinusoidal argument calculation. The term now becomes (2*π*freq2 + time) instead of (2*π*freq2*time), causing incorrect phase accumulation and non-periodic output for the second sinusoid."
+	},
+	{
+		"original_line": "max_freq = max( max_freq, freq3 );", 
+		"bug_line": "max_freq = min( max_freq, freq3 );",
+		"error_description": "Changed max to min, causing max_freq to incorrectly track the minimum frequency instead of the maximum. This results in an oversized time step calculation, potentially violating the Nyquist sampling requirement for higher frequencies and causing simulation inaccuracies."
+	},
+	{
+		"original_line": "parameter real freq3 = 2003 from (0:inf);", 
+		"bug_line": "parameter real freq3 = -2003 from (0:inf);",
+		"error_description": "Sets freq3 to a negative value (-2003) which violates the range constraint (0:inf). Negative frequencies are invalid in this audio source context and will cause simulation errors due to parameter constraint violation."
+	},
+	{
+		"original_line": "max_freq = freq1;", 
+		"bug_line": "max_freq = `P_INF;",
+		"error_description": "Assigns positive infinity to max_freq instead of freq1. This causes subsequent max() operations to retain infinity as the maximum value, leading to bound_step(0.1/infinity) = 0 during simulation, which is an invalid timestep request that crashes the simulator."
+	},
+	{
+		"original_line": "parameter real freq3 = 2003 from (0:inf);", 
+		"bug_line": "parameter real freq3 = 0 from (0:inf);",
+		"error_description": "Sets frequency of third sinusoid to zero (violating parameter range (0,inf)), causing the third sinusoid term to evaluate to zero and be omitted from the output signal, which violates the design specification of four summed sinusoids."
+	},
+	{
+		"original_line": "max_freq = freq1;", 
+		"bug_line": "max_freq = amp1;",
+		"error_description": "Assigned amplitude (amp1) instead of frequency (freq1) to max_freq. This causes incorrect step size calculation since $bound_step uses max frequency, leading to simulation inaccuracy (if amp1 < actual max frequency) or inefficiency (if amp1 > max frequency)."
+	},
+	{
+		"original_line": "parameter real amp1 = 1 from [0:inf);", 
+		"bug_line": "parameter real amp1 = 0 from [0:inf);",
+		"error_description": "Default amplitude of first sinusoid changed to 0, causing missing waveform component. Violates design specification requiring four summed sinusoids by default."
+	},
+	{
+		"original_line": "real max_freq;", 
+		"bug_line": "integer max_freq;",
+		"error_description": "Changed max_freq type from real to integer, causing truncation of the maximum frequency value. This results in an incorrect bound_step calculation for non-integer frequencies, leading to insufficient time resolution and potential waveform distortion."
+	},
+	{
+		"original_line": "parameter real amp3 = 1 from [0:inf);", 
+		"bug_line": "parameter real amp3 = 0 from [0:inf);",
+		"error_description": "Sets default amplitude of third sinusoid to 0, violating design specification requiring four active sinusoids and altering output signal composition."
+	},
+	{
+		"original_line": "module audio_src(vout);", 
+		"bug_line": "module audio_src();",
+		"error_description": "The output port 'vout' is removed from the module declaration. This leaves the internally generated audio signal disconnected from any output port, making the module functionally useless as the signal cannot be accessed externally."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Replaced 'analog' with 'initial', changing continuous analog behavior to one-time digital initialization. This prevents the sinusoidal output from being generated continuously as required, breaking the audio source functionality."
+	},
+	{
+		"original_line": "parameter real freq3 = 2003 from (0:inf);", 
+		"bug_line": "parameter real wrong_freq3 = 2003 from (0:inf);",
+		"error_description": "Renamed parameter 'freq3' to 'wrong_freq3', leaving 'freq3' undefined. This causes a compilation error since 'freq3' is referenced in the analog block for the third sinusoid calculation but no longer exists as a declared parameter."
+	}
+]

@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "integer out, count;", 
+		"bug_line": "integer out, cnt;",
+		"error_description": "Changed variable name 'count' to 'cnt'. This breaks all subsequent references to 'count' (now undeclared) in the analog block, causing incorrect counting behavior and output pulse generation since the counter logic depends on this variable."
+	},
+	{
+		"original_line": "electrical vg, chg, hold;", 
+		"bug_line": "electrical vg, hold, chg;",
+		"error_description": "Swapping 'chg' and 'hold' node declarations causes the titrating capacitor (chg) to be initialized after the hold capacitor, leading to undefined initial state interactions. This violates the charge sequencing requirements for the frequency divider's feedback mechanism."
+	},
+	{
+		"original_line": "out = count >= (n - nhi);", 
+		"bug_line": "out = count >= (n - n);",
+		"error_description": "Replaced 'nhi' with 'n' in the threshold calculation, causing the output to trigger when count >= 0 (always true) instead of during the last 'nhi' cycles. This makes the output constantly high, destroying the frequency division functionality."
+	},
+	{
+		"original_line": "g = 5*ln(n);", 
+		"bug_line": "g = 5*log(n);",
+		"error_description": "Replaced natural logarithm (ln) with base-10 logarithm (log). This reduces conductance by factor ~2.3, causing insufficient charging/discharging during clock cycles and incorrect counting for larger n values."
+	},
+	{
+		"original_line": "@(cross(V(Pin,Nin) - thresh, 0));", 
+		"bug_line": "@(cross(V(Pin,Nin) - thresh, +1));",
+		"error_description": "Changed cross direction from any edge (0) to only rising edges (+1). This violates the design's dir parameter which supports both edge types, causing missed counts when configured for falling-edge triggering (dir=-1)."
+	},
+	{
+		"original_line": "real g;", 
+		"bug_line": "integer g;",
+		"error_description": "Changed 'g' from real to integer type. This causes truncation of the fractional part in 'g = 5*ln(n)', resulting in incorrect conductance values for the titration mechanism. The fractional loss disrupts charge transfer accuracy, leading to frequency division errors."
+	},
+	{
+		"original_line": "parameter real tt=0.01;                 // output transition time", 
+		"bug_line": "parameter real tt=-0.01;                 // output transition time",
+		"error_description": "Negative transition time violates physical reality and breaks the transition() function, causing simulation errors and undefined output behavior."
+	},
+	{
+		"original_line": "parameter integer n = 2 from [2:inf);   // divide ratio", 
+		"bug_line": "parameter integer n = 2 from [1:inf);   // divide ratio",
+		"error_description": "Lower bound of divisor 'n' incorrectly allows value 1. The design requires n >= 2 for correct frequency division. When n=1, the module fails to divide the input signal, producing constant output instead of frequency division."
+	},
+	{
+		"original_line": "I(vg,hold) <+ tt*ddt(V(vg,hold));", 
+		"bug_line": "I(vg,hold) <+ tt*V(vg,hold);",
+		"error_description": "Replaced capacitor (current proportional to voltage derivative) with resistor (current proportional to voltage). This destroys state retention capability since charge leaks through the resistor instead of being integrated on the hold node."
+	},
+	{
+		"original_line": "parameter integer dir = 1 from [-1:1] exclude 0;", 
+		"bug_line": "parameter integer dir = 0 from [-1:1];",
+		"error_description": "The default value of 'dir' is changed to 0 (invalid) and the exclusion of 0 is removed. This causes the edge detection condition (dir*V(Pin,Nin) > dir*thresh) to always evaluate as false (0 > 0), preventing the counter from incrementing on any clock edge."
+	},
+	{
+		"original_line": "output Pout, Nout;", 
+		"bug_line": "input Pout, Nout;",
+		"error_description": "Changed both outputs to inputs. This violates the module's intended functionality as outputs cannot be driven when declared as inputs, causing connection conflicts and preventing signal propagation."
+	},
+	{
+		"original_line": " *    the divider may not work properly.", 
+		"bug_line": " *    the divider will work properly.",
+		"error_description": "The modified comment falsely assures functionality when the input signal is below threshold, misleading designers to violate the input requirement. This causes the divider's edge-triggered logic to malfunction as the '@(cross)' event won't trigger properly with sub-threshold inputs."
+	},
+	{
+		"original_line": "electrical Pin, Nin, Pout, Nout;", 
+		"bug_line": "electrical Pin, Nin, Pout;",
+		"error_description": "Output net Nout is undeclared, causing an undriven differential output. This leaves Nout floating during operation, resulting in undefined voltage levels and incorrect frequency division behavior."
+	},
+	{
+		"original_line": "real vchg;", 
+		"bug_line": "real vchg = 0;",
+		"error_description": "Initializing vchg to 0 causes incorrect precharge voltage. The design requires vchg to be dynamically set by conditional logic. Fixed initialization overrides this, forcing constant 0V precharge regardless of V(hold) state, disrupting charge titration and frequency division."
+	},
+	{
+		"original_line": "        I(chg) <+ tt*ddt(V(chg));", 
+		"bug_line": "        I(chg) <+ tt*ddt(V(hold));",
+		"error_description": "The capacitor current is incorrectly tied to the derivative of the hold node voltage instead of its own voltage. This violates the fundamental capacitor equation, causing erroneous charge transfer between unrelated nodes and disrupting the counting mechanism."
+	},
+	{
+		"original_line": "I(vg,hold) <+ tt*ddt(V(vg,hold));", 
+		"bug_line": "I(vg,hold) <+ tt*ddt(V(hold,vg));",
+		"error_description": "Reversing the voltage argument (V(hold,vg) instead of V(vg,hold)) inverts the capacitor current direction. This causes the hold capacitor to charge/discharge oppositely to the design, disrupting the counting mechanism and preventing proper frequency division."
+	},
+	{
+		"original_line": "parameter integer n = 2 from [2:inf);   // divide ratio", 
+		"bug_line": "parameter integer n = 0 from [0:inf);   // divide ratio",
+		"error_description": "Changing the default value to 0 and allowing n=0 causes division by zero in the analog block (vchg = vmax/n) during simulation, crashing the circuit. This violates the design requirement that n must be at least 2."
+	},
+	{
+		"original_line": "                    I(vg) <+ -n*V(hold)/vmax - count;", 
+		"bug_line": "                    I(vg) <+ -n*V(hold)/vmax + count;",
+		"error_description": "Sign reversal error: The count term should be subtracted to cancel integer charge, but adding it instead doubles the integer error. This disrupts fractional charge correction on the hold capacitor, causing incorrect counting and division ratio failures."
+	},
+	{
+		"original_line": "I(vg,chg) <+ g*V(vg,chg);", 
+		"bug_line": "I(vg,chg) <+ g*V(chg,vg);",
+		"error_description": "Reversing the voltage polarity causes charge to flow opposite to the intended direction during clock-high events. This corrupts the hold capacitor voltage increment process, breaking the counting mechanism since charge is subtracted instead of added when incrementing the count."
+	},
+	{
+		"original_line": "electrical Pin, Nin, Pout, Nout;", 
+		"bug_line": "electrical Pin, Nin, Pout, Pin;",
+		"error_description": "Declares Pin twice while omitting Nout, causing negative output port to be undefined and creating a short between input Pin and output Pout through duplicated declaration."
+	}
+]

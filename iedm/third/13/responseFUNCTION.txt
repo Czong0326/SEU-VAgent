@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "    else if (Normalize_method == "Average" )", 
+		"bug_line": "    else if (Normalize_method == "Averag" )",
+		"error_description": "Misspelled 'Average' as 'Averag' in the condition check. This causes the average power normalization branch to be skipped when users specify 'Average', resulting in incorrect amplitude scaling as the magv variable won't be properly calculated for this mode."
+	},
+	{
+		"original_line": "for (i = 0; i < `M; i = i + 1) begin", 
+		"bug_line": "for (i = 0; i < `M/2; i = i + 1) begin",
+		"error_description": "Loop runs only half the iterations (32 instead of 64), leaving symbols 32-63 uninitialized at (0,0). This collapses half the constellation to origin, causing symbol errors and distorted output for upper-index symbols."
+	},
+	{
+		"original_line": "@(initial_step) begin", 
+		"bug_line": "@(timer(0, Symbol_Period)) begin",
+		"error_description": "Changed initial_step event to periodic timer event. This causes the initialization block (mapping arrays, normalization calculations) to execute repeatedly every symbol period instead of once at simulation start. The repeated recalculations reset critical variables like integerOut and mappingArray, corrupting the modulation state and causing incorrect symbol generation."
+	},
+	{
+		"original_line": "PhaseImag[i] = ( 7 - (i % 8) * 2 ) * magv;", 
+		"bug_line": "PhaseImag[i] = ( 7 - (i >> 3) * 2 ) * magv;",
+		"error_description": "Uses row index (i>>3) instead of column index (i%8) for imaginary coordinate calculation. This causes all symbols in the same row to share identical Q-axis values, collapsing the 64-point constellation into just 8 vertical points."
+	},
+	{
+		"original_line": "generate j (0, `Bits-1) begin", 
+		"bug_line": "generate j (0, `Bits-2) begin",
+		"error_description": "The loop now iterates from j=0 to j=`Bits-2 (0 to 4) instead of 0 to 5, skipping the most significant bit (inbit[5]). This causes incorrect symbol mapping as the highest bit isn't processed."
+	},
+	{
+		"original_line": "electrical outi, outq;", 
+		"bug_line": "input electrical outi, outq;",
+		"error_description": "Changed output ports to inputs, violating the design specification that requires driving output signals. This modification prevents the module from generating output waveforms since outputs can't be driven when declared as inputs."
+	},
+	{
+		"original_line": "tmpinphase = PhaseReal[i];", 
+		"bug_line": "tmpinphase = PhaseReal[i+1];",
+		"error_description": "Index error accesses PhaseReal[i+1] beyond array bounds when i=63, causing memory corruption and incorrect rotation calculations for constellation points."
+	},
+	{
+		"original_line": "    if (phase_offset > 0) begin", 
+		"bug_line": "    if (phase_offset < 0) begin",
+		"error_description": "Changed condition from positive to negative phase_offset. Now rotation is only applied for negative phase_offset values, violating the specification that requires rotation for any non-zero phase_offset (positive or negative). Positive phase_offset settings will produce unrotated constellations."
+	},
+	{
+		"original_line": "magv = 1;", 
+		"bug_line": "magv = 0;",
+		"error_description": "Initializing magv to 0 causes the constellation to collapse to the origin when an unsupported Normalize_method is provided, as the conditionals do not set magv and it remains 0. The original design used a default magnitude of 1 for unsupported methods."
+	},
+	{
+		"original_line": "        tmp[j] = $rdist_uniform(use_seed, 0, 1);", 
+		"bug_line": "        tmp[j] = $rdist_uniform(use_seed, 1, 2);",
+		"error_description": "Changed uniform distribution range from [0,1] to [1,2]. When Disable_input is enabled, all generated values exceed 0.5, causing every bit to be interpreted as 1. This eliminates random input generation and forces constant all-ones input."
+	},
+	{
+		"original_line": "integer mappingArray[0:`M-1];", 
+		"bug_line": "integer mappingArray[0:`M-2];",
+		"error_description": "The array size is reduced from 64 elements (0-63) to 63 elements (0-62). This causes out-of-bounds access when initializing or accessing index 63, leading to undefined behavior during constellation mapping."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* instrument_module_disable *)",
+		"error_description": "Changed attribute name to 'instrument_module_disable', which would be unrecognized by simulation/verification tools. This prevents proper instrumentation and monitoring of module behavior during simulation, violating observability requirements in the design specification while maintaining syntactic validity."
+	},
+	{
+		"original_line": "module Rectangular_64_QAM(inbit, outi, outq);", 
+		"bug_line": "module Rectangular_64_QAM(inbit, outi, outq_wrong);",
+		"error_description": "Changed output port name 'outq' to 'outq_wrong'. This disconnects the Q output signal internally, leaving the actual Q output port undriven. The internal assignment to 'outq' becomes a local variable instead of driving the output port, causing the Q component of the modulated signal to be undefined (high-impedance)."
+	},
+	{
+		"original_line": "parameter integer Usr_mappig_vec[0:`M-1] = {0, 1, 2, 3, 4, 5, 6, 7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63};", 
+		"bug_line": "parameter integer Usr_mappig_vec[0:`M-1] = {0, 1, 2, 3, 4, 5, 6, 7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,64};",
+		"error_description": "Changed last element from 63 to 64. This creates an out-of-bounds index (64) when accessing PhaseReal/PhaseImag arrays (size 64), causing runtime errors for input symbol 63."
+	},
+	{
+		"original_line": "PhaseImag[i] = tmpinphase * sin(pha) + PhaseImag[i] * cos(pha);", 
+		"bug_line": "PhaseImag[i] = tmpinphase * sin(pha) - PhaseImag[i] * cos(pha);",
+		"error_description": "The sign error in the imaginary component rotation equation causes an incorrect phase rotation of the constellation points, distorting the output QAM constellation."
+	},
+	{
+		"original_line": "for (i=0; i < `Bits; i = i+1)", 
+		"bug_line": "for (i=0; i < `Bits-1; i = i+1)",
+		"error_description": "The loop condition now runs only from i=0 to i=4 (for 6 bits), skipping the most significant bit (i=5). This causes incorrect symbol mapping as the highest bit is ignored in integerOut calculation."
+	},
+	{
+		"original_line": "output outi, outq;", 
+		"bug_line": "input outi, output outq;",
+		"error_description": "Changed outi from output to input. This creates a functional error because the module drives outi in the analog block (V(outi) <+ ...), but input ports cannot be driven, causing simulation failure or undefined behavior."
+	},
+	{
+		"original_line": "PhaseReal[i] = ( -7 + ( i >> 3 ) * 2 ) * magv;", 
+		"bug_line": "PhaseReal[i] = ( -7 + ( i >> 2 ) * 2 ) * magv;",
+		"error_description": "Using shift-by-2 instead of shift-by-3 incorrectly calculates row indices, producing 16 rows (0-15) instead of 8. This corrupts constellation mapping as real values extend beyond [-7,7] range, breaking QAM symmetry and causing symbol position errors."
+	},
+	{
+		"original_line": "    if ( Disable_input ) ", 
+		"bug_line": "    if ( !Disable_input ) ",
+		"error_description": "Inverted the disable condition. Now uses random bits when Disable_input=0 (normal operation) and actual inputs when Disable_input=1 (disabled mode), causing functional reversal of the disable feature."
+	},
+	{
+		"original_line": "tmpinphase = PhaseReal[i];", 
+		"bug_line": "tmpinphase = PhaseImag[i];",
+		"error_description": "Assigns the imaginary component instead of the real component to tmpinphase, causing incorrect rotation calculations where both real and imaginary outputs become corrupted due to lost original real value during trigonometric operations."
+	}
+]

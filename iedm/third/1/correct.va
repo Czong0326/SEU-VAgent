@@ -1,0 +1,87 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Copyright @ 2014 The Pennsylvania State University (Penn State).
+//The terms under which the software and associated documentation (the Software) is provided are as the following:
+//The Software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages or other liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the Software or the use or other dealings in the Software.
+//Penn State and NEEDS grants, free of charge, to any users the right to modify, copy, and redistribute the Software, both within the user's organization and externally, subject to the following restrictions:
+//1. The users agree not to charge for the code itself but may charge for additions, extensions, or support.
+
+//2. In any product based on the Software, the users agree to acknowledge the Research Group that developed the software. This acknowledgment shall appear in the product documentation.
+
+//3. The users agree to obey all U.S. Government restrictions governing redistribution or export of the software.
+
+//4. The users agree to reproduce any copyright notice which appears on the software on any copy or modification of such made available to others.
+
+//Agreed to by
+//Suman Datta, Penn State
+//March 28, 2014
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//VerilogA for double-gate GaSb-InAs Heterojunction Tunnel FET model based on lookup tables, which employs the current and capacitance characteristics from calibrated TCAD Sentaurus Simulations
+//Model details: V. Saripalli et al IEEE/ACM NanoArch 2011.
+//Original Model Developed by V. Saripalli
+//Implemented by H. Liu 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+`include "constants.vams"
+`include "disciplines.vams"
+
+module TFET(d,g,s);
+inout d,g,s;
+electrical g,d,s;
+real Ids, Cgs, Cgd,Qg, Qs, Qd;
+parameter real W=1 from (0:inf);
+parameter string type = "n" from '{"n", "p"};
+integer direction;
+
+analog begin
+
+`ifdef _HETEROJUNCTION_
+
+if (type == "n") begin
+Ids=$table_model(V(d,s), (V(g,s)), "IdVg-GaSb-InAs-HNTFET-Lg-20nm.tbl","1LL,1LL");
+Cgd=$table_model(V(d,s), (V(g,s)), "CGD-GaSb-InAs-HNTFET-Lg-20nm.tbl","1LL,1LL");
+Cgs=$table_model(V(d,s), (V(g,s)), "CGS-GaSb-InAs-HNTFET-Lg-20nm.tbl","1LL,1LL");
+direction =1;
+end
+
+else if (type == "p") begin
+
+// We assume that the PTFET and NTFET drive currents are similar
+Ids=$table_model(-V(d,s), (-V(g,s)), "IdVg-GaSb-InAs-HNTFET-Lg-20nm.tbl","1LL,1LL");
+// We do not assume that the PTFET and NTFET gate capacitances are similar because the hole and electon DoS in InAs are significantly different
+Cgd=$table_model(V(d,s), (V(g,s)), "CGD-GaSb-InAs-HPTFET-Lg-20nm.tbl","1LL,1LL");
+Cgs=$table_model(V(d,s), (V(g,s)), "CGS-GaSb-InAs-HPTFET-Lg-20nm.tbl","1LL,1LL");
+direction = -1;
+end
+
+`else `ifdef _HOMOJUNCTION_
+
+if (type == "n") begin
+Ids=$table_model(V(d,s), (V(g,s)), "IdVg-InAs-NTFET-Lg-20nm.tbl","1LL,1LL");
+Cgd=$table_model(V(d,s), (V(g,s)), "CGD-InAs-NTFET-Lg-20nm.tbl","1LL,1LL");
+Cgs=$table_model(V(d,s), (V(g,s)), "CGS-InAs-NTFET-Lg-20nm.tbl","1LL,1LL");
+
+direction =1;
+end
+
+else if (type == "p") begin
+
+// We assume that the PTFET and NTFET drive currents are similar
+Ids=$table_model(-V(d,s), (-V(g,s)), "IdVg-InAs-NTFET-Lg-20nm.tbl","1LL,1LL");
+// We do not assume that the PTFET and NTFET gate capacitances are similar because the hole and electon DoS in InAs are significantly different
+Cgd=$table_model(V(d,s), (V(g,s)), "CGD-InAs-PTFET-Lg-20nm.tbl","1LL,1LL");
+Cgs=$table_model(V(d,s), (V(g,s)), "CGS-InAs-PTFET-Lg-20nm.tbl","1LL,1LL");
+
+direction = -1;
+end
+`endif
+
+      Qd = W*(-1)*Cgd*(V(g,d));
+      Qs = W*(-1)*Cgs*(V(g,s));
+      Qg=(-1)*(Qd+Qs);	
+      I(d,s) <+ direction*Ids*W ;
+      I(g) <+ ddt(Qg);
+      I(s) <+ ddt(Qs);
+      I(d) <+ ddt(Qd);
+
+end
+endmodule

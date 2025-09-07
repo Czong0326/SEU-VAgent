@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real CJS 		= 5.0e-4;				// Unit area source-side junction capacitance at zero bias", 
+		"bug_line": "parameter real CJS 		= -5.0e-4;				// Unit area source-side junction capacitance at zero bias",
+		"error_description": "Negative junction capacitance violates physical realizability and parameter range constraint [0:inf), causing non-physical circuit behavior."
+	},
+	{
+		"original_line": ".DTEMP(DTEMP), .TBGASUB(TBGASUB), .TBGBSUB(TBGBSUB), .TNFACTOR(TNFACTOR), .UTE(UTE),", 
+		"bug_line": ".DTEMP(DTEMP), .TBGASUB(TBGASUB), .TBGBSUB(TBGBSUB), .TNFACTOR(TNFACTOR), .UTE(TNFACTOR),",
+		"error_description": "Incorrect assignment: UTE (mobility temperature exponent) is assigned TNFACTOR value (subthreshold slope temperature exponent) instead of its own parameter. This causes incorrect temperature modeling of carrier mobility in the BSIM6 transistor."
+	},
+	{
+		"original_line": "	.PAGIDL(PAGIDL), .BGIDL(BGIDL), .LBGIDL(LBGIDL), .WBGIDL(WBGIDL), .PBGIDL(PBGIDL),", 
+		"bug_line": "	.PAGIDL(PAGIDL), .BGIDL(PBGIDL), .LBGIDL(LBGIDL), .WBGIDL(WBGIDL), .PBGIDL(BGIDL),",
+		"error_description": "Swapped BGIDL and PBGIDL parameter mappings. This passes PBGIDL (parameter binning coefficient) to BGIDL (GIDL exponential coefficient) and vice versa, corrupting the gate-induced drain leakage model by cross-wiring unrelated physical parameters."
+	},
+	{
+		"original_line": "parameter real VSATCVWL		= VSATWL;", 
+		"bug_line": "parameter real VSATCVWL		= VSATW;",
+		"error_description": "Assigned VSATCVWL (CV model length scaling) to VSATW (IV model width scaling) instead of VSATWL (IV model length scaling). This breaks parameter consistency between IV and CV models, causing incorrect velocity saturation scaling for channel length in capacitance calculations."
+	},
+	{
+		"original_line": "parameter real SC 	= 0.0;					//Distance to a single well edge", 
+		"bug_line": "parameter real SC 	= -1.0;					//Distance to a single well edge",
+		"error_description": "Assigned negative value to distance parameter SC, which must be non-negative. This violates physical constraints as distances cannot be negative, causing unphysical behavior in well proximity calculations."
+	},
+	{
+		"original_line": "parameter real PRDWMIN 	= PRSWMIN;", 
+		"bug_line": "parameter real PRDWMIN 	= -1.0;",
+		"error_description": "Assigned negative value (-1.0) to drain resistance parameter PRDWMIN. Resistance values must be non-negative, causing non-physical behavior and potential simulation instability."
+	},
+	{
+		"original_line": "	.LBGISL(LBGISL), .WBGISL(WBGISL), .PBGISL(PBGISL), .CGISL(CGISL), .LCGISL(LCGISL),", 
+		"bug_line": "	.LBGISL(LBGISL), .WBGISL(WBGISL), .PBGISL(PBGISL), .CGISL(CGIDL), .LCGISL(LCGISL),",
+		"error_description": "Replaces source-side leakage parameter (CGISL) with drain-side parameter (CGIDL), causing incorrect modeling of gate-induced source leakage current in the sensing FET."
+	},
+	{
+		"original_line": "parameter real LNSD 	= 0.0;", 
+		"bug_line": "parameter real LNSD_ERROR 	= 0.0;",
+		"error_description": "Changed parameter name from LNSD to LNSD_ERROR breaks the connection to the BSIM6 model. The BSIM6 instance expects parameter LNSD for source/drain doping concentration length dependence, causing it to use default value (0.0) instead of user-defined values."
+	},
+	{
+		"original_line": "parameter real PVFB 	= 0.0;", 
+		"bug_line": "parameter real PVFB 	= VFB;",
+		"error_description": "Assigned flat-band voltage (VFB) to cross-term dependence parameter (PVFB) instead of 0.0. This incorrectly couples PVFB to the flat-band voltage value, introducing unintended dependencies in threshold voltage calculations and violating the BSIM model's parameter independence requirements."
+	},
+	{
+		"original_line": "parameter real WDVTP3 	= 0;", 
+		"bug_line": "parameter real WDVTP3 	= -1.0;",
+		"error_description": "Changed width dependence coefficient WDVTP3 from 0 to negative value (-1.0). This introduces unintended inverse scaling behavior for DVTP3 (drain-induced threshold shift parameter) with device width, violating the physical model where dependence should be non-negative."
+	},
+	{
+		"original_line": "parameter real PPVAG 	= 0.0;", 
+		"bug_line": "parameter real PPVAG 	= 0.1;",
+		"error_description": "Changed PPVAG binning parameter from 0.0 to 0.1, introducing an unintended offset in the body-bias effect on output conductance calculations, which corrupts the drain current model."
+	},
+	{
+		"original_line": "parameter real WUCS		= 0.0;", 
+		"bug_line": "parameter real WUCS		= -1.0;",
+		"error_description": "Changed WUCS from 0.0 to -1.0. Width dependence coefficient must be non-negative; negative values violate BSIM6 model constraints for Coulombic scattering parameter dependence, causing unphysical parameter scaling during simulation."
+	},
+	{
+		"original_line": ".NDEPCVL2(NDEPCVL2), .NDEPCVLEXP2(NDEPCVLEXP2), .NDEPCVW(NDEPCVW), .NDEPCVWEXP(NDEPCVWEXP), .NDEPCVWL(NDEPCVWL),", 
+		"bug_line": ".NDEPCVL2(NDEPCVLEXP2), .NDEPCVLEXP2(NDEPCVLEXP2), .NDEPCVW(NDEPCVW), .NDEPCVWEXP(NDEPCVWEXP), .NDEPCVWL(NDEPCVWL),",
+		"error_description": "Incorrect parameter connection: NDEPCVL2 is connected to NDEPCVLEXP2 instead of NDEPCVL2. This swaps the channel doping coefficient for its exponent value, corrupting CV calculations in the BSIM6 model."
+	},
+	{
+		"original_line": "parameter real NGATE 	= `BSIM_NGATE;			// Gate Doping Concentration (m^-3)", 
+		"bug_line": "parameter real NGATE 	= -1.0e24;			// Gate Doping Concentration (m^-3)",
+		"error_description": "Assigned a negative value to NGATE (gate doping concentration), which is physically impossible and will cause incorrect threshold voltage calculations in the BSIM model."
+	},
+	{
+		"original_line": "parameter real XJBVD 	= XJBVS;				// Fitting parameter for drain diode breakdown current", 
+		"bug_line": "parameter real XJBVD 	= XJBVS;				// Fitting parameter for source diode breakdown current",
+		"error_description": "Changed drain diode parameter comment to incorrectly reference source diode. This directional error mislabels the drain fitting parameter, potentially causing confusion and incorrect usage in circuit simulations."
+	},
+	{
+		"original_line": ")  rbtCapTransInst (p,n,x,T);", 
+		"bug_line": ")  rbtCapTransInst (p,n,x,g);",
+		"error_description": "Connected thermal port T to gate node g instead of thermal node T, causing incorrect thermal behavior in the driving capacitor module due to discipline mismatch (thermal vs electrical)."
+	},
+	{
+		"original_line": ".RNOIA(RNOIA), .RNOIB(RNOIB), .RNOIC(RNOIC), .TNOIA(TNOIA), .TNOIB(TNOIB), .TNOIC(TNOIC),", 
+		"bug_line": ".RNOIA(RNOIA), .RNOIB(RNOIB), .RNOIC(RNOIC), .TNOIA(0.5), .TNOIB(TNOIB), .TNOIC(TNOIC),",
+		"error_description": "Changed TNOIA parameter to a fixed value (0.5) instead of the intended variable, corrupting thermal noise modeling by disabling its temperature-dependent behavior."
+	},
+	{
+		"original_line": "parameter real PTWGT	= 0.0;					// Temperature coefficient for PTWG", 
+		"bug_line": "parameter real PTWGT	= -0.5;					// Temperature coefficient for PTWG",
+		"error_description": "Changed temperature coefficient from 0.0 to -0.5, introducing incorrect negative temperature dependence that violates design specifications and physical plausibility."
+	},
+	{
+		"original_line": "	.TPBSWG(TPBSWG), .XTIS(XTIS), .XTID(XTID), .XTSS(XTSS), .XTSD(XTSD),", 
+		"bug_line": "	.TPBSWG(TPBSWG), .XTIS(XTID), .XTID(XTIS), .XTSS(XTSS), .XTSD(XTSD),",
+		"error_description": "Swapped source (XTIS) and drain (XTID) junction current temperature exponents. This causes incorrect temperature modeling of source/drain junction currents in the BSIM6 FET, violating device physics."
+	},
+	{
+		"original_line": "parameter real LRSW 	= 0.0;", 
+		"bug_line": "parameter real LRSW 	= -0.1;",
+		"error_description": "Negative length dependence (-0.1) for source resistance causes unphysical negative resistance calculations in the BSIM6 model, violating device physics and potentially causing simulation instability."
+	}
+]

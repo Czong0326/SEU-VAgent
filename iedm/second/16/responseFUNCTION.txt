@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "   real vin_scale;", 
+		"bug_line": "   integer vin_scale;",
+		"error_description": "Changing 'vin_scale' from real to integer causes truncation of the scaling factor during assignment. This often results in a value of 0 when (vin_max - vin_min)/2 < 1, leading to division by zero in the input adjustment calculation and output distortion."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( initial_step("tran") ) begin",
+		"error_description": "The initialization block now only executes during transient analysis ('tran'), not during other analyses like AC or DC. This leaves vin_offset, vin_scale, and w_carrier uninitialized in non-transient analyses, causing division-by-zero errors when computing vin_adjusted and incorrect modulation behavior."
+	},
+	{
+		"original_line": "phase_lin = w_carrier * $abstime;", 
+		"bug_line": "phase_lin = f_carrier * $abstime;",
+		"error_description": "Replaced angular frequency (w_carrier = 2πf) with linear frequency (f_carrier), causing incorrect carrier frequency calculation. The carrier frequency becomes f_carrier/(2π) instead of the intended f_carrier."
+	},
+	{
+		"original_line": "input vin;", 
+		"bug_line": "output vin;",
+		"error_description": "Changing vin from input to output creates a directional conflict: the module attempts to read from an output port (V(vin)) while external connections expect to drive an input. This causes undefined behavior and signal contention."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( initial_step(0) ) begin",
+		"error_description": "Changed 'initial_step' to 'initial_step(0)', which is invalid VerilogA syntax. The correct event for initialization is 'initial_step' without arguments. This modification will cause a compilation error and prevent the critical initialization block from executing."
+	},
+	{
+		"original_line": "parameter real vin_max = 1;", 
+		"bug_line": "parameter real vin_max = 0;",
+		"error_description": "vin_max (0) is less than vin_min (1), violating the requirement that vin_max must be greater than vin_min. This triggers the range error check in the initial_step block, causing simulation termination and preventing normal modulator operation."
+	},
+	{
+		"original_line": "              @ ( initial_step ) begin", 
+		"bug_line": "              @ ( timer(0, 1u) ) begin",
+		"error_description": "Replaced 'initial_step' event with 'timer' statement. The timer(0, 1u) syntax is invalid for event control and causes compilation failure. Proper initial_step execution (parameter setup and range check) never occurs, leaving critical variables uninitialized and bypassing the vin_max/vin_min validation."
+	},
+	{
+		"original_line": "vin_offset = (vin_max + vin_min)/2;", 
+		"bug_line": "vin_offset = (vin_max - vin_min)/2;",
+		"error_description": "The offset calculation incorrectly uses subtraction instead of addition, resulting in an offset value that is half the range rather than the midpoint. This causes improper centering of the input signal during modulation scaling, leading to distorted phase modulation output."
+	},
+	{
+		"original_line": "$bound_step (0.04 / f_carrier);", 
+		"bug_line": "$bound_step (0.04 * f_carrier);",
+		"error_description": "Changed division to multiplication, causing the step bound to become extremely large (e.g., 40,000 seconds for 1MHz carrier) instead of a fraction of the carrier period. This prevents proper waveform resolution, leading to aliasing and inaccurate modulation output."
+	},
+	{
+		"original_line": "input vin;", 
+		"bug_line": "input v_in;",
+		"error_description": "Renamed input port from 'vin' to 'v_in', disconnecting it from internal references. The module still uses 'vin' in calculations (e.g., V(vin)), which now refers to an implicit undeclared net, causing the input signal to be ignored (always 0)."
+	},
+	{
+		"original_line": "phase_lin = w_carrier * $abstime;", 
+		"bug_line": "phase_lin = w_carrier * $dt;",
+		"error_description": "Replaced $abstime (absolute simulation time) with $dt (current time step), causing the phase calculation to reset every timestep instead of accumulating continuously. This violates the design requirement of a continuous phase progression for the carrier wave."
+	},
+	{
+		"original_line": "vin_val = vin_val < vin_min ? vin_min : vin_val;", 
+		"bug_line": "vin_val = vin_val < vin_max ? vin_min : vin_val;",
+		"error_description": "The condition incorrectly uses vin_max instead of vin_min for lower-bound clipping. This causes values below vin_max (not vin_min) to be clipped to vin_min, resulting in excessive clipping and distorted modulation when the input is between vin_min and vin_max."
+	},
+	{
+		"original_line": "`define PI      3.14159265358979323846264338327950288419716939937511", 
+		"bug_line": "`define PI      0",
+		"error_description": "Setting PI to 0 causes the carrier frequency calculation to become zero (w_carrier = 2*0*f_carrier = 0), eliminating the carrier wave entirely. This results in a static output V(vout) = amp * sin(phase_nonlin) instead of a modulated signal, violating the fundamental PM modulator requirement of combining input signal phase shifts with a high-frequency carrier."
+	},
+	{
+		"original_line": "phase_nonlin = phase_max * vin_adjusted;", 
+		"bug_line": "phase_nonlin = phase_max / vin_adjusted;",
+		"error_description": "Replaced multiplication with division, causing the phase shift to be inversely proportional to the adjusted input. This introduces division-by-zero risk when vin_adjusted=0 and fundamentally inverts the modulation relationship, violating the design specification where phase shift should scale linearly with input."
+	},
+	{
+		"original_line": "   real vin_val, vin_adjusted;", 
+		"bug_line": "   real vin_val; integer vin_adjusted;",
+		"error_description": "Changing 'vin_adjusted' to integer type causes truncation of the scaled modulation signal. This quantization error reduces phase modulation precision by restricting values to whole numbers, violating the continuous phase shift requirement."
+	},
+	{
+		"original_line": "output vout;", 
+		"bug_line": "input vout;",
+		"error_description": "Changed port direction from output to input. This creates a functional error because the analog block attempts to drive V(vout) while the port is declared as input, violating Verilog-A port direction rules and preventing signal output."
+	},
+	{
+		"original_line": "vin_scale  = (vin_max - vin_min)/2;", 
+		"bug_line": "vin_scale  = (vin_max + vin_min)/2;",
+		"error_description": "Changed scaling factor calculation from half the input range to the input average. This causes incorrect normalization of the input signal, reducing phase modulation depth since vin_adjusted will be scaled improperly relative to the intended [-1,1] range."
+	},
+	{
+		"original_line": "module pm_modulator(vin, vout);", 
+		"bug_line": "module pm_modulator(vin, vout, enable);",
+		"error_description": "Added an undefined 'enable' input port without connecting it internally. This violates the design specification by requiring an extra signal that isn't implemented, causing compilation errors during instantiation without the new port."
+	},
+	{
+		"original_line": "              $bound_step (0.04 / f_carrier);", 
+		"bug_line": "              $bound_step (0.04 * f_carrier);",
+		"error_description": "Changed division to multiplication, causing the step bound to become 0.04 times the carrier frequency (e.g., 40,000 seconds for 1MHz) instead of 0.04 divided by it (40ns). This removes step size limitation during transient analysis, leading to severe waveform inaccuracies due to undersampling of the carrier signal."
+	},
+	{
+		"original_line": "	 if (vin_max <= vin_min) begin", 
+		"bug_line": "	 if (vin_max >= vin_min) begin",
+		"error_description": "Changed the condition from 'vin_max <= vin_min' to 'vin_max >= vin_min'. This reverses the error check logic, causing the simulation to terminate for valid inputs (where vin_max > vin_min) while accepting invalid inputs where vin_max < vin_min. The original safety check for invalid voltage ranges is now functionally broken."
+	}
+]

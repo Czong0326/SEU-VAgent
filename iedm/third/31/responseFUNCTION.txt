@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "electrical Q_in;", 
+		"bug_line": "ground Q_in;",
+		"error_description": "Changes Q_in from electrical to ground discipline, forcing its voltage to 0V. This shorts the Q-input signal to ground, breaking quadrature processing while allowing compilation."
+	},
+	{
+		"original_line": "real noise_current;", 
+		"bug_line": "integer noise_current;",
+		"error_description": "Changed noise_current variable type from real to integer. This truncates the calculated noise value to zero during assignment since the actual noise current magnitude is extremely small (e.g., 1e-12). Consequently, the white_noise sources generate zero noise, completely disabling the noise figure functionality specified by the 'nf' parameter."
+	},
+	{
+		"original_line": "@(initial_step) begin", 
+		"bug_line": "@(final_step) begin",
+		"error_description": "The initialization block runs at simulation end instead of start. This leaves critical variables (beta, rnf) uninitialized during operation, causing incorrect phase shift calculations and noise levels throughout the simulation."
+	},
+	{
+		"original_line": "real rhoinmax;", 
+		"bug_line": "real rhoinmax = 0;",
+		"error_description": "Initializing rhoinmax to 0 creates a permanent clamping threshold error. The amplifier will always use the saturation branch (rhooutmax) since any input magnitude (rho) will be greater than 0, violating the intended compression behavior where clamping should only occur beyond the calculated rhoinmax threshold."
+	},
+	{
+		"original_line": "parameter real rin = 50 from (0:inf);", 
+		"bug_line": "parameter real rin = 50 from (-inf:inf);",
+		"error_description": "Changed input resistance range to include negative values. Negative resistance is non-physical and causes circuit instability by creating energy instead of dissipating it."
+	},
+	{
+		"original_line": "noise_current = sqrt(8*(rnf-1)*1.380620e-23*$temperature/rin);", 
+		"bug_line": "noise_current = sqrt(8*(rnf-1)*1.380620e-23*$temperature*rin);",
+		"error_description": "Changed division by rin to multiplication by rin. This inverts the resistance dependence, making noise current increase with higher input resistance instead of decrease, violating the physical relationship where noise power is inversely proportional to resistance."
+	},
+	{
+		"original_line": "I(I_in) <+ white_noise(noise_current*noise_current, "VGA_BB_i");", 
+		"bug_line": "I(I_out) <+ white_noise(noise_current*noise_current, "VGA_BB_i");",
+		"error_description": "Input-referred noise current is incorrectly injected into the output node (I_out) instead of the input node (I_in), violating amplifier noise modeling principles and causing inaccurate noise simulation at the input port."
+	},
+	{
+		"original_line": "Vcp is the compression point in volts. alpha and beta are", 
+		"bug_line": "Vcp is the compression point in dBm. alpha and beta are",
+		"error_description": "Changed voltage compression point (volts) to dBm, creating unit inconsistency. Parameters 'cpdb' and calculations like 'cmp' expect volts, leading to incorrect gain compression behavior and distorted AM/AM conversion."
+	},
+	{
+		"original_line": "second order non-linear effects. The transfer curve saturates", 
+		"bug_line": "third order non-linear effects. The transfer curve saturates",
+		"error_description": "Changed 'second' to 'third', incorrectly stating the model includes third-order effects it actually excludes. This documentation error misleads users about fundamental model behavior, violating the design specification."
+	},
+	{
+		"original_line": "real beta;", 
+		"bug_line": "real alpha;",
+		"error_description": "Renamed 'beta' to 'alpha', breaking the phase shift calculation. The initial_step block computes 'beta' but the am/pm conversion now uses the uninitialized 'alpha' variable instead. This causes incorrect phase rotation since 'beta' is essential for the am/pm conversion formula."
+	},
+	{
+		"original_line": "if (V(G_in)!=0) a = gpv*abs(V(G_in));", 
+		"bug_line": "if (V(G_in)==0) a = gpv*abs(V(G_in));",
+		"error_description": "The condition is inverted: gain 'a' is now set only when control voltage is zero (resulting in zero gain) while non-zero control voltages fall through to the else branch (a=1e-6). This breaks the variable gain functionality by forcing minimal gain during normal operation and zero gain when no control signal is applied."
+	},
+	{
+		"original_line": "electrical Q_in;", 
+		"bug_line": "input Q_in;",
+		"error_description": "Changing Q_in from inout to input direction violates bidirectional signal requirements. The analog block drives current into Q_in via 'I(Q_in) <+ V(Q_in)/rin', which becomes illegal for an input port, breaking the input termination circuit."
+	},
+	{
+		"original_line": "electrical G_in;", 
+		"bug_line": "output G_in;",
+		"error_description": "Changed G_in discipline from electrical to output. This violates the design as G_in is an input control pin. The output direction will cause simulation errors when reading V(G_in) for gain calculation, breaking the gain control functionality."
+	},
+	{
+		"original_line": "parameter real cpdb = -30;", 
+		"bug_line": "parameter real cpdb = 30;",
+		"error_description": "Changed compression point from -30 dBm to +30 dBm. This error causes the amplifier to compress at +30 dBm output power instead of the intended -30 dBm, fundamentally altering the gain compression behavior and violating the specified operating point."
+	},
+	{
+		"original_line": "if (V(G_in)!=0) a = gpv*abs(V(G_in));", 
+		"bug_line": "if (V(G_in)!=0) a = gpv;",
+		"error_description": "Removed gain control voltage scaling. The amplifier gain becomes fixed at gpv regardless of the G_in input voltage, violating the variable gain functionality specified in the design description."
+	},
+	{
+		"original_line": "I(I_in) <+ white_noise(noise_current*noise_current, "VGA_BB_i");", 
+		"bug_line": "I(I_in) <+ white_noise(noise_current, "VGA_BB_i");",
+		"error_description": "The white_noise function requires the power spectral density (PSD) parameter in A²/Hz, but the modified line passes the RMS noise current (A/√Hz) directly. This incorrectly reduces the noise PSD by a factor of noise_current, severely underestimating input-referred noise power."
+	},
+	{
+		"original_line": "rho = hypot(V(I_in),V(Q_in));", 
+		"bug_line": "rho = hypot(V(Q_in),V(I_in));",
+		"error_description": "Swapped I_in and Q_in arguments in hypot() function. This reverses the complex signal components during magnitude calculation, corrupting the input signal representation and causing incorrect gain/phase processing throughout the amplifier."
+	},
+	{
+		"original_line": "cmp = sqrt(pow(10,(cpdb+1)/10)*2*rout*0.001)/a;", 
+		"bug_line": "cmp = sqrt(pow(10,(cpdb+1)/10)*2*rout*0.0001)/a;",
+		"error_description": "Changed milliwatt-to-watt conversion factor from 0.001 to 0.0001, causing 10x underestimation of compression point voltage. This makes the amplifier saturate at much lower input power than specified."
+	},
+	{
+		"original_line": "  @(initial_step) begin", 
+		"bug_line": "  @(final_step) begin",
+		"error_description": "Changed initial_step to final_step, causing critical parameters (beta, rnf) to be calculated at simulation end instead of start. This leaves them uninitialized during operation, breaking compression point calculations and noise computations."
+	},
+	{
+		"original_line": "if (V(G_in)!=0) a = gpv*abs(V(G_in));", 
+		"bug_line": "if (V(G_in)!=0) a = gpv*V(G_in);",
+		"error_description": "Removed absolute value function, allowing negative gain calculations when control voltage (G_in) is negative. This violates the design requirement for non-negative gain and causes incorrect amplitude processing in subsequent stages."
+	}
+]

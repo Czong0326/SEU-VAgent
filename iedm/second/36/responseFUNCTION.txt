@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "        `error("FC is less than zero or greater than one.");", 
+		"bug_line": "        `error("FC is greater than zero or less than one.");",
+		"error_description": "The condition logic is reversed. Now triggers an error for valid FC values (0 < FC < 1) instead of invalid ones, allowing simulations to proceed with actual invalid FC values (<0 or >1) which violates the design constraint."
+	},
+	{
+		"original_line": "    else if (!$param_given(RS) && $param_given(RD))", 
+		"bug_line": "    else if (!$param_given(RS) || $param_given(RD))",
+		"error_description": "Changed logical AND (&&) to OR (||). Now triggers the RS warning whenever either RS is not given OR RD is given, including cases where RS is provided but RD is given. This causes incorrect warnings when RD is intentionally provided without RS issues."
+	},
+	{
+		"original_line": "    if (MR < 0.0)", 
+		"bug_line": "    if (MR >= 0.0)",
+		"error_description": "The condition incorrectly flags non-negative MR values as errors. This allows negative MR values (invalid) to pass silently while valid non-negative values trigger false error reports, violating the parameter validation logic."
+	},
+	{
+		"original_line": "real tmp1, tmp2;	// Temporary variables", 
+		"bug_line": "real tmp1;	// Temporary variables",
+		"error_description": "Removed declaration of tmp2 variable. This causes tmp2 to be implicitly declared as a net (defaulting to 0) when used later in charge calculations, leading to incorrect gate/body charge assignments and simulation errors in the intrinsic channel."
+	},
+	{
+		"original_line": "cj0bi_noscale = pnj_cap(nadb, ndac, epss, phij0b, aji);", 
+		"bug_line": "cj0bi_noscale = pnj_cap(nadb, ndac, epss, phij0b, ajed);",
+		"error_description": "Substituted extrinsic drain junction area (ajed) for intrinsic junction area (aji), causing incorrect capacitance calculation for the intrinsic body junction. This directional error misattributes geometric properties between device regions."
+	},
+	{
+		"original_line": "        `warning("nu is less than zero, setting it to zero.");", 
+		"bug_line": "        `warning("nu is less than zero, setting it to one.");",
+		"error_description": "Changed warning message to incorrectly state 'setting it to one' instead of 'setting it to zero'. This misleads users about the actual parameter correction while keeping the functional error of negative nu values unresolved."
+	},
+	{
+		"original_line": "    real ajes;		// Source extrinsic junction area / m^2", 
+		"bug_line": "    real ajes = WC * lced;		// Source extrinsic junction area / m^2",
+		"error_description": "Assigned drain extrinsic channel length (lced) to source extrinsic junction area variable. This incorrectly calculates source junction area using drain dimensions, causing capacitance and current miscalculations in the source extrinsic channel."
+	},
+	{
+		"original_line": "I(bi_de) <+ TYPE * pnj_curr(isb, vbded, vt, vmaxb);", 
+		"bug_line": "I(bi_de) <+ TYPE * pnj_curr(isb, vbses, vt, vmaxb);",
+		"error_description": "Incorrect voltage variable used for body-drain extrinsic junction current. Changed vbded (body-drain voltage) to vbses (body-source voltage), causing the current calculation to depend on the wrong terminal voltage."
+	},
+	{
+		"original_line": "real qbs;		// Body-source charge / C", 
+		"bug_line": "real qbd;		// Body-source charge / C",
+		"error_description": "Changed qbs to qbd, reusing the body-drain charge variable name. This causes both body-drain and body-source charges to share the same variable, leading to incorrect charge accumulation and current calculations in the intrinsic channel."
+	},
+	{
+		"original_line": "    parameter real RSTC = 0.0;", 
+		"bug_line": "    parameter real RSTC = -0.1;",
+		"error_description": "The negative temperature coefficient (-0.1) causes source resistance to decrease with rising temperature, violating design specifications. This leads to unrealistic current flow and potential simulation instability during thermal analysis."
+	},
+	{
+		"original_line": "xies = mu0 / (vsat * lces);", 
+		"bug_line": "xies = mu0 / (vsat * lced);",
+		"error_description": "Used drain extrinsic channel length (lced) instead of source extrinsic channel length (lces) for source extrinsic transport parameter calculation, causing incorrect velocity saturation effects in the source extrinsic region."
+	},
+	{
+		"original_line": "	    real qbs;		// Body-source charge / C", 
+		"bug_line": "	    real qbd;		// Body-source charge / C",
+		"error_description": "Changed qbs to qbd, causing name collision with body-drain charge variable. Both charges now incorrectly share the same variable, leading to wrong body-source charge calculations and corrupted current outputs in the intrinsic channel block."
+	},
+	{
+		"original_line": "        if (NDB < 0.0)", 
+		"bug_line": "        if (NDB > 0.0)",
+		"error_description": "Changed the condition to erroneously flag positive NDB values as errors. Since NDB must be positive for P-type devices (where it's set to 1e21), this modification prevents valid P-type configurations and incorrectly terminates simulation for normal operation."
+	},
+	{
+		"original_line": "4. Redistributions to others of source code must retain the copyright", 
+		"bug_line": "4. Redistributions to others of source code must omit the copyright",
+		"error_description": "Changing 'retain' to 'omit' creates a critical licensing violation by requiring removal of copyright notices during redistribution, directly contradicting the intended open-source protection mechanism."
+	},
+	{
+		"original_line": "        if (mode == `FORWARD_MODE) begin", 
+		"bug_line": "        if (mode == `REVERSE_MODE) begin",
+		"error_description": "Condition inverted to check reverse mode instead of forward mode. Causes charge assignments (qgd/qgs) to be swapped in both operational modes, leading to incorrect capacitance calculations and potential charge conservation violations."
+	},
+	{
+		"original_line": "real vdslim;	// Limited drain-source voltage / V", 
+		"bug_line": "real vdsat;	// Limited drain-source voltage / V",
+		"error_description": "Changed variable name from 'vdslim' to 'vdsat', causing a name conflict with the existing 'vdssat' variable in the same scope. This leads to incorrect assignment later where 'vdslim = min(vds, vdssat)' becomes 'vdsat = min(vds, vdssat)', but 'vdssat' is overwritten by this declaration, corrupting the saturation voltage calculation and causing undefined behavior in current computation."
+	},
+	{
+		"original_line": "        `error("Absolute MM is greater than half of sum LC minus LG.");", 
+		"bug_line": "        `warning("Absolute MM is greater than half of sum LC minus LG.");",
+		"error_description": "Changed fatal error to non-fatal warning. This allows simulation to continue with invalid mask misalignment values that violate geometric constraints, potentially causing unphysical channel length calculations and incorrect device behavior without proper termination."
+	},
+	{
+		"original_line": "3. The users agree to obey all U.S. Government restrictions governing", 
+		"bug_line": "3. The users agree to disregard all U.S. Government restrictions governing",
+		"error_description": "Changed 'obey' to 'disregard' introduces a critical legal compliance error by instructing users to violate U.S. export/redistribution laws, directly contradicting semiconductor IP protection requirements."
+	},
+	{
+		"original_line": "        vmaxb = `FORWARD_COEFFICIENT * phij0b;", 
+		"bug_line": "        vmaxb = `FORWARD_COEFFICIENT * phij0g;",
+		"error_description": "Uses gate junction potential (phij0g) instead of body junction potential (phij0b) for body forward-bias linearization voltage calculation, causing incorrect forward-bias behavior in body junctions due to mismatched built-in potentials."
+	},
+	{
+		"original_line": "`define INCLUDE_NJF_DG 1", 
+		"bug_line": "`define INCLUDE_NJF_DG 0",
+		"error_description": "Setting the macro to 0 prevents inclusion of necessary N-type JFET drain-gate functions in 'functions.va', causing undefined behavior when TYPE=N_TYPE as critical model calculations will be missing."
+	}
+]

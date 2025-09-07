@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "i = 4;", 
+		"bug_line": "i = 6;",
+		"error_description": "Initial value changed to 6 causes incorrect spreading factor validation. For sf=8 (valid power of 2), the loop sets i=12 which exceeds 8, triggering false error that sf should be power of 2."
+	},
+	{
+		"original_line": "tmpIndex = tmpIndex +1;", 
+		"bug_line": "tmpIndex = tmpIndex -1;",
+		"error_description": "Changing increment to decrement causes the index to decrease instead of increase. This leads to negative index values and out-of-bound array access since the reset condition (tmpIndex > sf) is never triggered. The output becomes undefined when accessing uninitialized array elements."
+	},
+	{
+		"original_line": "if ( tmpIndex < tmpSF ) ovsfCode[j+i] = ovsfCode[j];", 
+		"bug_line": "if ( tmpIndex > tmpSF ) ovsfCode[j+i] = ovsfCode[j];",
+		"error_description": "Changed the condition from '<' to '>', causing incorrect parent code inversion during OVSF tree generation. This flips the code assignment logic for upper/lower branches, producing invalid spreading sequences that violate orthogonality requirements."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "parameter integer sf = 4;",
+		"error_description": "Redeclaration of parameter 'sf' causes a compilation error due to duplicate definition, preventing module instantiation and violating design specifications."
+	},
+	{
+		"original_line": "for (j = 1; j <=i; j = j + 1 ) begin", 
+		"bug_line": "for (j = 1; j <=i; j = j + 2 ) begin",
+		"error_description": "Loop step changed from 1 to 2, causing only every other code element to be processed. This leaves half of the OVSF codes uninitialized, resulting in incorrect spreading sequences during code generation."
+	},
+	{
+		"original_line": "tmpSF = ovsfCode[tmpIndex];", 
+		"bug_line": "tmpSF = ovsfCode[0];",
+		"error_description": "Changed index to fixed 0, causing constant output of uninitialized array element (0) regardless of tmpIndex, breaking the spreading sequence generation."
+	},
+	{
+		"original_line": "if ( (code_index >= sf) || (code_index<0) ) begin", 
+		"bug_line": "if ( (code_index >= sf) && (code_index<0) ) begin",
+		"error_description": "Changed logical OR to AND, making the out-of-range check condition impossible to satisfy. This prevents the module from detecting any invalid code_index values since a number cannot be both >= sf and < 0 simultaneously."
+	},
+	{
+		"original_line": "tmpIndex = code_index;", 
+		"bug_line": "tmpIndex = code_index % (sf/2);",
+		"error_description": "The modulo operation incorrectly maps code_index values ≥ sf/2 to lower indices, causing wrong OVSF code generation for upper-half indices while passing initial range checks."
+	},
+	{
+		"original_line": "tmpIndex = 1;", 
+		"bug_line": "tmpIndex = 0;",
+		"error_description": "Initializes tmpIndex to 0 instead of 1, causing the first array access to read ovsfCode[0] which is uninitialized. This results in an undefined first output sample and violates the requirement to start the OVSF code sequence at index 1."
+	},
+	{
+		"original_line": "$finish(0);", 
+		"bug_line": "sf = 4;",
+		"error_description": "Instead of terminating the simulation when an invalid spreading factor is detected, the code incorrectly forces sf=4 and continues execution. This causes incorrect OVSF code generation for non-power-of-2 spreading factors and may lead to array index errors during code calculation."
+	},
+	{
+		"original_line": "analog begin", 
+		"bug_line": "analog initial begin",
+		"error_description": "Changing 'analog begin' to 'analog initial begin' restricts block execution to initialization only. This prevents recurring timer events (@timer) from updating tmpSF values over time, freezing the output at the first symbol value."
+	},
+	{
+		"original_line": "tmpIndex = tmpIndex +1;", 
+		"bug_line": "tmpIndex = tmpIndex - 1;",
+		"error_description": "Changing the index increment to a decrement causes the pointer to move backward through the OVSF code array. This accesses uninitialized index 0 (never set) and negative indices, violating the sequence generation and causing undefined output values."
+	},
+	{
+		"original_line": "i = i * 2;", 
+		"bug_line": "i = i;",
+		"error_description": "The variable 'i' is not updated correctly during OVSF code generation. This prevents the code from generating the full set of spreading codes, causing only the first two codes to be computed and overwritten repeatedly. Subsequent codes remain uninitialized, leading to incorrect output values for most of the spreading factor period."
+	},
+	{
+		"original_line": "i = i * 2;", 
+		"bug_line": "i = i * 0;",
+		"error_description": "Setting i to zero in every iteration prevents the inner loop from processing subsequent tree levels during OVSF code generation, resulting in incomplete code sequences and incorrect spreading factor implementation."
+	},
+	{
+		"original_line": "if ( tmpIndex < tmpSF ) ovsfCode[j+i] = ovsfCode[j];", 
+		"bug_line": "if ( tmpIndex < tmpSF ) ovsfCode[j] = ovsfCode[j+i];",
+		"error_description": "The assignment direction is reversed. Instead of propagating parent codes to child positions, it overwrites parent codes with uninitialized child values, corrupting the OVSF code generation algorithm."
+	},
+	{
+		"original_line": "if ( i > sf ) begin", 
+		"bug_line": "if ( i < sf ) begin",
+		"error_description": "The condition for checking if sf is a power of two is reversed. The error should trigger when i exceeds sf (indicating non-power-of-two), but now it triggers when i is less than sf. This allows invalid sf values to pass validation, violating the power-of-two requirement."
+	},
+	{
+		"original_line": "      if ( tmpIndex >= tmpSF )", 
+		"bug_line": "      if ( tmpIndex <= tmpSF )",
+		"error_description": "Changed condition from '>=' to '<=', causing incorrect inversion logic. Now inverts and subtracts when index is smaller than current half instead of larger, corrupting the OVSF code generation algorithm."
+	},
+	{
+		"original_line": "i = i *2;", 
+		"bug_line": "i = i * 1;",
+		"error_description": "Changing the multiplication factor from 2 to 1 prevents the loop counter from increasing beyond its initial value (4). This causes an infinite loop when sf > 4 since the exit condition (i >= sf) is never met, violating the power-of-2 validation check for sf."
+	},
+	{
+		"original_line": "i = i * 2;", 
+		"bug_line": "i = i * 0;",
+		"error_description": "Changing the multiplier to 0 resets 'i' to 0 after the first iteration. This prevents the inner loop from executing (since j <= 0 fails) in subsequent iterations, halting OVSF code tree expansion. The ovsfCode array remains uninitialized beyond index 1, causing incorrect output values during simulation."
+	},
+	{
+		"original_line": "i = i * 2;", 
+		"bug_line": "i = i * 1;",
+		"error_description": "The variable i remains constant (multiplied by 1) instead of doubling each iteration. This prevents proper expansion of the OVSF code tree, causing only the first two code elements to be generated while leaving the rest of the array uninitialized, resulting in incorrect code sequences."
+	}
+]

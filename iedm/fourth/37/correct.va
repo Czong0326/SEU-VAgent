@@ -1,0 +1,169 @@
+//======================================================================
+//Copyright @ 2014 Massachusetts Institute of Technology (MIT)
+// 
+// The terms under which the software and associated documentation
+// (the Software) is provided are as the following:
+// 
+// The Software is provided "as is", without warranty of any kind,
+// express or implied, including but not limited to the warranties of
+// merchantability, fitness for a particular purpose and noninfringement.
+// In no event shall the authors or copyright holders be liable for any claim,
+// damages or other liability, whether in an action of contract,
+// tort or otherwise, arising from, out of or in connection with the Software
+// or the use or other dealings in the Software.
+// 
+// MIT grants, free of charge, to any users the right to modify, copy,
+// and redistribute the Software, both within the user's organization and
+// externally, subject to the following restrictions:
+// 
+// 1. The users agree not to charge for the MIT code itself but may charge
+//      for additions, extensions, or support.
+// 
+// 2. In any product based on the Software, the users agree to acknowledge
+//      the MIT Computational Prototyping Research Group that developed
+//      the software. This acknowledgment shall appear in the product
+//      documentation.
+// 
+// 3. The users agree to obey all U.S. Government restrictions governing
+//      redistribution or export of the software.
+// 
+// 4. The users agree to reproduce any copyright notice which appears on
+//      the software on any copy or modification of such made available to others.
+// 
+// Agreed to by 
+// Luca Daniel, MIT
+// August 31st, 2014
+//======================================================================
+// rbtCapTrans.va
+//======================================================================
+// Capacitive transduce module for the RBT compact model
+//
+// Version: 1.0.0
+// Tested on: Cadence Spectre 13.1.1.049 
+//
+// Author: Bichoy Bahr [bichoy at mit dot edu]
+// Last Modified: Aug 31, 2014
+
+
+`include "constants.vams"
+`include "disciplines.vams"
+`include "rbtConst.vams"
+
+
+module rbtCapTrans(p,n,x,T);
+
+inout p,n;
+inout [0:`RBT_NMODES-1] x;
+inout T;
+
+electrical p,n;
+kinematic [0:`RBT_NMODES-1] x;
+thermal T;
+
+// Model parameters
+parameter real version = 1.00;	// version
+parameter real rbt_g = `RBT_G from (0:inf);	// Drive dielectric thickness
+parameter real rbt_epsd = `RBT_EPSD from [1:inf);	// Drive dielectric permittivity
+parameter real rbt_L = `RBT_L from (0:inf); 	// Resonator Length
+parameter real rbt_W = `RBT_W from (0:inf);	// Width of the bar
+parameter real rbt_THK = `RBT_THK from (0:inf);	// Thickness of the bar
+parameter real rbt_d = `RBT_D;	// Drive position from START of bar
+
+parameter real rbt_LTC = `RBT_LTC from [0:inf);	// Expansion coefficient
+parameter real rbt_LDTC = `RBT_LTC from [0:inf);// Drive dielectric expansion coefficient
+parameter real rbt_Tnom = `RBT_T0 from [0:inf); // Nominal temperature
+
+parameter real rbt_rind = `RBT_RIND from [0:inf); // Input resistance for the capacitive drive module
+
+// Internal nodes
+kinematic[0:`RBT_NMODES-1] Un;	// Displacement amplitude at rbt_d - rbt_g/2
+kinematic[0:`RBT_NMODES-1] Up;	// Displacement amplitude at rbt_d + rbt_g/2
+kinematic gapt;		// Time dependent gap
+electrical pi; // Intrinsic p node
+
+// model variables
+real A;		// Cross sectional area
+real dd;	// Drive position from center
+real gn;	// Dielectric start
+real gp;	// Dielectric end
+
+real dT;	// Temperature difference
+real Leff, Weff, teff, geff;
+
+real fdo;	// Driving force constant
+
+real Cin;	// Input capacitance
+real Qin; 	// Input charge
+real iin;	// Input current
+
+real kn[0:`RBT_NMODES-1];	// k number of a given mode
+
+genvar j;		// To generate the mechanical nodes
+
+analog function real smoothg;
+	input x,c;
+	real x,c;
+	smoothg = 0.5 * (x + sqrt(x*x + 4 * c * c));
+endfunction
+
+
+analog begin
+
+	// Temperature rise
+	dT = $temperature + Temp(T) - rbt_Tnom -`P_CELSIUS0;
+	Leff = rbt_L * ( 1 + rbt_LTC * dT);
+	Weff = rbt_W * ( 1 + rbt_LTC * dT);
+	teff = rbt_THK * ( 1 + rbt_LTC * dT);
+	geff = rbt_g * ( 1 + rbt_LDTC * dT);
+	// Geometrical parameters
+	A = Weff * teff;
+	dd = -Leff/2 + rbt_d;
+	gn = dd - geff/2; // dielectric start
+	gp = dd + geff/2; // dielectric end
+	
+	// Input resistance
+	V(p,pi) <+ rbt_rind * I(p,pi)
+		+ white_noise(4*`P_K*($temperature+Temp(T))*rbt_rind, "Rin");
+	
+	// Calculate kn, Un and new dielectric edge position	
+	// The 0th term (1st harmonic)
+	kn[0] = `M_PI/Leff;
+	Pos(Up[0]) <+ gp + Pos(x[0])*sin( kn[0] * gp);
+	Pos(Un[0]) <+ gn + Pos(x[0])*sin( kn[0] * gn);
+	//
+	// The higher harmonics
+	for ( j = 1; j < `RBT_NMODES ; j = j + 1) begin
+		kn[j] = (2*j+1) * `M_PI/Leff;
+		Pos(Up[j]) <+ Pos(Up[j-1]) +  Pos(x[j]) * sin( kn[j] * gp);
+		Pos(Un[j]) <+ Pos(Un[j-1]) +  Pos(x[j]) * sin( kn[j] * gn);
+	end
+	//
+	// Time dependent dielectric thickness
+	Pos(gapt) <+ Pos(Up[`RBT_NMODES-1]) - Pos(Un[`RBT_NMODES-1]);
+
+	// Stress constant (-ve is for compressive stress)
+	fdo = - 0.5 * `P_EPS0 * rbt_epsd;
+	
+	// Apply the actual force
+	for ( j = 0; j < `RBT_NMODES ; j = j + 1) begin
+		F(x[j]) <+ - 2/Leff * fdo  // -ve for VerilogA Contribution
+			* ( sin(kn[j] * Pos(Un[`RBT_NMODES-1]))  // g_start - g_end
+				- sin(kn[j] * Pos(Up[`RBT_NMODES-1]))  ) 
+			* pow( V(pi,n),2) 
+			* limexp( -2 * ln (smoothg(Pos(gapt), `RBT_SMALL_GAP)));
+	end
+
+	// Input capacitance and charge
+	Cin = `P_EPS0 * rbt_epsd * A/Pos(gapt);
+	Qin = Cin * V(pi,n);
+	iin = ddt(Qin);
+	I(pi,n) <+ iin;
+	
+	// Thermal contribution
+	Pwr(T) <+ -V(p,n) * iin;
+
+end // analog end
+
+
+endmodule
+

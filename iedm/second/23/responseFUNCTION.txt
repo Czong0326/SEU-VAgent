@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "@ (cross( V(vin_s) - vtrans, 1, 1.0, vin_s.potential.abstol))", 
+		"bug_line": "@ (cross( V(vin_r) - vtrans, 1, 1.0, vin_s.potential.abstol))",
+		"error_description": "Changed trigger from set input (vin_s) to reset input (vin_r). Now the set logic incorrectly responds to reset signal edges instead of set signal edges, violating the RS flip-flop truth table."
+	},
+	{
+		"original_line": "@ (cross( V(vin_r) - vtrans, -1, 1.0, vin_r.potential.abstol))", 
+		"bug_line": "@ (cross( V(vin_s) - vtrans, -1, 1.0, vin_r.potential.abstol))",
+		"error_description": "Changed the cross event from monitoring reset input (vin_r) to set input (vin_s). This causes the reset flag to be incorrectly updated based on set input activity, violating the flip-flop's state transition logic."
+	},
+	{
+		"original_line": "@ (cross( V(vin_s) - vtrans, -1, 1.0, vin_s.potential.abstol))", 
+		"bug_line": "@ (cross( V(vin_r) - vtrans, -1, 1.0, vin_s.potential.abstol))",
+		"error_description": "Changed vin_s to vin_r in the falling edge trigger. Now monitors reset input instead of set input for falling edges, causing missed set deassertions and incorrect state transitions."
+	},
+	{
+		"original_line": "parameter real tfall = 1u from (0:inf);", 
+		"bug_line": "parameter real tfall = 1u from [0:inf);",
+		"error_description": "Changing the range from exclusive (0:inf) to inclusive [0:inf) allows tfall=0, causing instant fall transitions which violate the intended finite transition time requirement and risk simulation instability."
+	},
+	{
+		"original_line": "parameter real vtrans = 2.5;", 
+		"bug_line": "parameter real vtrans = 10.0;",
+		"error_description": "The threshold voltage vtrans is set to 10.0V instead of 2.5V. Since the high logic level is 5.0V, inputs will never exceed the threshold voltage. This prevents the flip flop from detecting high signals, making the set/reset functionality non-operational as all inputs are permanently considered low."
+	},
+	{
+		"original_line": "         input_trans1 = 1;", 
+		"bug_line": "         input_trans1 = input_trans2;",
+		"error_description": "Assigns input_trans1 the value of input_trans2 (reset signal) instead of 1 on set rising edge. This causes incorrect state updates where set operations depend on reset signal state, violating the RS flip-flop truth table."
+	},
+	{
+		"original_line": "parameter real trise = 1u from (0:inf);", 
+		"bug_line": "parameter real trise = -1u from (0:inf);",
+		"error_description": "Negative rise time (-1u) violates physical constraints and causes simulation failures in transition functions as time constants must be positive."
+	},
+	{
+		"original_line": "@ (cross( V(vin_s) - vtrans, -1, 1.0, vin_s.potential.abstol))", 
+		"bug_line": "@ (cross( V(vin_s) - vtrans, +1, 1.0, vin_s.potential.abstol))",
+		"error_description": "Changed falling edge detection (-1) to rising edge detection (+1) for set input. This causes both edges to trigger rising-edge logic, resulting in incorrect state transitions where set operations get immediately cleared."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed 'analog' block to 'initial' block, causing the flip-flop logic to execute only once at time zero instead of continuously monitoring input transitions, breaking the sequential behavior."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* instrument_module = "stuck_at_0" *)",
+		"error_description": "Modified attribute injects a 'stuck_at_0' fault, forcing output q to always be 0 regardless of inputs, violating flip-flop truth table behavior."
+	},
+	{
+		"original_line": "parameter real vtrans = 2.5;", 
+		"bug_line": "parameter real vtrans = 5;",
+		"error_description": "The threshold voltage is set equal to the logic high voltage (5V). Since the condition checks for input voltage > vtrans, a nominal high input (exactly 5V) won't trigger state transitions, causing missed set/reset commands."
+	},
+	{
+		"original_line": "@ (cross( V(vin_s) - vtrans, -1, 1.0, vin_s.potential.abstol))", 
+		"bug_line": "@ (cross( V(vin_s) - vtrans, +1, 1.0, vin_s.potential.abstol))",
+		"error_description": "Changed falling-edge detection (-1 direction) to rising-edge detection (+1 direction) for set input. This causes the flip-flop to incorrectly trigger on rising edges of the set signal instead of falling edges, violating the intended edge-triggered behavior."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "(* no_instrumentation *)",
+		"error_description": "Replacing 'instrument_module' with 'no_instrumentation' disables simulator instrumentation for noise/sensitivity analysis, causing inaccurate results in those domains while the core logic remains unaffected."
+	},
+	{
+		"original_line": "      else if (input_trans2) begin", 
+		"bug_line": "      else if (input_trans1) begin",
+		"error_description": "Changed reset condition to incorrectly check set input. Now reset only occurs when set is high instead of when reset is high, causing the flip-flop to malfunction when both inputs are active."
+	},
+	{
+		"original_line": "V(vout_qbar) <+ transition( vlogic_high*!q + vlogic_low*q,", 
+		"bug_line": "V(vout_qbar) <+ transition( vlogic_high*q + vlogic_low*!q,",
+		"error_description": "The output vout_qbar incorrectly uses the same non-inverted logic as vout_q instead of the complement. This violates the flip-flop's truth table where qbar must always be the inverse of q, causing both outputs to be identical during normal operation."
+	},
+	{
+		"original_line": "parameter real vtrans = 2.5;", 
+		"bug_line": "parameter real vtrans = 5.0;",
+		"error_description": "Threshold voltage (vtrans) equals logic high voltage (5V), causing inputs to never register as high since voltage must exceed vtrans. This prevents set/reset operations and locks the flip-flop state."
+	},
+	{
+		"original_line": "parameter real vlogic_high = 5;", 
+		"bug_line": "parameter real vlogic_high = 0;",
+		"error_description": "Setting vlogic_high to 0V causes both logic states to output the same voltage (0V) since vlogic_low defaults to 0V, making the flip-flop unable to distinguish between high and low states and breaking output functionality."
+	},
+	{
+		"original_line": "    tdel, trise, tfall );", 
+		"bug_line": "    tdel, tfall, trise );",
+		"error_description": "Swapped rise and fall time parameters for the complementary output transition. This causes incorrect timing behavior where the rise time uses the fall time constant and vice versa for qbar output."
+	},
+	{
+		"original_line": "      V(vout_qbar) <+ transition( vlogic_high*!q + vlogic_low*q,", 
+		"bug_line": "      V(vout_qbar) <+ transition( vlogic_high*q + vlogic_low*!q,",
+		"error_description": "The modified line incorrectly assigns the same value to Qbar as Q (instead of the complement), causing both outputs to be identical and violating the flip-flop's fundamental requirement for complementary outputs."
+	},
+	{
+		"original_line": "electrical vin_s, vin_r, vout_q, vout_qbar;", 
+		"bug_line": "electrical vin_s, vin_r, vout_q;",
+		"error_description": "Missing declaration for vout_qbar pin, causing undefined reference errors when accessing vout_qbar in output assignments."
+	}
+]

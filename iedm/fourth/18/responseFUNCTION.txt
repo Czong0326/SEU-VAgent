@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "@(initial_step) begin", 
+		"bug_line": "begin",
+		"error_description": "Removed the initial_step event trigger, causing the initialization block to execute continuously at every timestep instead of just once during initialization. This continuously recalculates parameters (a, b, ip, etc.), fundamentally altering the mixer's behavior and violating the design's requirement for one-time initialization."
+	},
+	{
+		"original_line": "rhoinmax = sqrt(a/(3*b));", 
+		"bug_line": "rhoinmax = sqrt(a/(2*b));",
+		"error_description": "Changed denominator constant from 3 to 2, miscalculating the input amplitude where output peaks. The correct derivation from the third-order polynomial (a*rho - b*rho^3) requires setting derivative a - 3*b*rho^2 = 0, giving rho = sqrt(a/(3*b)). Using 2 instead of 3 shifts the compression point and distorts the gain curve."
+	},
+	{
+		"original_line": "electrical phase_err;", 
+		"bug_line": "input electrical phase_err;",
+		"error_description": "Changed phase_err from inout to input direction. The module drives current into this port (I(phase_err) <+ ...), but input ports cannot be driven internally, violating electrical discipline rules and causing simulation errors."
+	},
+	{
+		"original_line": "`define PI 3.1415926535897932384626433", 
+		"bug_line": "`define PI 0",
+		"error_description": "Setting PI to 0 instead of π causes incorrect phase calculations. When I_in=0, theta is set to 0 instead of π/2 (for Q_in>0) or -π/2 (for Q_in<0), corrupting the I/Q output signals and AM/PM conversion."
+	},
+	{
+		"original_line": "parameter real psinf = 2 from (pscp:inf);", 
+		"bug_line": "parameter real psinf = 0.5 from (0:inf);",
+		"error_description": "The default value of psinf is reduced to 0.5, which is below the default pscp (0.7). This violates the requirement that psinf must exceed pscp, causing a negative beta value in phase shift calculations and potential division-by-zero errors when beta*tmp = -1."
+	},
+	{
+		"original_line": "electrical Q_out;", 
+		"bug_line": "input electrical Q_out;",
+		"error_description": "Changing Q_out from inout to input prevents driving the output current in the analog block, violating the mixer's output stage functionality."
+	},
+	{
+		"original_line": "`define PI 3.1415926535897932384626433", 
+		"bug_line": "`define PI 0.0",
+		"error_description": "Setting PI to 0.0 corrupts all angle calculations. When I_in=0, theta incorrectly becomes 0 instead of ±π/2 radians, causing erroneous coordinate rotation and corrupting I/Q outputs."
+	},
+	{
+		"original_line": "theta = 0;", 
+		"bug_line": "a = 0;",
+		"error_description": "Overwrites the gain factor 'a' with zero instead of initializing 'theta'. This causes the mixer's gain calculation to fail (rhoout becomes zero), resulting in no signal output regardless of input, violating the gain specification."
+	},
+	{
+		"original_line": "parameter real rout = 50 from (0:inf);", 
+		"bug_line": "parameter real rout = 0 from [0:inf);",
+		"error_description": "Setting default rout to 0 and including 0 in range causes division-by-zero in output current branches (I(I_out)/rout and I(Q_out)/rout) since rout is used as denominator. This violates physical resistance requirements and crashes simulation."
+	},
+	{
+		"original_line": "I(I_in) <+ white_noise(noise_current*noise_current, "dwn_cnvrt_i");", 
+		"bug_line": "I(I_out) <+ white_noise(noise_current*noise_current, "dwn_cnvrt_i");",
+		"error_description": "Noise intended for input I_in is incorrectly added to output I_out. This directional error misplaces input-referred noise to the output stage, corrupting both noise figure calculations and signal integrity at the output node."
+	},
+	{
+		"original_line": "shift is only in one direction. +1 means counter-clockwise, -1", 
+		"bug_line": "shift is only in one direction. +1 means clockwise, -1",
+		"error_description": "Swapped rotation direction: +1 now incorrectly indicates clockwise rotation while code implements +1 as counter-clockwise. This creates directional inversion in phase shift control without modifying underlying logic."
+	},
+	{
+		"original_line": "parameter real flo = 0.9e9;", 
+		"bug_line": "parameter real flo = 1.1e9;",
+		"error_description": "LO frequency (1.1GHz) exceeds RF frequency (1GHz), causing incorrect sign selection for quadrature output rotation. This inverts the complex baseband representation during downconversion."
+	},
+	{
+		"original_line": "rnf = pow(10,nf/10);", 
+		"bug_line": "rnf = pow(10,nf/20);",
+		"error_description": "Incorrectly uses voltage ratio conversion (nf/20) instead of power ratio (nf/10) for noise figure calculation. This causes rnf to be underestimated by a square root factor, reducing computed noise current and violating noise performance specifications."
+	},
+	{
+		"original_line": "     rnf = pow(10,nf/10);", 
+		"bug_line": "     rnf = pow(10,nf/20);",
+		"error_description": "Incorrect exponent (20 instead of 10) for noise figure dB-to-linear conversion. This treats NF as a voltage ratio instead of power ratio, underestimating noise by sqrt(rnf). For example, NF=2dB would compute as 1.26 instead of 1.58."
+	},
+	{
+		"original_line": "parameter real psinf = 2 from (pscp:inf);", 
+		"bug_line": "parameter real psinf = 2 from (0:pscp);",
+		"error_description": "The constraint range for psinf is reversed. Instead of requiring values greater than pscp (psinf > pscp) as per design, it now forces psinf to be less than pscp. This violates the fundamental requirement that the output phase shift at infinite power must exceed the phase shift at the comparison point."
+	},
+	{
+		"original_line": "else rhoout = rhooutmax;", 
+		"bug_line": "else rhoout = rhoinmax;",
+		"error_description": "The output amplitude for large input signals (above compression point) is incorrectly clamped to the maximum input amplitude (rhoinmax) instead of the maximum output amplitude (rhooutmax). This causes the output level to be too low since rhoinmax is smaller than rhooutmax, violating the intended compression behavior."
+	},
+	{
+		"original_line": "  I(Q_in) <+ white_noise(noise_current*noise_current, "dwn_cnvrt_q");", 
+		"bug_line": "  I(Q_in) <+ white_noise(noise_current*noise_current, "dwn_cnvrt_i");",
+		"error_description": "Using identical noise seed strings for I_in and Q_in branches creates correlated noise sources. The design requires independent noise sources for I and Q channels to properly model uncorrelated thermal noise. This correlation distorts baseband signal processing and violates noise independence requirements."
+	},
+	{
+		"original_line": "real a;", 
+		"bug_line": "real a = 0;",
+		"error_description": "Initializing 'a' to 0 creates a race condition where the initial_step block assignment occurs after module initialization, causing incorrect gain calculations in subsequent analog operations due to improper overwrite timing."
+	},
+	{
+		"original_line": "rho = hypot(V(I_in),V(Q_in));", 
+		"bug_line": "rho = hypot(V(I_out),V(Q_out));",
+		"error_description": "Changed input magnitude calculation to use output voltages instead of inputs, creating a directional error where the mixer's nonlinearity incorrectly depends on its own output signals rather than input signals, causing feedback instability and distorted conversion."
+	},
+	{
+		"original_line": "a = sqrt(pow(10,gain/10)*rout/rin);", 
+		"bug_line": "a = sqrt(pow(10,gain/10)*rin/rout);",
+		"error_description": "Swapped rin and rout in the impedance ratio term. This inverts the resistance scaling factor, causing incorrect gain calculation where higher input resistance now decreases gain instead of increasing it."
+	}
+]

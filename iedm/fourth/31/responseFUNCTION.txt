@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "      if(a1 > sqrt(rgain/(3*c3))) ", 
+		"bug_line": "      if(a1 < sqrt(rgain/(3*c3))) ",
+		"error_description": "Changed comparison operator from '>' to '<'. This inverts the saturation logic, causing the RF input to be clipped at low amplitudes instead of high amplitudes. This results in signal distortion during normal operation while failing to prevent saturation at high input levels."
+	},
+	{
+		"original_line": "a3 = V(out)/sqrt(rout)+I(out, out_int)*sqrt(rout);", 
+		"bug_line": "a3 = V(out)/sqrt(rout)+I(out, out_int)*sqrt(rin);",
+		"error_description": "Uses input impedance (rin) instead of output impedance (rout) in current term, breaking port normalization by mixing input/output impedances in the incident wave calculation for the output port."
+	},
+	{
+		"original_line": "electrical lp0, lp1, lp2, lp3;", 
+		"bug_line": "electrical lp0, lp1, lp2;",
+		"error_description": "Removed node lp3 declaration, causing an undefined reference in the low-pass filter (V(lp3)). This prevents DC component subtraction from the LO signal, corrupting the mixer's IP2 performance and output signal integrity."
+	},
+	{
+		"original_line": "`define db20_real(x)  (pow(10, (x)/20))", 
+		"bug_line": "`define db20_real(x)  (pow(10, (x)/200))",
+		"error_description": "Changed divisor from 20 to 200, causing incorrect dB-to-linear conversion. This error will make all parameters using this macro (gain, isolation values) 10× smaller than intended, severely underestimating mixer performance."
+	},
+	{
+		"original_line": "a2 = a2limit;", 
+		"bug_line": "a2 = 0;",
+		"error_description": "The clipping logic incorrectly sets the LO incident wave to zero when exceeding the saturation limit instead of clipping to a2limit. This error causes complete loss of LO signal during saturation conditions, breaking the mixer functionality by eliminating the carrier signal needed for frequency conversion."
+	},
+	{
+		"original_line": "   parameter real ip2 = 5;", 
+		"bug_line": "   parameter real ip2 = -5;",
+		"error_description": "Changed IP2 default value to -5 dBm. Negative IP2 violates physical constraints as intercept points must be positive values representing power levels. This causes non-physical distortion calculations and potential numerical errors in the mixer model."
+	},
+	{
+		"original_line": "a1 = V(in)/sqrt(rin)+I(in, in_int)*sqrt(rin);", 
+		"bug_line": "a1 = V(in)/sqrt(rin)+I(lo, in_int)*sqrt(rin);",
+		"error_description": "The current term incorrectly uses I(lo, in_int) instead of I(in, in_int). This introduces a directional error where the LO port current contaminates the input incident wave calculation, disrupting the mixer's input impedance and wave normalization."
+	},
+	{
+		"original_line": "I(in_int) <+ V(in)/rin;", 
+		"bug_line": "I(in_int) <+ V(in)/rout;",
+		"error_description": "Changed input impedance from rin to rout. This violates design specification where input impedance should be set by parameter rin (50Ω), not output impedance rout (200Ω), causing impedance mismatch at input port."
+	},
+	{
+		"original_line": "      if(a2t2 > a2t2limit)", 
+		"bug_line": "      if(a2t2 < a2t2limit)",
+		"error_description": "The inequality direction is flipped, causing the squared LO term (a2t2) to be incorrectly clipped when BELOW the positive limit instead of above. This creates a signal floor rather than a ceiling, distorting the squared term by boosting small values to the limit and failing to clip large positive peaks, which corrupts IP2 modeling and intermodulation distortion behavior."
+	},
+	{
+		"original_line": "else if(a1 < -sqrt(rgain/(3*c3)))", 
+		"bug_line": "else if(a1 > -sqrt(rgain/(3*c3)))",
+		"error_description": "The inequality direction is reversed. Instead of clipping when the input signal a1 is below the negative saturation threshold, it now incorrectly clips when a1 is above the threshold. This inverts the saturation behavior for negative inputs."
+	},
+	{
+		"original_line": "real      rplo;         // amplitude of the LO signal", 
+		"bug_line": "real      rplo = 0;         // amplitude of the LO signal",
+		"error_description": "Initializing rplo to 0 creates a constant 0 value for LO signal amplitude, overriding the intended plo-based calculation. This breaks the mixer's LO-dependent functionality (gain, clipping, IP2/IP3) as all LO-related terms become zero-dependent."
+	},
+	{
+		"original_line": "real      a1, a2, a3;", 
+		"bug_line": "real      a2, a3;",
+		"error_description": "Removed declaration of variable a1, causing undefined reference errors in calculations using a1 (input incident wave). This breaks gain, saturation, and distortion computations dependent on a1."
+	},
+	{
+		"original_line": "   parameter real ip3 = 5;", 
+		"bug_line": "   parameter real ip3 = -5;",
+		"error_description": "Setting ip3 to -5 dBm creates a negative value for input-referenced third-order intercept point. This causes division by zero in line 92 (rip3 calculation) since `db10_real(ip3-30)` becomes zero when ip3=-∞, leading to simulation failure due to invalid operation."
+	},
+	{
+		"original_line": "      @(initial_step) begin", 
+		"bug_line": "      @(initial_stepx) begin",
+		"error_description": "Introducing a typo in the event name (initial_stepx) prevents the initialization block from executing. This leaves critical parameters (s12, s31, s32, rgain, etc.) uninitialized, causing incorrect gain, isolation, and noise calculations throughout the simulation."
+	},
+	{
+		"original_line": "real      rip2, rip3;     // real ip2 and ip3", 
+		"bug_line": "real      rip2, rip3 = 0;     // real ip2 and ip3",
+		"error_description": "Initializing rip3 to 0 creates an incorrect fixed value that overrides its later assignment. The variable rip3 should be calculated dynamically from ip3 but remains stuck at 0, disabling IP3 distortion effects and making the mixer appear perfectly linear regardless of the ip3 parameter."
+	},
+	{
+		"original_line": "      if(a2t2 > a2t2limit)", 
+		"bug_line": "      if(a2t2 > a2t2limit * 0.1)",
+		"error_description": "Reduces the clipping threshold for the second-order LO term by a factor of 10. This causes premature saturation of the mixer's nonlinearity, distorting the output signal even at low input power levels and violating IP2/IP3 specifications."
+	},
+	{
+		"original_line": "   parameter real isolation_LO2IN = 20 from (0:inf);", 
+		"bug_line": "   parameter real isolation_LO2IN = -20 from [-100:100];",
+		"error_description": "Changed default isolation value to negative (-20 dB) and allowed negative range. Negative isolation implies signal gain instead of attenuation from LO to IN, causing LO signal amplification and leakage into input port, violating mixer isolation specifications."
+	},
+	{
+		"original_line": "I(out_int) <+ V(out)/rout;", 
+		"bug_line": "I(out_int) <+ V(out)/rin;",
+		"error_description": "Uses input resistance 'rin' instead of output resistance 'rout' for output impedance modeling. This incorrectly sets output impedance to match input resistance, violating specified output impedance parameter and causing impedance mismatch at output port."
+	},
+	{
+		"original_line": "I(in_int) <+ V(in)/rin;", 
+		"bug_line": "I(in_int) <+ V(lo)/rin;",
+		"error_description": "Changed input impedance current source from using input voltage (V(in)) to LO voltage (V(lo)). This incorrectly couples the LO signal into the input impedance path, causing LO leakage to the input port and violating the specified input isolation requirements."
+	},
+	{
+		"original_line": "`define db20_real(x)  (pow(10, (x)/20))", 
+		"bug_line": "`define db20_real(x)  (pow(10, (x)/10))",
+		"error_description": "Changed the dB conversion divisor from 20 to 10, incorrectly converting voltage-related parameters (like gain and isolation) using power dB scaling. This results in sqrt(10) magnitude errors for every dB value, causing incorrect linear scaling of critical mixer parameters like gain, isolation, and IP points."
+	}
+]

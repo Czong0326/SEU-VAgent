@@ -1,0 +1,126 @@
+// VerilogA for xihu_test, scr_xh, veriloga
+                                                                                                                                        
+`include "constants.vams"
+`include "disciplines.vams"
+                                                                                                                                        
+(* instrument_module *)
+
+module scr_xh( I_out, Q_out );
+
+output I_out, Q_out;
+electrical I_out, Q_out;
+
+//scrCode is the n of code sequence Sdl,n
+parameter integer scrCode     = 8064;
+parameter integer poly_order  = 18;
+parameter integer numChipsOut = 256;
+
+
+parameter integer imag_shift = 131072;
+
+parameter real frame_time     = 1.0/15000.0 from (0:inf);
+
+//Real part of Sdl,n
+integer x[0:poly_order]; 
+integer y[0:poly_order];
+
+//image part of Sdl,n
+integer x2[0:poly_order]; 
+integer y2[0:poly_order]; 
+
+//Backup used for repeat after 10ms Radio frame
+integer x_back[0:poly_order]; 
+integer y_back[0:poly_order];
+
+integer x2_back[0:poly_order]; 
+integer y2_back[0:poly_order]; 
+
+integer i, j, xshift ;
+real  tmpReal, tmpImag;
+integer tmpOut[0:1];
+real local_sample;
+
+analog begin
+  @(initial_step) begin
+    local_sample = frame_time / numChipsOut;
+    xshift = imag_shift + scrCode;
+    for(i=0; i < 18; i=i+1) begin
+       y[i] = 1 ;
+       y2[i] = 1;
+       if(i == 0) begin
+         x[i] = 1;
+         x2[i]= 1;
+       end else begin
+         x[i] = 0;
+         x2[i] = 0;
+       end
+     end
+    for(i=0; i < xshift; i=i+1) begin
+       x2[18] = (x2[7] + x2[0]) % 2;
+       for(j=0; j < 18 ; j=j+1) 
+         x2[j] = x2[j+1];
+    end
+
+    for(i=0; i < scrCode; i=i+1) begin
+       x[18] = ( x[7] + x[0] ) % 2;
+       for(j=0; j < 18 ; j=j+1)
+          x[j] = x[j+1];
+    end
+    
+    for(i=0; i < imag_shift; i=i+1) begin
+       y2[18] = ( y2[10] + y2[7] + y2[5] + y2[0] ) % 2;
+       for(j=0; j < 18; j=j+1)
+          y2[j] = y2[j+1];
+    end
+    
+    for(i=0; i <= poly_order; i=i+1) begin
+       x_back[i] = x[i];
+       y_back[i] = y[i];
+       x2_back[i] = x2[i];
+       y2_back[i] = y2[i];
+    end
+    i = 0;
+  end
+  
+  @(timer(local_sample/500, local_sample, local_sample/10000)) begin
+     if(i < 18 ) begin
+        tmpOut[0] = x[i] + y[i];
+        tmpOut[1] = x2[i] + y2[i];
+     end else begin
+        x[18] = ( x[7] + x[0] ) % 2;
+        x2[18] = ( x2[7] + x2[0] ) % 2;
+        y2[18] = ( y2[10] + y2[7] + y2[5] + y2[0] ) % 2;
+        y[18] = ( y[10] + y[7] + y[5] + y[0] ) % 2;
+        for(j=0; j < 18; j=j+1) begin
+           x[j] = x[j+1];
+           y[j] = y[j+1];
+           x2[j] = x2[j+1];
+           y2[j] = y2[j+1];
+        end
+        tmpOut[0] = x[18] + y[18];
+        tmpOut[1] = x2[18] + y2[18];
+     end 
+     tmpOut[0] = tmpOut[0] % 2 ;
+     tmpOut[1] = tmpOut[1] % 2 ;
+     
+    if ( tmpOut[0] > 0 ) tmpReal  = - `M_SQRT1_2;
+    else tmpReal  = `M_SQRT1_2 ;
+    if ( tmpOut[1] > 0 ) tmpImag = - `M_SQRT1_2;
+    else tmpImag = `M_SQRT1_2;
+    i = i+1;
+    if(i == 38400) begin
+       for(j=0; j <=18; j=j+1) begin
+          x[j] = x_back[j];
+          y[j] = y_back[j];
+          x2[j] = x2_back[j];
+          y2[j] = y2_back[j];
+       end
+       i = 0;
+    end
+  end
+
+  V(I_out)   <+ tmpReal;
+  V(Q_out)   <+ tmpImag;
+
+end
+endmodule

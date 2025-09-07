@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "deltapH       =        pH-pzc;", 
+		"bug_line": "deltapH       =        pzc - pH;",
+		"error_description": "Reversed subtraction order flips the sign of the pH difference from the point of zero charge, causing inverted surface charge calculations and incorrect potential responses to pH changes."
+	},
+	{
+		"original_line": "`include "constants.vams"", 
+		"bug_line": "`include "wrong_constants.vams"",
+		"error_description": "Changed include filename to a non-existent file, causing all physical constants (P_Q, P_EPS0, etc.) to be undefined. This breaks all electrolyte property calculations and surface charge computations since critical constants are missing."
+	},
+	{
+		"original_line": "real n0;", 
+		"bug_line": "real n0 = 0;",
+		"error_description": "Initialized n0 to 0 instead of leaving it uninitialized. This causes the ionic concentration calculation to be overwritten by the analog block assignment, resulting in incorrect Q0dl calculation due to premature zero value usage before the proper assignment occurs."
+	},
+	{
+		"original_line": "real pH;", 
+		"bug_line": "integer pH;",
+		"error_description": "Changed 'pH' variable type from real to integer, causing truncation of fractional pH values during assignment. This loses precision in pH calculations critical for accurate surface charge modeling."
+	},
+	{
+		"original_line": "real Q0dl, Q0, Qratio, dpH;", 
+		"bug_line": "real Q0dl, Q0, Qratio, dpH, pKa;",
+		"error_description": "Added local variable 'pKa' that shadows the module parameter 'pKa'. This uninitialized local variable (default 0.0) overrides the parameter value in calculations, causing incorrect pzc computation and subsequent pH response errors."
+	},
+	{
+		"original_line": "        deltapH       =        pH-pzc;   ", 
+		"bug_line": "        deltapH       =        pzc - pH;   ",
+		"error_description": "Reversed the subtraction order, making deltapH negative of its intended value. This inverts the pH deviation from the point of zero charge, causing incorrect surface charge calculations and shifted pH response."
+	},
+	{
+		"original_line": "`define RP_EPSw 80", 
+		"bug_line": "`define RP_EPSw 1",
+		"error_description": "Changed relative permittivity of water from correct value 80 to incorrect value 1 (vacuum permittivity). This severely underestimates electrolyte capacitance, breaking double-layer charge calculations and surface potential modeling."
+	},
+	{
+		"original_line": "dpH           =        `M_LN10*deltapH;", 
+		"bug_line": "dpH           =        `M_LN10*deltapK;",
+		"error_description": "Replaced deltapH (pH-pzc) with deltapK (pKb-pKa), making dpH a constant independent of input pH, thereby breaking pH sensitivity."
+	},
+	{
+		"original_line": "real ew;", 
+		"bug_line": "real ew = 0;",
+		"error_description": "Initializing 'ew' (water permittivity) to 0 creates a division-by-zero error in Q0dl calculation since Q0dl = sqrt(8.0 * ew * $vt * `P_Q * n0), breaking the surface charge model."
+	},
+	{
+		"original_line": "    if(sternmod == 0) begin", 
+		"bug_line": "    if(sternmod != 0) begin",
+		"error_description": "The condition incorrectly checks for sternmod != 0 instead of sternmod == 0. This swaps the model behavior: the original double-layer model (sternmod=0) now executes when sternmod=1, while the Stern model (sternmod=1) runs when sternmod=0, violating the design specification for sternmod control."
+	},
+	{
+		"original_line": "real n0;", 
+		"bug_line": "real n0 = 0;",
+		"error_description": "Initializes n0 to 0 instead of leaving it uninitialized. This causes the subsequent assignment (n0 = `N_AVG*i0;) to be overwritten by the initial value, resulting in permanently zero ionic concentration. This breaks the double-layer charge calculation (Q0dl) and surface potential computation."
+	},
+	{
+		"original_line": "`define RP_EPSw 80", 
+		"bug_line": "`define RP_EPSw 8",
+		"error_description": "Changed relative permittivity of water from 80 to 8, severely underestimating electrolyte capacitance. This distorts double-layer charge (Q0dl) calculations, causing incorrect surface potential derivation and pH response inaccuracies."
+	},
+	{
+		"original_line": "Q0            =        2*`P_Q*NOH_SI;", 
+		"bug_line": "Q0            =        2*`P_Q*NOH;",
+		"error_description": "Changed NOH_SI to NOH. NOH_SI is the surface site density in m⁻² (converted from NOH in cm⁻² by multiplying by 1e4). Using NOH (cm⁻²) without conversion makes Q0 10,000 times too small, severely underestimating surface charge density and breaking the charge balance in the model."
+	},
+	{
+		"original_line": "dpH           =        `M_LN10*deltapH;", 
+		"bug_line": "dpH           =        `M_LN10*pH;",
+		"error_description": "Changed 'deltapH' (pH-pzc) to 'pH', removing the point-of-zero-charge reference. This breaks the surface charge calculation by ignoring the critical pzc offset, making the model insensitive to the material-specific zero-charge condition."
+	},
+	{
+		"original_line": "real pzc, deltapK;", 
+		"bug_line": "real pzc, pKb;",
+		"error_description": "Redeclaration of parameter 'pKb' as a variable. The parameter pKb is already defined, causing a compilation error due to duplicate identifier in the same scope."
+	},
+	{
+		"original_line": "        deltapK       =        pKb-pKa;    ", 
+		"bug_line": "        deltapK       =        pKa-pKb;    ",
+		"error_description": "The operands for deltapK calculation are swapped. This inverts the sign of the surface charge difference, causing incorrect calculation of the surface potential constant 'c' and violating the charge balance model."
+	},
+	{
+		"original_line": "vfi           =        V(interface,fgate);", 
+		"bug_line": "vfi           =        V(interface,pHnode);",
+		"error_description": "Incorrect voltage measurement: instead of measuring between interface and fgate (reference electrode), now measures between interface and pH input node. This violates the electrochemical reference system by using the pH input voltage as the reference potential, corrupting all surface potential calculations."
+	},
+	{
+		"original_line": "c             =        limexp(`M_LN10*deltapK/2.0);", 
+		"bug_line": "c             =        limexp(`M_LN10*deltapH/2.0);",
+		"error_description": "Changed variable from deltapK (pKb-pKa) to deltapH (pH-pzc). This makes c incorrectly depend on pH instead of material properties, distorting surface charge calculation since c should be constant for given pKa/pKb."
+	},
+	{
+		"original_line": "            Qratio        =        Q0/Q0dl;", 
+		"bug_line": "            Qratio        =        Q0dl/Q0;",
+		"error_description": "Inverted the charge density ratio calculation. Instead of surface charge density divided by double-layer charge density (Q0/Q0dl), the modified line computes Q0dl/Q0. This inversion severely miscalculates the potential by making the argument to asinh orders of magnitude larger/smaller than intended, violating charge balance physics."
+	},
+	{
+		"original_line": "real pzc, deltapK;", 
+		"bug_line": "real pzc, deltapKa;",
+		"error_description": "Changed variable name 'deltapK' to 'deltapKa', causing an undeclared identifier error when 'deltapK' is later used in calculations. This breaks the surface charge computation since deltapK = pKb - pKa is never stored correctly."
+	}
+]

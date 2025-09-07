@@ -1,0 +1,158 @@
+// VerilogA for sources_modules, wcdmw_spreading, veriloga
+//
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+(* instrument_module *)
+module wcdma_spreading(I_in_dpch, I_in_p_cpich, I_in_pich, I_in_p_ccpch,
+                        Q_in_dpch, Q_in_p_cpich, Q_in_pich, Q_in_p_ccpch,
+                        I_out_dpch, I_out_p_cpich, I_out_pich, I_out_p_ccpch,
+			Q_out_dpch, Q_out_p_cpich, Q_out_pich, Q_out_p_ccpch );
+input  I_in_dpch, I_in_p_cpich, I_in_pich, I_in_p_ccpch,
+       Q_in_dpch, Q_in_p_cpich, Q_in_pich, Q_in_p_ccpch;
+output I_out_dpch, I_out_p_cpich, I_out_pich, I_out_p_ccpch,
+       Q_out_dpch, Q_out_p_cpich, Q_out_pich, Q_out_p_ccpch;
+
+electrical I_in_dpch, I_in_p_cpich, I_in_pich, I_in_p_ccpch,
+           Q_in_dpch, Q_in_p_cpich, Q_in_pich, Q_in_p_ccpch;
+electrical I_out_dpch, I_out_p_cpich, I_out_pich, I_out_p_ccpch,
+           Q_out_dpch, Q_out_p_cpich, Q_out_pich, Q_out_p_ccpch;
+
+parameter integer sf = 128 from [4:512];
+parameter integer dpch_code = 10;
+parameter integer pcpich_code = 0;
+parameter integer pich_code = 4;
+parameter integer pccpch_code = 1;
+parameter real frame_time = 1.0/15000.0 from (0:inf);
+parameter integer oversample = 128;
+
+real I_out_tmp_dpch,   I_out_tmp_p_cpich,  I_out_tmp_pich,   I_out_tmp_p_ccpch,
+      Q_out_tmp_dpch, Q_out_tmp_p_cpich, Q_out_tmp_pich, Q_out_tmp_p_ccpch;
+integer localsf[0:3], codeIndex[0:3], ovsfCode[0:512];
+integer dpch_ovsfCode[0:sf],
+            pcpich_ovsfCode[0:256],
+	    pich_ovsfCode[0:256],
+	    pccpch_ovsfCode[0:256];
+integer i, j, n, tmpIndex, tmpSF, tmpInteger;
+real      I_out_hold_dpch,   I_out_hold_p_cpich,  I_out_hold_pich,   I_out_hold_p_ccpch,
+            Q_out_hold_dpch, Q_out_hold_p_cpich, Q_out_hold_pich, Q_out_hold_p_ccpch;
+real sampled;
+
+analog begin
+  @(initial_step) begin
+    sampled = frame_time / oversample / 2.0;
+    I_out_tmp_dpch         = 0;
+    I_out_tmp_p_cpich    = 0;
+    I_out_tmp_pich          = 0;
+    I_out_tmp_p_ccpch   = 0;
+    Q_out_tmp_dpch       = 0;
+    Q_out_tmp_p_cpich  = 0;
+    Q_out_tmp_pich        = 0;
+    Q_out_tmp_p_ccpch = 0;
+
+    localsf[0]        = sf;
+    localsf[1]        = 256;
+    localsf[2]        = 256;
+    localsf[3]        = 256;
+    codeIndex[0] = dpch_code;
+    codeIndex[1] = pcpich_code;
+    codeIndex[2] = pich_code;
+    codeIndex[3] = pccpch_code;
+
+    ovsfCode[1]               = 1;
+    dpch_ovsfCode[1]     = 1;
+    pcpich_ovsfCode[1]  = 1;
+    pich_ovsfCode[1]      = 1;
+    pccpch_ovsfCode[1] = 1;
+
+    for ( n = 0; n < 4; n = n + 1 ) begin
+      tmpIndex = codeIndex[n];
+      tmpSF = localsf[n];
+      i = 1;
+      while ( tmpSF > 1 ) begin
+        tmpSF = tmpSF / 2;
+        for (j = 1; j <=i; j = j + 1 ) begin
+	  tmpInteger = j+i;
+          if ( tmpIndex < tmpSF ) ovsfCode[tmpInteger] = ovsfCode[j];
+          else ovsfCode[tmpInteger] = - ovsfCode[j];
+	  if ( n == 0 ) dpch_ovsfCode[tmpInteger] = ovsfCode[tmpInteger];
+	  else if ( n == 1) pcpich_ovsfCode[tmpInteger] = ovsfCode[tmpInteger];
+	  else if ( n == 2 ) pich_ovsfCode[tmpInteger] = ovsfCode[tmpInteger];
+	  else pccpch_ovsfCode[tmpInteger] = ovsfCode[tmpInteger];
+        end
+        i = i * 2;
+        if ( tmpIndex >= tmpSF )
+          tmpIndex = tmpIndex - tmpSF;
+      end /* end of While */
+      tmpIndex = 1;
+    end
+    i = 0;
+  end
+
+ 
+  @(timer(sampled/500, sampled, sampled/10000)) begin
+      I_out_hold_dpch          = V(I_in_dpch);
+      I_out_hold_p_cpich     = V(I_in_p_cpich);
+      I_out_hold_pich           = V(I_in_pich);
+      I_out_hold_p_ccpch    = V(I_in_p_ccpch);
+      Q_out_hold_dpch        = V(Q_in_dpch );
+      Q_out_hold_p_cpich   = V(Q_in_p_cpich);
+      Q_out_hold_pich         = V(Q_in_pich);
+      Q_out_hold_p_ccpch  = V(Q_in_p_ccpch);
+    i = i + 1;
+
+    for ( n = 0; n < 4; n = n + 1 ) begin
+	  if ( i <= localsf[n] ) tmpInteger = i;
+	  else begin
+	    tmpInteger =( i - 1 ) / localsf[n]  ;
+	    tmpInteger = i - tmpInteger * localsf[n];
+	  end
+	  if ( n == 0 ) begin
+	    if ( dpch_ovsfCode[tmpInteger] > 0 ) begin
+	      I_out_tmp_dpch  =   I_out_hold_dpch;
+	      Q_out_tmp_dpch = Q_out_hold_dpch;
+	    end else begin
+	      I_out_tmp_dpch  =  - I_out_hold_dpch;
+	      Q_out_tmp_dpch =  - Q_out_hold_dpch;
+	    end
+	  end else if ( n == 1) begin
+	    if ( pcpich_ovsfCode[tmpInteger] > 0 ) begin
+  	      I_out_tmp_p_cpich  = I_out_hold_p_cpich;
+	      Q_out_tmp_p_cpich = Q_out_hold_p_cpich;
+	    end else begin
+  	      I_out_tmp_p_cpich  =  - I_out_hold_p_cpich;
+	      Q_out_tmp_p_cpich =  - Q_out_hold_p_cpich;
+	    end
+	  end else if ( n == 2 ) begin
+	    if ( pich_ovsfCode[tmpInteger] > 0 ) begin
+	      I_out_tmp_pich  =  I_out_hold_pich;
+	      Q_out_tmp_pich =  Q_out_hold_pich;
+	    end else begin
+	      I_out_tmp_pich  =  - I_out_hold_pich;
+	      Q_out_tmp_pich = - Q_out_hold_pich;
+	    end
+	  end else begin
+	    if ( pccpch_ovsfCode[tmpInteger] > 0 ) begin
+	      I_out_tmp_p_ccpch  = I_out_hold_p_ccpch;
+	      Q_out_tmp_p_ccpch = Q_out_hold_p_ccpch;
+	    end else begin
+	      I_out_tmp_p_ccpch  = - I_out_hold_p_ccpch;
+	      Q_out_tmp_p_ccpch = - Q_out_hold_p_ccpch;
+	    end
+	  end
+    end  /* n loop */
+    if ( i == 256 ) i = 0;
+  end
+
+  V(I_out_dpch)        <+ I_out_tmp_dpch;
+  V(I_out_p_cpich)   <+ I_out_tmp_p_cpich;
+  V(I_out_pich)         <+ I_out_tmp_pich;
+  V(I_out_p_ccpch)  <+ I_out_tmp_p_ccpch;
+  V(Q_out_dpch)       <+ Q_out_tmp_dpch;
+  V(Q_out_p_cpich)  <+ Q_out_tmp_p_cpich;
+  V(Q_out_pich)        <+ Q_out_tmp_pich;
+  V(Q_out_p_ccpch) <+ Q_out_tmp_p_ccpch;
+end
+
+endmodule

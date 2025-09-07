@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "         end else if (state == `same) begin", 
+		"bug_line": "         end else if (state == `ahead) begin",
+		"error_description": "The condition incorrectly checks for 'ahead' state instead of 'same'. During a vin_lo transition, the state machine fails to transition from 'same' to 'behind', causing incorrect output signals when the local oscillator leads the input signal."
+	},
+	{
+		"original_line": "`define ahead 2", 
+		"bug_line": "`define ahead 1",
+		"error_description": "Assigning the same value (1) to both `same` and `ahead` states causes state ambiguity. The detector cannot distinguish between 'same' and 'ahead' conditions, leading to identical outputs (both low) when either state should trigger different charge pump controls."
+	},
+	{
+		"original_line": "   integer state;", 
+		"bug_line": "   integer state = 2;",
+		"error_description": "Initializing state to 2 (`ahead`) violates the design specification where the initial state must be `same` (1). This causes incorrect charge pump control signals (sigout_inc low, sigout_dec high) before the first transition event."
+	},
+	{
+		"original_line": "input vin_if, vin_lo;", 
+		"bug_line": "input vin_if; output vin_lo;",
+		"error_description": "The pin 'vin_lo' is incorrectly declared as an output instead of an input. This causes a conflict where the module drives 'vin_lo' as an output while simultaneously trying to sense it as an input in the analog block (cross detection), leading to undefined behavior and incorrect phase detection."
+	},
+	{
+		"original_line": "module freq_ph_detector(vin_if, vin_lo, sigout_inc, sigout_dec);", 
+		"bug_line": "module freq_ph_detector(vin_if, vin_lo, sigout_dec, sigout_inc);",
+		"error_description": "Swapped output ports sigout_inc and sigout_dec. This reverses the charge pump control signals, causing incorrect frequency/phase correction (e.g., increasing when should decrease)."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin", 
+		"bug_line": "@ ( final_step ) begin",
+		"error_description": "Changed 'initial_step' to 'final_step', preventing initialization of state/outputs at simulation start. Causes uninitialized variables (state=0, outputs=0) during operation instead of correct initial state (same=1)."
+	},
+	{
+		"original_line": "electrical vin_if, vin_lo, sigout_inc, sigout_dec;", 
+		"bug_line": "thermal vin_if, vin_lo, sigout_inc, sigout_dec;",
+		"error_description": "Changed discipline from electrical to thermal for all pins. This misassigns signal types, causing voltage-based cross events and output assignments to operate on temperature values instead of voltages, fundamentally breaking phase detection logic."
+	},
+	{
+		"original_line": "parameter real trise = 1n from (0:inf);", 
+		"bug_line": "parameter real trise = 1n from [0:inf);",
+		"error_description": "Changing the range from exclusive (0:inf) to inclusive [0:inf) allows trise=0. Zero rise time causes instant transitions in the output signals, creating discontinuities and simulation convergence issues, while violating the intended smooth signal behavior."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   analog fork",
+		"error_description": "Replacing 'begin' with 'fork' changes sequential execution to parallel, causing race conditions between transition detection and state updates. The missing 'join' also creates syntax errors."
+	},
+	{
+		"original_line": "if (tpos_on_if && tpos_on_lo) begin", 
+		"bug_line": "if (tpos_on_if && !tpos_on_lo) begin",
+		"error_description": "Changed simultaneous transition condition to trigger when only vin_if has positive transition and vin_lo has no transition. This causes incorrect state resets during single transitions."
+	},
+	{
+		"original_line": "`define ahead 2", 
+		"bug_line": "`define ahead 0",
+		"error_description": "Assigning value 0 to `ahead creates a state conflict with `behind (also 0). This prevents distinguishing between 'ahead' and 'behind' states, causing incorrect output signals (e.g., behind state triggers ahead outputs)."
+	},
+	{
+		"original_line": "electrical vin_if, vin_lo, sigout_inc, sigout_dec;", 
+		"bug_line": "electrical vin_if, sigout_inc, sigout_dec;",
+		"error_description": "Missing discipline declaration for input 'vin_lo', causing the cross event monitoring V(vin_lo) to fail silently. This prevents phase detection from the local oscillator signal, breaking the frequency/phase detector functionality as vin_lo transitions won't trigger state updates."
+	},
+	{
+		"original_line": "if (state == `ahead) begin", 
+		"bug_line": "if (state == `same) begin",
+		"error_description": "Changed the condition from detecting 'ahead' state to 'same' state. This causes the 'ahead' state logic to execute incorrectly during 'same' state, setting sigout_inc high and sigout_dec low when both should be low. The actual 'ahead' state is no longer handled."
+	},
+	{
+		"original_line": "parameter real tdel = 0 from [0:inf);", 
+		"bug_line": "parameter real tdelay = 0 from [0:inf);",
+		"error_description": "Renamed 'tdel' to 'tdelay', causing undefined variable error in transition functions where 'tdel' is referenced, breaking signal output timing."
+	},
+	{
+		"original_line": "      @ ( initial_step ) begin", 
+		"bug_line": "      @ ( final_step ) begin",
+		"error_description": "Initialization block triggered by final_step instead of initial_step, causing state and output variables to remain uninitialized during simulation. This leads to undefined behavior in the phase detector's state machine and output signals."
+	},
+	{
+		"original_line": "`define behind 0", 
+		"bug_line": "`define behind 1",
+		"error_description": "Sets `behind to same value as `same (1), causing state conflict. When state should be 'behind', it incorrectly matches 'same' condition in output logic, producing wrong signals (both low instead of inc low/dec high). State transitions also break as 'same' and 'behind' become indistinguishable."
+	},
+	{
+		"original_line": "electrical vin_if, vin_lo, sigout_inc, sigout_dec;", 
+		"bug_line": "electrical vin_if, vin_lo, sigout_dec;",
+		"error_description": "Missing declaration for 'sigout_inc' output signal. This causes compilation failure and prevents voltage assignment to sigout_inc in the analog block, breaking the charge pump control functionality."
+	},
+	{
+		"original_line": "parameter real vlogic_low  = 0;", 
+		"bug_line": "parameter real vlogic_low  = 5;",
+		"error_description": "Sets vlogic_low equal to vlogic_high (5V). This causes the detector outputs to become identical in all states (both outputs at 5V), eliminating the state differentiation required for charge pump control."
+	},
+	{
+		"original_line": "`define same 1", 
+		"bug_line": "`define same 2",
+		"error_description": "Changing state value for 'same' to 2 causes conflict with 'ahead' (also 2), collapsing two distinct states. This violates the three-state design by preventing proper differentiation between 'ahead' and 'same' conditions, leading to incorrect charge pump signals during phase comparisons."
+	},
+	{
+		"original_line": "V(sigout_inc) <+ transition(sigout_inc_val, tdel, trise, tfall);", 
+		"bug_line": "V(sigout_inc) <+ transition(sigout_dec_val, tdel, trise, tfall);",
+		"error_description": "The increment output (sigout_inc) incorrectly uses the decrement value (sigout_dec_val) instead of its own value. This swaps the logic states for the increment signal, causing incorrect charge pump behavior where the increment signal mirrors the decrement signal's intended state."
+	}
+]

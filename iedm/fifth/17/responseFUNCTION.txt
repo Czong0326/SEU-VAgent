@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "total_hits = total_hits + bucket[i];", 
+		"bug_line": "total_hits = total_hits + bucket[0];",
+		"error_description": "The modified line incorrectly accumulates the count from bucket[0] for every code instead of the current bucket[i]. This results in total_hits being massively overestimated (254 × bucket[0]), corrupting all subsequent width and INL calculations."
+	},
+	{
+		"original_line": "total_hits = total_hits + bucket[i];", 
+		"bug_line": "total_hits = total_hits + bucket[0];",
+		"error_description": "Changed the bucket index from variable 'i' to fixed value 0. This causes the loop to repeatedly add the count from code 0 instead of summing counts from codes 1-254. The total_hits becomes 254 times the count of code 0, corrupting all subsequent width and INL calculations."
+	},
+	{
+		"original_line": "if (max_inl < abs(inl[i])) begin", 
+		"bug_line": "if (max_inl > abs(inl[i])) begin",
+		"error_description": "The condition incorrectly checks for smaller absolute INL values instead of larger ones. This causes the maximum INL tracking to update only when encountering smaller deviations, resulting in failure to capture the true maximum INL value and potentially reporting an incorrect peak INL measurement."
+	},
+	{
+		"original_line": "         bucket[(code_val[i])] = bucket[(code_val[i])] + 1;", 
+		"bug_line": "         bucket[i % `NUM_OF_CODES] = bucket[i % `NUM_OF_CODES] + 1;",
+		"error_description": "The index uses the loop counter modulo 256 instead of the actual ADC code value. This records hits in buckets based on conversion sequence number rather than the converted digital code, corrupting the histogram data for INL calculation."
+	},
+	{
+		"original_line": "code_val[conv] = code_val[conv] + (V(vd4) > vtrans)*16;", 
+		"bug_line": "code_val[conv] = code_val[conv] + (V(vd4) < vtrans)*16;",
+		"error_description": "Changed comparison direction from > to <. This inverts bit4 interpretation - now adds 16 when vd4 voltage is below threshold (logical 0) instead of above (logical 1), corrupting ADC output codes."
+	},
+	{
+		"original_line": "         max_inl_code = i;", 
+		"bug_line": "         max_inl_code = i + 1;",
+		"error_description": "The maximum INL code index is set to i+1 instead of i, causing an off-by-one error. This shifts the reported worst-case INL code to the next higher code value, misidentifying the actual location of the maximum nonlinearity."
+	},
+	{
+		"original_line": "inl[0] = 0;", 
+		"bug_line": "inl[0] = 1.0;",
+		"error_description": "Initializes INL for code 0 to 1.0 instead of 0, introducing a constant +1 LSB offset in all subsequent INL calculations due to cumulative error in the integration loop."
+	},
+	{
+		"original_line": "integer bucket[0:`NUM_OF_CODES-1]; // holds number of code hits for each code", 
+		"bug_line": "integer bucket[0:`NUM_OF_CODES]; // holds number of code hits for each code",
+		"error_description": "Array size increased to 257 elements (0-256) instead of 256 elements (0-255). This creates an off-by-one error where ADC code 256 (invalid for 8-bit) might be incorrectly accessed, causing histogram corruption and inaccurate INL calculations."
+	},
+	{
+		"original_line": "         if (conv==`NUM_OF_CONVS) begin", 
+		"bug_line": "         if (conv==`NUM_OF_CONVS-1) begin",
+		"error_description": "The condition triggers one conversion too early. This causes only 4095 conversions instead of the required 4096, resulting in incomplete data collection for INL calculation and distorted measurements."
+	},
+	{
+		"original_line": "code_val[conv] = code_val[conv] + (V(vd1) > vtrans)*2;", 
+		"bug_line": "code_val[conv] = code_val[conv] + (V(vd1) > vtrans)*4;",
+		"error_description": "Changed bit weight multiplier from 2 to 4. This assigns incorrect weight (2^2 instead of 2^1) to bit1, corrupting the digital code interpretation by doubling its value."
+	},
+	{
+		"original_line": "code_val[conv] = code_val[conv] + (V(vd3) > vtrans)*8;", 
+		"bug_line": "code_val[conv] = code_val[conv] + (V(vd3) < vtrans)*8;",
+		"error_description": "The condition for bit vd3 is reversed: it now adds the weight 8 when the voltage is below the threshold (logic low) instead of above. This causes the third bit to be incorrectly set, leading to erroneous conversion codes."
+	},
+	{
+		"original_line": "real    inl   [0:`NUM_OF_CODES-1]; // inl for each code", 
+		"bug_line": "real    inl   [0:`NUM_OF_CODES-2]; // inl for each code",
+		"error_description": "Array size reduced from 256 to 255 elements. This causes out-of-bound writes when storing INL values for codes 255 during histogram processing, corrupting adjacent memory and leading to incorrect INL calculations."
+	},
+	{
+		"original_line": "code_val[conv] = code_val[conv] + (V(vd2) > vtrans)*4;", 
+		"bug_line": "code_val[conv] = code_val[conv] + (V(vd2) < vtrans)*4;",
+		"error_description": "The comparison operator is inverted from '>' to '<', causing the third bit to be set when the voltage is below the threshold instead of above. This flips the bit interpretation logic for the third bit position."
+	},
+	{
+		"original_line": "for (i=0; i < `NUM_OF_CODES; i = i + 1) begin", 
+		"bug_line": "for (i=0; i < `NUM_OF_CODES-1; i = i + 1) begin",
+		"error_description": "Loop runs only 255 times instead of 256, leaving bucket[255] uninitialized. This causes incorrect histogram counts for code 255, corrupting INL calculations for the highest ADC value."
+	},
+	{
+		"original_line": "electrical vd7, vd6, vd5, vd4, vd3, vd2, vd1, vd0;", 
+		"bug_line": "electrical vd7, vd6, vd5, vd4, vd3, vd2, vd0, vd1;",
+		"error_description": "Swapped vd0 and vd1 port order, causing bit reversal in LSB interpretation. This disrupts the binary weighting calculation where vd0 should be LSB (1) and vd1 should be next (2), leading to incorrect code_val accumulation."
+	},
+	{
+		"original_line": "integer just_finished; // flag for doing inl calculations", 
+		"bug_line": "real just_finished; // flag for doing inl calculations",
+		"error_description": "Changed flag variable from integer to real type. This causes functional errors because integer assignments (just_finished=1) truncate to real values, and conditional checks (if(just_finished)) become unreliable due to floating-point precision issues, potentially skipping INL calculations."
+	},
+	{
+		"original_line": "code_val[conv] = code_val[conv] + (V(vd5) > vtrans)*32;", 
+		"bug_line": "code_val[conv] = code_val[conv] + (V(vd5) < vtrans)*32;",
+		"error_description": "Reversed the comparison operator from '>' to '<'. This sets the bit when vd5 voltage is below the threshold instead of above it, causing incorrect digital code interpretation for bit 5."
+	},
+	{
+		"original_line": "   integer conv;	// conversion number", 
+		"bug_line": "   real conv;	// conversion number",
+		"error_description": "Changing 'conv' from integer to real causes array indexing errors later when accessing 'code_val[conv]' and 'bucket[code_val[i]]' since array indices must be integers. Real values get truncated during indexing, leading to incorrect bucket counts and INL calculations due to fractional indexing mismatches."
+	},
+	{
+		"original_line": "   real tnext_low;", 
+		"bug_line": "   integer tnext_low;",
+		"error_description": "Changing tnext_low from real to integer causes truncation of fractional time values (like 200n = 0.0000002). This leads to tnext_low being set to 0 instead of the intended time, resulting in missed clock events and halting ADC conversions after the first cycle."
+	},
+	{
+		"original_line": "parameter integer log_to_file = 0;", 
+		"bug_line": "parameter integer log_to_file = 1;",
+		"error_description": "The default value for log_to_file is changed to 1, enabling logging by default. This violates the design description where logging should be disabled by default (0), causing unintended file writes without user configuration."
+	}
+]

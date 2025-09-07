@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "        if (analysis("static"))", 
+		"bug_line": "        if (analysis("tran"))",
+		"error_description": "Changed the DC analysis clamp condition to transient analysis. This removes the capacitor voltage stabilization during DC operating point simulation, causing floating node convergence issues while incorrectly activating the clamp during transient analysis where it's not needed."
+	},
+	{
+		"original_line": " *    If V(Pin, Nin) is always less than zeros, this divider may not work", 
+		"bug_line": " *    If V(Pin, Nin) is always greater than zeros, this divider may not work",
+		"error_description": "The modified comment incorrectly states the module fails when input is always positive. In reality, the divider requires negative input crossings for triggering. This reversal misleads users about operational conditions, potentially causing circuit failures when input signals remain positive."
+	},
+	{
+		"original_line": " * 2) The clocked signal at input must be larger than thresh; otherwise", 
+		"bug_line": " * 2) The clocked signal at input must be smaller than thresh; otherwise",
+		"error_description": "The modified comment incorrectly states the input must be below the threshold. This violates the design's requirement for threshold crossings to trigger events, causing the divider to malfunction when users provide sub-threshold signals as instructed."
+	},
+	{
+		"original_line": "V(Pout,Nout) <+ transition(vss + out*(vdd-vss), 0.0, tt, tt);", 
+		"bug_line": "V(Pout,Nout) <+ transition(vss + (out >= 1)*(vdd-vss), 0.0, tt, tt);",
+		"error_description": "Changed output logic from binary (0/1) to threshold-based (>=1). This causes incorrect output when 'out' >1 (e.g., during count overflow), creating non-digital voltage levels between vss and vdd instead of clean pulses."
+	},
+	{
+		"original_line": "        end else begin", 
+		"bug_line": "        end else if (0) begin",
+		"error_description": "The modification adds an always-false condition (0) to the else block. This prevents the precharge and reset operations from ever executing, breaking the capacitor charging/discharging cycle required for frequency division."
+	},
+	{
+		"original_line": "real vmax;", 
+		"bug_line": "integer vmax;",
+		"error_description": "Changing vmax from real to integer causes truncation of the calculated max voltage value, breaking charge calculations that depend on fractional voltages for accurate precharge levels and count thresholds."
+	},
+	{
+		"original_line": "`include "constants.h"", 
+		"bug_line": "`include "wrong_constants.h"",
+		"error_description": "Changing the include filename to a non-existent header prevents the compiler from accessing essential definitions (e.g., the 'max' macro for calculating maximum values), causing compilation failure and simulation errors."
+	},
+	{
+		"original_line": "real g;", 
+		"bug_line": "integer g;",
+		"error_description": "Changing 'g' from real to integer causes truncation of the calculated conductance value (5*ln(n)) during assignment. This reduces charge transfer accuracy, disrupting the analog titration mechanism needed for frequency division."
+	},
+	{
+		"original_line": "        if (analysis("static"))", 
+		"bug_line": "        if (analysis("tran"))",
+		"error_description": "Changed condition from static to transient analysis. This incorrectly clamps the hold capacitor during transient operation, preventing state retention and disrupting the counter's divide-by-N functionality by forcing the capacitor voltage to zero during normal operation."
+	},
+	{
+		"original_line": "parameter real tt=0.01;                 // output transition time", 
+		"bug_line": "parameter real tt=0.0;                 // output transition time",
+		"error_description": "Setting transition time to zero causes capacitors (hold and titrating) to have zero capacitance, preventing state retention and breaking the counter's ability to count."
+	},
+	{
+		"original_line": "        I(chg) <+ tt*ddt(V(chg));", 
+		"bug_line": "        I(chg) <+ -tt*ddt(V(chg));",
+		"error_description": "Inverted the sign of the capacitor current, causing the titrating capacitor to charge/discharge in the opposite direction of intended. This violates fundamental capacitor behavior where current should flow from higher to lower potential, disrupting the charge transfer mechanism critical for frequency division."
+	},
+	{
+		"original_line": " * 2) The clocked signal at input must be larger than thresh; otherwise", 
+		"bug_line": " * 2) The clocked signal at input must be smaller than thresh; otherwise",
+		"error_description": "Reversing the amplitude requirement misleads users to provide sub-threshold clock signals. This prevents the cross() event from triggering since it relies on V(Pin,Nin) exceeding the threshold, causing the frequency counter to fail."
+	},
+	{
+		"original_line": "vmax = max(abs(vdd),abs(vss));", 
+		"bug_line": "vmax = min(abs(vdd),abs(vss));",
+		"error_description": "Using min() instead of max() causes vmax to be set to the smaller absolute supply voltage. This results in insufficient charge transfer during counting operations, breaking the frequency division mechanism since the hold capacitor won't reach required voltage thresholds for proper state transitions."
+	},
+	{
+		"original_line": "module div(Pout, Nout, Pin, Nin);", 
+		"bug_line": "module div(Pout, Nout, Nin, Pin);",
+		"error_description": "Swapped input ports Pin and Nin. This reverses the differential input polarity, causing incorrect threshold detection and disrupting the frequency division behavior since the circuit relies on the correct phase relationship between positive (Pin) and negative (Nin) inputs."
+	},
+	{
+		"original_line": "integer out, count;", 
+		"bug_line": "real out, count;",
+		"error_description": "Changing 'out' and 'count' from integer to real disrupts discrete state management. The frequency divider relies on integer counting for edge detection and pulse generation. Real variables cause rounding errors in 'count = -n*V(hold)/vmax' and 'out = count >= (n - nhi)', leading to incorrect output pulses and division ratios."
+	},
+	{
+		"original_line": "I(vg) <+ -n*V(hold)/vmax - count;", 
+		"bug_line": "I(vg) <+ -n*V(hold)/vmax + count;",
+		"error_description": "Changed subtraction of 'count' to addition. This inverts the feedback polarity for discrete-level error correction, causing the hold capacitor voltage to diverge from target levels instead of converging, resulting in incorrect frequency division counts."
+	},
+	{
+		"original_line": "        if (dir*V(Pin,Nin) > dir*thresh) begin", 
+		"bug_line": "        if (dir*V(Pin,Nin) < dir*thresh) begin",
+		"error_description": "Changed comparison operator from '>' to '<', causing charge transfer during incorrect input phases. This inverts the trigger condition, making the counter increment during falling edges instead of rising edges (or vice-versa depending on dir parameter), fundamentally breaking the frequency division logic."
+	},
+	{
+		"original_line": "module div(Pout, Nout, Pin, Nin);", 
+		"bug_line": "module div(Pout, Pin, Nout, Nin);",
+		"error_description": "Swapped positions of Nout and Pin ports. This causes incorrect signal mapping during instantiation: Pin input connects to Nout internally and Nout output connects to Pin internally, breaking the divider functionality."
+	},
+	{
+		"original_line": "parameter real vdd=5, vss=0;            // defines output high and low levels", 
+		"bug_line": "parameter real vdd=0, vss=5;            // defines output high and low levels",
+		"error_description": "Swapping vdd and vss inverts output logic: now vdd=0 defines 'high' level and vss=5 defines 'low' level. This reverses output polarity since V(Pout,Nout) uses vss as base + out*(vdd-vss), causing the divider to output inverted signals relative to design intent."
+	},
+	{
+		"original_line": "`include "constants.h"", 
+		"bug_line": "`include constants.h",
+		"error_description": "Removing quotes around the include filename causes a syntax error. VerilogA requires filenames in `include directives to be string literals. This prevents the compiler from locating the constants.h header, breaking the entire module compilation."
+	}
+]

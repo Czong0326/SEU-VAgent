@@ -1,0 +1,482 @@
+/* -------------------------------------------------------------------------- *\
+
+	    888	  888	888  888    888	   88	888888888
+	     8	   8	 8    8	     8		8   8	8
+	     8	   8	 8    8	     8	   88	    8	    888888
+	      8	   8	8     88888888	    8	    8	   8	  8
+	      8	  8 8	8     8	     8	    8	    8	   88888888
+	       8 8   8 8      8	     8	    8	    8	   8
+		8     8	     888    888	  88888	   888	    8888888
+
+
+
+     8888888								8
+    8	    8								8
+    8		888888	 888888 8888   88888888	   888888     888888   88888
+    8	       8      0	  8    8    8	8      8	 8   8	    8	8
+    8	       8      8	  8    8    8	8      8   8888888   8		8
+    8	    8  8      8	  8    8    8	8      8  8	 8   8	    8	8
+     8888888	888888	 888  888  888	8888888	   888888 8   888888	 888
+					8
+				       888
+
+	  888	    888			 88		888
+	   8 8	   8 8			  8		  8
+	   8  8	  8  8	  888888    8888888    888888	  8	8888888
+	   8   8 8   8	 8	8  8	  8   8	     8	  8    8
+	   8	8    8	 8	8  8	  8   88888888	  8	888888
+	   8	     8	 8	8  8	  8   8		  8	      8
+	  888	    888	  888888    888888 8   8888888	88888  8888888
+
+|* -------------------------------------------------------------------------- *|
+
+    This file contains a module for a resistor.
+
+|* -------------------------------------------------------------------------- *|
+
+    Copyright @ 2023 Neal Graham Wood
+    The terms under which the software and associated documentation (the
+    Software) is provided are as the following:
+
+    DISCLAIMER:  The Software is provided "as is", without warranty of any
+    kind, express or implied, including but not limited to the warranties of
+    merchantability, fitness for a particular purpose and noninfringement.
+    In no event shall the authors or copyright holders be liable for any
+    claim, damages or other liability, whether in an action of contract,
+    tort or otherwise, arising from, out of or in connection with the
+    Software or the use or other dealings in the Software.
+
+    Neal Graham Wood grants, free of charge, to any users the right to
+    modify, copy, and redistribute the Software, both within the user's
+    organization and externally, subject to the following restrictions:
+
+    LIST OF CONDITIONS:
+    1. The users agree not to charge for the code itself but may charge for
+    additions, extensions, or support.
+
+    2. In any product based on the Software, the users agree to acknowledge
+    the Research Group that developed the software. This acknowledgment
+    shall appear in the product documentation.
+
+    3. The users agree to obey all U.S. Government restrictions governing
+    redistribution or export of the software.
+
+    4. Redistributions to others of source code must retain the copyright
+    notice, disclaimer, and list of conditions.
+
+    5. Redistributions to others in binary form must reproduce the
+    copyright notice, disclaimer, and list of conditions in the
+    documentation and/or other materials provided with the distribution.
+
+    Agreed to by
+    Neal Graham Wood
+    19/03/2023
+
+\* -------------------------------------------------------------------------- */
+
+`include "constants.vams"
+`include "disciplines.vams"
+
+`include "macros.va"
+
+(* xyceModelGroup="Resistor", xyceLevelNumber="146", xyceTypeVariable="TYPE",
+   xyceDeviceName="WHiTe Resistor v2.3.2" *)
+module whiter(d, s, b);
+    inout d, s, b;		// Drain, source and body terminals
+    electrical d, s, b;		// Terminal nodes
+    electrical di, si, bi;	// Intrinsic nodes
+    branch (d, di) d_di;	// Drain resistance
+    branch (di, si) di_si;	// Channel
+    branch (si, s) si_s;	// Source resistance
+    branch (b, bi) b_bi;	// Body resistance
+    branch (bi, di) bi_di;	// Body-drain junction
+    branch (bi, si) bi_si;	// Body-source junction
+
+    `include "functions.va"
+
+    (* desc="Model type", units="",
+       xyceUnit="U_NONE", xyceCategory="CAT_CONTROL" *)
+    parameter integer TYPE = `N_TYPE;
+    (* desc="Channel acceptor concentration", units="m^-3",
+       xyceUnit="U_METERM3", xyceCategory="CAT_DOPING" *)
+    parameter real NAC = (TYPE == `N_TYPE ? 0.0 : 1e23);
+    (* desc="Channel donor concentration", units="m^-3",
+       xyceUnit="U_METERM3", xyceCategory="CAT_DOPING" *)
+    parameter real NDC = (TYPE == `N_TYPE ? 1e23 : 0.0);
+    (* desc="Body acceptor concentration", units="m^-3",
+       xyceUnit="U_METERM3", xyceCategory="CAT_DOPING" *)
+    parameter real NAB = (TYPE == `N_TYPE ? 1e21 : 0.0);
+    (* desc="Body donor concentration", units="m^-3",
+       xyceUnit="U_METERM3", xyceCategory="CAT_DOPING" *)
+    parameter real NDB = (TYPE == `N_TYPE ? 0.0 : 1e21);
+    (* desc="Channel length", units="m",
+       xyceUnit="U_METER", xyceCategory="CAT_GEOMETRY" *)
+    parameter real LC = 1e-4 from (0 : inf);
+    (* desc="Channel width", units="m",
+       xyceUnit="U_METER", xyceCategory="CAT_GEOMETRY" *)
+    parameter real WC = 1e-4;
+    (* desc="Channel height", units="m",
+       xyceUnit="U_METER", xyceCategory="CAT_GEOMETRY" *)
+    parameter real HC = 2.5e-7;
+    (* desc="Gate overetch depth", units="m",
+       xyceUnit="U_METER", xyceCategory="CAT_PROCESS" *)
+    parameter real RIE = 0.0;
+    (* desc="Sacrificial oxide thickness", units="m",
+       xyceUnit="U_METER", xyceCategory="CAT_PROCESS" *)
+    parameter real TOX = 0.0;
+    (* desc="Static dielectric constant", units="",
+       xyceUnit="U_NONE", xyceCategory="CAT_MATERIAL" *)
+    parameter real EPSR = `W_EPSR_C;
+    (* desc="Low-field mobility", units="m^2 V^-1 s^-1",
+       xyceUnit="U_M2VM1SM1", xyceCategory="CAT_MATERIAL" *)
+    parameter real MU0 = (TYPE == `N_TYPE ? 5e-2 : 1e-2);
+    (* desc="Saturation velocity", units="m s^-1",
+       xyceUnit="U_MSM1", xyceCategory="CAT_MATERIAL" *)
+    parameter real VSAT = 5e5;
+    (* desc="Minimum resistance", units="ohm",
+       xyceUnit="U_OHM", xyceCategory="CAT_RES" *)
+    parameter real RMIN = 1e-3;
+    (* desc="Drain resistance", units="ohm",
+       xyceUnit="U_OHM", xyceCategory="CAT_RES" *)
+    parameter real RD = 0.0;
+    (* desc="Source resistance", units="ohm",
+       xyceUnit="U_OHM", xyceCategory="CAT_RES" *)
+    parameter real RS = 0.0;
+    (* desc="Body resistance", units="ohm",
+       xyceUnit="U_OHM", xyceCategory="CAT_RES" *)
+    parameter real RB = 0.0;
+    (* desc="Body reverse-bias saturation current", units="A",
+       xyceUnit="U_AMP", xyceCategory="CAT_CURRENT" *)
+    parameter real ISB = 0.0;
+    (* desc="Forward-bias junction capacitance coefficient", units="",
+       xyceUnit="U_NONE", xyceCategory="CAT_CAP" *)
+    parameter real FC = 0.5;
+    (* desc="First junction capacitance smoothing factor", units="V",
+       xyceUnit="U_VOLT", xyceCategory="CAT_CAP" *)
+    parameter real DELTA1 = 0.5;
+    (* desc="Second junction capacitance smoothing factor", units="V",
+       xyceUnit="U_VOLT", xyceCategory="CAT_CAP" *)
+    parameter real DELTA2 = 0.2;
+    (* desc="Nominal temperature", units="deg C",
+       xyceUnit="U_DEGC", xyceCategory="CAT_TEMP" *)
+    parameter real TNOM = 27.0;
+    (* desc="Device to ambient temperature difference", units="deg C",
+       xyceUnit="U_DEGC", xyceCategory="CAT_TEMP" *)
+    parameter real DTEMP = 0.0;
+    (* desc="Nominal ratio of MU0", units="",
+       xyceUnit="U_NONE", xyceCategory="CAT_TEMP" *)
+    parameter real MR = 0.0;
+    (* desc="First temperature exponent of MU0", units="",
+       xyceUnit="U_NONE", xyceCategory="CAT_TEMP" *)
+    parameter real MTE1 = 0.0;
+    (* desc="Second temperature exponent of MU0", units="",
+       xyceUnit="U_NONE", xyceCategory="CAT_TEMP" *)
+    parameter real MTE2 = 0.0;
+    (* desc="Temperature exponent of VSAT", units="",
+       xyceUnit="U_NONE", xyceCategory="CAT_TEMP" *)
+    parameter real VTE = 0.0;
+    (* desc="Temperature coefficient of RD", units="(deg C)^-1",
+       xyceUnit="U_DEGCM1", xyceCategory="CAT_TEMP" *)
+    parameter real RDTC = 0.0;
+    (* desc="Temperature coefficient of RS", units="(deg C)^-1",
+       xyceUnit="U_DEGCM1", xyceCategory="CAT_TEMP" *)
+    parameter real RSTC = 0.0;
+    (* desc="Temperature coefficient of RB", units="(deg C)^-1",
+       xyceUnit="U_DEGCM1", xyceCategory="CAT_TEMP" *)
+    parameter real RBTC = 0.0;
+
+    (* desc="Area factor", units="", type="instance",
+       xyceUnit="U_NONE", xyceCategory="CAT_SCALING" *)
+    parameter real AREA = 1.0 from (0.0 : inf);
+
+    real phipob;		// Body pinch-off potential / V
+    real vt;			// Thermal voltage / V
+    real mu0;			// Low-field mobility / m^2 V^-1 s^-1
+    real vsat;			// Saturation velocity / m s^-1
+    real rd_noscale;		// Unscaled drain resistance / ohm
+    real rs_noscale;		// Unscaled source resistance / ohm
+    real rb_noscale;		// Unscaled body resistance / ohm
+    real isb_noscale;		/* Unscaled body reverse-bias saturation
+				   current / A */
+    real phij0b;		// Body zero-bias junction potential / V
+    real cj0b_noscale;		/* Unscaled body zero-bias junction
+				   capacitance / F */
+    real goc_noscale;		// Unscaled open-channel conductance / S
+    real xi;			// Transport parameter / V^-1
+    real vtob;			// Body turn-off voltage / V
+    real vmaxb;			// Body forward-bias linearisation voltage / V
+
+    real rd;			// Drain resistance / ohm
+    real rs;			// Source resistance / ohm
+    real rb;			// Body resistance / ohm
+    real isb;			// Body reverse-bias saturation current / A
+    real cj0b;			// Body zero-bias junction capacitance / F
+    real goc;			// Open-channel conductance / S
+
+    (* desc="Intrinsic output conductance", units="S",
+       multiplicity="multiply" *)
+    real GOI;
+    (* desc="Intrinsic body mutual conductance", units="S",
+       multiplicity="multiply" *)
+    real GMBI;
+    (* desc="Intrinsic body-drain capacitance", units="F",
+       multiplicity="multiply" *)
+    real CBDI;
+    (* desc="Intrinsic body-source capacitance", units="F",
+       multiplicity="multiply" *)
+    real CBSI;
+
+    analog begin : top_level
+	real vdsi;		// Intrinsic drain-source voltage / V
+	real vbdi;		// Intrinsic body-drain voltage / V
+	real vbsi;		// Intrinsic body-source voltage / V
+
+	`INITIAL_MODEL begin : initial_model
+	    real ndac;		// Channel net dopant concentration / m^-3
+	    real nadb;		// Body net dopant concentration / m^-3
+	    real aj;		// Junction area / m^2
+	    real hc;		// Channel height / m
+	    real epss;		// Semiconductor electric permittivity / F m^-1
+	    real tnomk;		// Absolute nominal temperature / K
+	    real tempk;		// Absolute device temperature / K
+	    real tquot;		// Device to nominal temperature quotient
+	    real tdiff;		// Device to nominal temperature difference / K
+	    real vtnom;		// Nominal thermal voltage / V
+	    real dummy;		// Placeholder variable
+	    real n0c;		// Channel electron concentration / m^-3
+	    real p0c;		// Channel hole concentration / m^-3
+	    real efc;		// Channel electrochemical potential / eV
+	    real efb;		// Body electrochemical potential / eV
+	    real sigmac;	// Channel conductivity / S m^-1
+
+	    if (!$param_given(RD) && $param_given(RS))
+		`warning("RD is not given.");
+	    else if (!$param_given(RS) && $param_given(RD))
+		`warning("RS is not given.");
+	    if (!$param_given(RDTC) && $param_given(RSTC))
+		`warning("RDTC is not given.");
+	    else if (!$param_given(RSTC) && $param_given(RDTC))
+		`warning("RSTC is not given.");
+	    if (!$param_given(MTE1) && $param_given(MTE2))
+		`warning("MTE1 is not given.");
+	    else if (!$param_given(MTE2) && $param_given(MTE1))
+		`warning("MTE2 is not given.");
+	    if (MTE1 > 0.0 && MTE2 > 0.0)
+		`warning("MTE1 and MTE2 are both greater than zero.");
+	    if (MTE1 < 0.0 && MTE2 < 0.0)
+		`warning("MTE1 and MTE2 are both less than zero.");
+
+	    if (TYPE != `N_TYPE && TYPE != `P_TYPE)
+		`error("TYPE must be one (NR) or negative one (PR).");
+	    if (NAC < 0.0)
+		`error("NAC is less than zero.");
+	    if (NDC < 0.0)
+		`error("NDC is less than zero.");
+	    if (NAB < 0.0)
+		`error("NAB is less than zero.");
+	    if (NDB < 0.0)
+		`error("NDB is less than zero.");
+	    if (LC <= 0.0)
+		`error("LC is less than or equal to zero.");
+	    if (WC <= 0.0)
+		`error("WC is less than or equal to zero.");
+	    if (HC <= 0.0)
+		`error("HC is less than or equal to zero.");
+	    if (RIE < 0.0)
+		`error("RIE is less than zero.");
+	    if (TOX < 0.0)
+		`error("TOX is less than zero.");
+	    if (EPSR < 1.0)
+		`error("EPSR is less than one.");
+	    if (MU0 <= 0.0)
+		`error("MU0 is less than or equal to zero.");
+	    if (VSAT <= 0.0)
+		`error("VSAT is less than or equal to zero.");
+	    if (RMIN <= 0.0)
+		`error("RMIN is less than or equal to zero.");
+	    if (RD < 0.0)
+		`error("RD is less than zero.");
+	    if (RS < 0.0)
+		`error("RS is less than zero.");
+	    if (RB < 0.0)
+		`error("RB is less than zero.");
+	    if (ISB < 0.0)
+		`error("ISB is less than zero.");
+	    if (FC < 0.0 || FC > 1.0)
+		`error("FC is less than zero or greater than one.");
+	    if (DELTA1 < 0.0 || DELTA1 > 1.0)
+		`error("DELTA1 is less than zero or greater than one.");
+	    if (DELTA2 < 0.0 || DELTA2 > 1.0)
+		`error("DELTA2 is less than zero or greater than one.");
+	    if (TNOM <= -`P_CELSIUS0)
+		`error("TNOM is less than or equal to negative P_CELSIUS0.");
+	    if (DTEMP <= -$temperature)
+		`error("DTEMP is less than or equal to negative $temperature.");
+	    if (MR < 0.0)
+		`error("MR is less than zero.");
+
+	    if (TYPE == `N_TYPE) begin
+		if (NDC <= NAC)
+		    `error("NDC is less than or equal to NAC.");
+		if (NAB <= NDB)
+		    `error("NAB is less than or equal to NDB.");
+	    end
+	    else begin
+		if (NAC <= NDC)
+		    `error("NAC is less than or equal to NDC.");
+		if (NDB <= NAB)
+		    `error("NDB is less than or equal to NAB.");
+	    end
+	    if (HC <= RIE + TOX)
+		`error("HC is less than or equal to RIE plus TOX.");
+
+	    ndac = TYPE * (NDC - NAC);
+	    nadb = TYPE * (NAB - NDB);
+	    aj = WC * LC;
+	    hc = HC - RIE - TOX;
+	    epss = `P_EPS0 * EPSR;
+	    phipob = njf_sg_po_pot(nadb, ndac, epss, hc);
+
+	    tnomk = `P_CELSIUS0 + TNOM;
+	    tempk = $temperature + DTEMP;
+	    tquot = tempk / tnomk;
+	    tdiff = tempk - tnomk;
+	    vtnom = $vt(tnomk);
+	    vt = $vt(tempk);
+	    mu0 = dual_pow_adapt(MU0, MR, tquot, MTE1, MTE2);
+	    vsat = pow_adapt(VSAT, tquot, VTE);
+	    rd_noscale = lin_adapt(RD, tdiff, RDTC);
+	    rs_noscale = lin_adapt(RS, tdiff, RSTC);
+	    rb_noscale = lin_adapt(RB, tdiff, RBTC);
+	    isb_noscale = ISB * exp(`W_EG0 * (1.0 / vtnom - 1.0 / vt));
+	    dummy = ionisation(NDC, NAC, tempk, n0c, p0c, efc);
+	    dummy = ionisation(NDB, NAB, tempk, dummy, dummy, efb);
+	    sigmac = `P_Q * (TYPE == `N_TYPE ? n0c : p0c) * mu0;
+	    phij0b = TYPE * (efc - efb);
+	    cj0b_noscale = pnj_cap(nadb, ndac, epss, phij0b, aj);
+	    goc_noscale = sigmac * WC * hc / LC;
+	    xi = mu0 / (vsat * LC);
+	    vtob = njf_sg_to_volt(phij0b, phipob);
+	    vmaxb = `FORWARD_COEFFICIENT * phij0b;
+	end
+
+	`INITIAL_INSTANCE begin
+	    if (AREA <= 0.0)
+		`error("AREA is less than or equal to zero.");
+
+	    if (RD == 0.0)
+		rd = 0.0;
+	    else begin
+		rd = rd_noscale / AREA;
+		if (rd < RMIN) begin
+		    `warning("rd is less than RMIN, setting it to RMIN.");
+		    rd = RMIN;
+		end
+	    end
+	    if (RS == 0.0)
+		rs = 0.0;
+	    else begin
+		rs = rs_noscale / AREA;
+		if (rs < RMIN) begin
+		    `warning("rs is less than RMIN, setting it to RMIN.");
+		    rs = RMIN;
+		end
+	    end
+	    if (RB == 0.0)
+		rb = 0.0;
+	    else begin
+		rb = rb_noscale / AREA;
+		if (rb < RMIN) begin
+		    `warning("rb is less than RMIN, setting it to RMIN.");
+		    rb = RMIN;
+		end
+	    end
+	    isb = isb_noscale * AREA;
+	    cj0b = cj0b_noscale * AREA;
+	    goc = goc_noscale * AREA;
+	end
+
+	vdsi = TYPE * V(di_si);
+	vbdi = TYPE * V(bi_di);
+	vbsi = TYPE * V(bi_si);
+
+	I(di_si) <+ $simparam("gmin", 0.0) * V(di_si);
+	I(bi_di) <+ $simparam("gmin", 0.0) * V(bi_di);
+	I(bi_si) <+ $simparam("gmin", 0.0) * V(bi_si);
+
+	if (rd == 0.0)
+	    V(d_di) <+ 0.0;
+	else
+	    I(d_di) <+ V(d_di) / rd;
+
+	if (rs == 0.0)
+	    V(si_s) <+ 0.0;
+	else
+	    I(si_s) <+ V(si_s) / rs;
+
+	if (rb == 0.0)
+	    V(b_bi) <+ 0.0;
+	else
+	    I(b_bi) <+ V(b_bi) / rb;
+
+	if (isb > 0.0) begin
+	    I(bi_di) <+ TYPE * pnj_curr(isb, vbdi, vt, vmaxb);
+	    I(bi_si) <+ TYPE * pnj_curr(isb, vbsi, vt, vmaxb);
+	end
+
+	begin : channel
+	    integer mode;	// Drain-source polarity
+	    real vbs;		// Body-source voltage / V
+	    real vds;		// Drain-source voltage / V
+	    real ids;		// Drain-source current / A
+	    real qbd;		// Body-drain charge / C
+	    real qbs;		// Body-source charge / C
+	    real qb;		// Body charge / C
+	    real tmp1, tmp2;	// Temporary variables
+
+	    if (vdsi >= 0.0) begin
+		mode = `FORWARD_MODE;
+		vbs = vbsi;
+	    end
+	    else begin
+		mode = `REVERSE_MODE;
+		vbs = vbdi;
+	    end
+	    vds = mode * vdsi;
+	    if (vbs < vtob)
+		ids = 0.0;
+	    else begin : current_calculation
+		real phijb;	// Body junction potential / V
+		real vdssat;	// Saturation drain-source voltage / V
+		real vdslim;	// Limited drain-source voltage / V
+
+		phijb = soft_max(phij0b - vbs, 0.0, `FORWARD_SMOOTHING);
+		vdssat = njf_sg_sat_volt(phijb, phipob, xi);
+		vdslim = min(vds, vdssat);
+		ids = TYPE * njf_sg_curr(goc, vdslim, phijb, phipob, xi);
+	    end
+	    tmp1 = TYPE * njf_sg_gd_chrg(cj0b, vbdi, vbsi, DELTA1);
+	    tmp2 = TYPE * njf_sg_gs_chrg(cj0b, phij0b, vbdi, vbsi, vtob,
+					 FC * phij0b, DELTA1, DELTA2);
+	    if (mode == `FORWARD_MODE) begin
+		qbd = tmp1;
+		qbs = tmp2;
+	    end
+	    else begin
+		qbd = tmp2;
+		qbs = tmp1;
+	    end
+	    qb = qbd + qbs;
+	    if (mode == `FORWARD_MODE)
+		GOI = ddx(ids, V(di));
+	    else
+		GOI = ddx(ids, V(si));
+	    GMBI = ddx(ids, V(bi));
+	    CBDI = -ddx(qb, V(di));
+	    CBSI = -ddx(qb, V(si));
+	    I(di_si) <+ mode * ids;
+	    I(bi_di) <+ ddt(qbd);
+	    I(bi_si) <+ ddt(qbs);
+	end
+    end
+endmodule

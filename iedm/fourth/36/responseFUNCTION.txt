@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real rbt_L = `RBT_L from (0:inf); 	// Resonator Length", 
+		"bug_line": "parameter real rbt_L = `RBT_L from (inf:0]; 	// Resonator Length",
+		"error_description": "The valid range (0:inf) was reversed to (inf:0], allowing negative/zero lengths. This violates physical constraints since resonator length must be positive, causing division-by-zero errors in subsequent calculations like kn[j] = modeInd * π / Leff when Leff=0."
+	},
+	{
+		"original_line": "modeInd =  2*j + 1;", 
+		"bug_line": "modeInd =  2*j;",
+		"error_description": "Changed mode index calculation from odd harmonics (1,3,5...) to even harmonics (0,2,4...). Fundamental resonant modes for clamped-clamped beams should be odd harmonics only. This causes incorrect stiffness/damping calculations and invalid mode shapes."
+	},
+	{
+		"original_line": "Vel(v[j]) <+ ddt(Pos(x[j]));", 
+		"bug_line": "Vel(v[j]) <+ ddt(Pos(x[0]));",
+		"error_description": "All modes incorrectly use position of mode 0 (x[0]) instead of their own position (x[j]). This breaks modal independence by forcing all velocity calculations to track only the first mode's position derivative."
+	},
+	{
+		"original_line": "parameter real rbt_L = `RBT_L from (0:inf); 	// Resonator Length", 
+		"bug_line": "parameter real rbt_L = `RBT_L * 1e6 from (0:inf); 	// Resonator Length",
+		"error_description": "Incorrectly scales resonator length by 1e6. The model expects length in meters, but this modification interprets it as micrometers, causing all derived quantities (wave numbers, stiffness, etc.) to be off by orders of magnitude."
+	},
+	{
+		"original_line": "Leff = rbt_L * ( 1 + rbt_LTC * dT);", 
+		"bug_line": "Leff = rbt_L * ( 1 - rbt_LTC * dT);",
+		"error_description": "Changed '+' to '-' in thermal expansion formula. This inverts the temperature dependence, causing length to decrease with temperature rise instead of increase, violating the expected thermal expansion behavior."
+	},
+	{
+		"original_line": "parameter real rbt_L = `RBT_L from (0:inf); 	// Resonator Length", 
+		"bug_line": "parameter real rbt_L = 0 from [0:inf); 	// Resonator Length",
+		"error_description": "Changed default resonator length to 0 and included 0 in valid range. This causes division-by-zero errors when calculating kn[j] (wave number) since kn[j] = modeInd * π / Leff, and Leff becomes zero at all temperatures."
+	},
+	{
+		"original_line": "thermal T;", 
+		"bug_line": "voltage T;",
+		"error_description": "Changed discipline from 'thermal' to 'voltage', creating a type mismatch. This breaks the temperature-dependent behavior since the port now incorrectly expects electrical signals instead of thermal connections."
+	},
+	{
+		"original_line": "Yeff = rbt_Y * ( 1 + rbt_YTC * dT);", 
+		"bug_line": "Yeff = rbt_Y * ( 1 - rbt_YTC * dT);",
+		"error_description": "Changed the temperature coefficient sign from positive to negative, reversing the temperature dependence of Young's modulus. This causes incorrect material property calculations under temperature variations."
+	},
+	{
+		"original_line": "F(x[j]) <+ rhoeff * ddt(Vel(v[j]))", 
+		"bug_line": "F(x[j]) <+ -rhoeff * ddt(Vel(v[j]))",
+		"error_description": "The negative sign inverts the inertial force term, violating Newton's second law. This creates unphysical negative mass behavior, causing simulation instability and incorrect resonant frequency responses."
+	},
+	{
+		"original_line": "  + white_noise(4*`P_K*($temperature+Temp(T))*", 
+		"bug_line": "  + white_noise(4*`P_K*($temperature-Temp(T))*",
+		"error_description": "Changed temperature addition to subtraction. This incorrectly calculates absolute temperature by subtracting thermal port contribution instead of adding it, violating the fundamental requirement that absolute temperature = global temperature + device temperature change."
+	},
+	{
+		"original_line": "real kn[0:`RBT_NMODES-1];", 
+		"bug_line": "real kn[0:`RBT_NMODES];",
+		"error_description": "Array kn is oversized by one element. The original indices [0:`RBT_NMODES-1] provide exactly `RBT_NMODES` elements for the loop (j=0 to `RBT_NMODES-1`). The bug extends the array to `RBT_NMODES+1` elements ([0:`RBT_NMODES]), causing an off-by-one error where the loop accesses uninitialized values at j=`RBT_NMODES-1` since the valid indices are 0 to `RBT_NMODES-1`."
+	},
+	{
+		"original_line": "parameter real rbt_L = `RBT_L from (0:inf); 	// Resonator Length", 
+		"bug_line": "parameter real rbt_L = `RBT_L from (inf:0); 	// Resonator Length",
+		"error_description": "The range specification (inf:0) is invalid as it requires rbt_L to be greater than infinity and less than zero (empty set). This prevents any valid length assignment, causing simulation failures when computing wave numbers kn = modeInd * π / Leff due to Leff being undefined."
+	},
+	{
+		"original_line": "  + b[j]* pow(kn[j],2) * Vel(v[j]) ", 
+		"bug_line": "  - b[j]* pow(kn[j],2) * Vel(v[j]) ",
+		"error_description": "Changed damping term sign from positive to negative, causing instability due to energy gain instead of dissipation. Negative damping amplifies oscillations rather than attenuating them."
+	},
+	{
+		"original_line": "real kn[0:`RBT_NMODES-1];", 
+		"bug_line": "real kn[1:`RBT_NMODES];",
+		"error_description": "Changed array indices from [0:`RBT_NMODES-1] to [1:`RBT_NMODES], causing off-by-one error. This makes kn[0] undefined and shifts all indices, leading to incorrect mode calculations and potential simulation crashes when accessing kn[0]."
+	},
+	{
+		"original_line": "real kn[0:`RBT_NMODES-1];", 
+		"bug_line": "real kn_wrong[0:`RBT_NMODES-1];",
+		"error_description": "Changed array name to 'kn_wrong', making subsequent references to 'kn[j]' unresolved. This breaks the stiffness coefficient calculation since 'kn' is no longer declared."
+	},
+	{
+		"original_line": "nueff = rbt_nu * (1 + rbt_nuTC * dT);", 
+		"bug_line": "nueff = rbt_nu * (1 + rbt_nuTC);",
+		"error_description": "Missing multiplication by dT in temperature coefficient calculation, making Poisson's ratio temperature adjustment a constant offset instead of temperature-dependent."
+	},
+	{
+		"original_line": "			  + b[j]* pow(kn[j],2) * Vel(v[j]) ", 
+		"bug_line": "			  - b[j]* pow(kn[j],2) * Vel(v[j]) ",
+		"error_description": "Flipped sign converts damping term to energy-adding term, causing instability through negative damping. The resonator would exhibit unbounded amplitude growth instead of controlled oscillation decay."
+	},
+	{
+		"original_line": "parameter real rbt_W = `RBT_W from (0:inf);	// Width of the bar", 
+		"bug_line": "parameter real rbt_W = `RBT_W from (-inf:0);	// Width of the bar",
+		"error_description": "The range constraint for rbt_W is inverted to (-inf:0), allowing only negative or zero widths. This violates the physical requirement that resonator width must be positive, causing simulation errors when positive values are used."
+	},
+	{
+		"original_line": "end // analog end", 
+		"bug_line": "endmodule // analog end",
+		"error_description": "Changed 'end' to 'endmodule', prematurely terminating the analog block. This leaves the block unclosed, causes syntax errors, and prevents all physical modeling computations from executing."
+	},
+	{
+		"original_line": "parameter real rbt_THK = `RBT_THK from (0:inf);	// Thickness of the bar", 
+		"bug_line": "parameter real rbt_THK = `RBT_THK from (-inf:inf);	// Thickness of the bar",
+		"error_description": "Changed thickness range to include negative values, violating physical constraints since bar thickness must be positive. This allows unphysical negative dimensions during simulation."
+	}
+]

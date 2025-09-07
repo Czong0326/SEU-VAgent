@@ -1,0 +1,202 @@
+[
+	{
+		"original_line": "analog begin", 
+		"bug_line": "analog begin real direction;",
+		"error_description": "Declares a local real variable 'direction' shadowing the module-level integer, causing the current multiplier to remain at 0 (uninitialized integer) instead of ±1, resulting in zero current flow regardless of device type."
+	},
+	{
+		"original_line": "I(s) <+ ddt(Qs);", 
+		"bug_line": "I(s) <+ direction*ddt(Qs);",
+		"error_description": "Added direction multiplier to displacement current calculation. This incorrectly applies channel current polarity to capacitive current, violating charge conservation (KCL) in p-type devices since displacement currents should remain polarity-agnostic."
+	},
+	{
+		"original_line": "else if (type == "p") begin", 
+		"bug_line": "else if (type == "pt") begin",
+		"error_description": "Changed type check from "p" to invalid "pt" string comparison. This prevents p-type device configuration from being executed since parameter validation only allows "n" or "p", leading to missing capacitance/current definitions for p-TFETs."
+	},
+	{
+		"original_line": "I(g) <+ ddt(Qg);", 
+		"bug_line": "I(g) <+ -ddt(Qg);",
+		"error_description": "Reverses gate current polarity by adding a negative sign, violating charge conservation and disrupting Miller capacitance effects. This inverts transient gate current flow direction, corrupting dynamic behavior simulations like propagation delay calculations."
+	},
+	{
+		"original_line": "Qs = W*(-1)*Cgs*(V(g,s));", 
+		"bug_line": "Qs = W*(-1)*Cgs*(V(d,s));",
+		"error_description": "Uses drain-source voltage V(d,s) instead of gate-source voltage V(g,s) for Qs calculation, leading to incorrect charge storage modeling and transient current errors."
+	},
+	{
+		"original_line": "Cgd=$table_model(V(d,s), (V(g,s)), "CGD-GaSb-InAs-HPTFET-Lg-20nm.tbl","1LL,1LL");", 
+		"bug_line": "Cgd=$table_model(V(s,d), (V(g,s)), "CGD-GaSb-InAs-HPTFET-Lg-20nm.tbl","1LL,1LL");",
+		"error_description": "Reversed drain-source voltage polarity in Cgd table lookup for p-TFET. V(s,d) instead of V(d,s) inverts the voltage argument, causing incorrect Miller capacitance calculation during transient operation when Vds < 0."
+	},
+	{
+		"original_line": "`ifdef _HETEROJUNCTION_", 
+		"bug_line": "`ifdef _HETEROJUNCTION",
+		"error_description": "Missing final underscore in macro name breaks conditional compilation for heterojunction functionality. The code will never enter the heterojunction block even when intended, forcing homojunction operation regardless of user-defined parameters."
+	},
+	{
+		"original_line": "else if (type == "p") begin", 
+		"bug_line": "else if (type == "P") begin",
+		"error_description": "Changes p-type condition check to uppercase 'P' which doesn't match parameter's lowercase 'p' specification. This prevents p-TFET configuration from activating, leaving direction unset (default 0) and resulting in zero channel current for p-type devices."
+	},
+	{
+		"original_line": "inout d,g,s;", 
+		"bug_line": "inout s,g,d;",
+		"error_description": "Reverses drain/source terminal order (d<->s), causing inverted voltage calculations (V(d,s) becomes V(s,d)) and incorrect lookup table interpolation since drain-source polarity is critical for TFET operation."
+	},
+	{
+		"original_line": "Ids=$table_model(V(d,s), (V(g,s)), "IdVg-GaSb-InAs-HNTFET-Lg-20nm.tbl","1LL,1LL");", 
+		"bug_line": "Ids=$table_model(V(g,s), V(d,s), "IdVg-GaSb-InAs-HNTFET-Lg-20nm.tbl","1LL,1LL");",
+		"error_description": "Swapped Vds and Vgs arguments in table lookup, causing incorrect current calculation by using gate voltage as drain-source voltage and vice versa. This violates the model's requirement that first parameter must be Vds and second Vgs for proper table interpolation."
+	},
+	{
+		"original_line": "`include "constants.vams"", 
+		"bug_line": "// `include "constants.vams"",
+		"error_description": "Missing essential physical constants required for charge calculations, causing all capacitance-derived currents (ddt terms) to be computed with incorrect units and magnitudes."
+	},
+	{
+		"original_line": "Qg=(-1)*(Qd+Qs);", 
+		"bug_line": "Qg=(Qd+Qs);",
+		"error_description": "Incorrect sign in gate charge calculation violates charge conservation (Qg + Qd + Qs = 0), causing non-physical transient currents due to doubled charge contributions."
+	},
+	{
+		"original_line": "Ids=$table_model(V(d,s), (V(g,s)), "IdVg-GaSb-InAs-HNTFET-Lg-20nm.tbl","1LL,1LL");", 
+		"bug_line": "Ids=$table_model(V(g,s), (V(d,s)), "IdVg-GaSb-InAs-HNTFET-Lg-20nm.tbl","1LL,1LL");",
+		"error_description": "Swapped Vds and Vgs arguments in n-TFET current lookup. Causes inversion of drain-gate voltage dependencies, leading to incorrect drain current calculation where gate voltage modulates output conductance instead of channel formation."
+	},
+	{
+		"original_line": "parameter real W=1 from (0:inf);", 
+		"bug_line": "parameter real W=1 from (-1:inf);",
+		"error_description": "Allows negative device width (W), causing inverted current direction and negative capacitance values due to invalid physical parameter. Violates design requirement that W must be positive for proper scaling of current and charge calculations."
+	},
+	{
+		"original_line": "module TFET(d,g,s);", 
+		"bug_line": "module TFET(g,d,s);",
+		"error_description": "Swapped drain/gate port order causes table_model to use Vgs as Vds and vice versa. This inverts voltage parameterization for current and capacitance lookups, fundamentally altering device behavior as gate voltage controls become applied to drain terminal."
+	},
+	{
+		"original_line": "Cgd=$table_model(V(d,s), (V(g,s)), "CGD-InAs-NTFET-Lg-20nm.tbl","1LL,1LL");", 
+		"bug_line": "Cgd=$table_model(V(g,s), (V(d,s)), "CGD-InAs-NTFET-Lg-20nm.tbl","1LL,1LL");",
+		"error_description": "Swapped Vds and Vgs arguments in the Cgd table lookup, causing incorrect interpolation order. The table expects drain-source voltage as the first dimension and gate-source voltage as the second, leading to reversed capacitance characteristics."
+	},
+	{
+		"original_line": "else if (type == "p") begin", 
+		"bug_line": "else if (type == "n") begin",
+		"error_description": "Changes p-type condition check to n-type, preventing execution of p-type homojunction code block. This leaves p-type devices with uninitialized capacitance parameters and reversed current direction without proper voltage inversion."
+	},
+	{
+		"original_line": "if (type == "n") begin", 
+		"bug_line": "if (type == "N") begin",
+		"error_description": "Changes n-type device detection from lowercase 'n' to uppercase 'N', causing all n-TFET configurations to use p-TFET logic since the type parameter only accepts lowercase values. This inverts current direction and capacitance calculations for n-type devices."
+	},
+	{
+		"original_line": "else if (type == "p") begin", 
+		"bug_line": "else if (type == "P") begin",
+		"error_description": "Case-sensitive string mismatch prevents p-type configuration. The model expects lowercase "p" but checks for uppercase "P", leaving p-TFET parameters uninitialized and direction=0, causing zero current flow and invalid capacitance calculations."
+	},
+	{
+		"original_line": "else if (type == "p") begin", 
+		"bug_line": "else if (type == "n") begin",
+		"error_description": "Condition checks for 'n' instead of 'p', causing p-type device logic to never execute. This leaves Ids/Cgd/Cgs uninitialized and direction incorrect for p-TFET operation, violating pseudo p-type modeling requirements."
+	},
+	{
+		"original_line": "Cgd=$table_model(V(d,s), (V(g,s)), "CGD-GaSb-InAs-HPTFET-Lg-20nm.tbl","1LL,1LL");", 
+		"bug_line": "Cgd=$table_model(V(g,s), V(d,s), "CGD-GaSb-InAs-HPTFET-Lg-20nm.tbl","1LL,1LL");",
+		"error_description": "Swapped Vds and Vgs arguments in Cgd table lookup for p-type heterojunction, causing incorrect capacitance interpolation by reversing voltage dependencies between drain-source and gate-source potentials."
+	},
+	{
+		"original_line": "direction = -1;", 
+		"bug_line": "direction = 1;",
+		"error_description": "Reverses p-TFET current direction by using positive polarity instead of negative, causing incorrect current flow polarity in p-type devices while maintaining mirrored voltage inputs. This creates logical inconsistency between voltage inversion and current direction control."
+	},
+	{
+		"original_line": "real Ids, Cgs, Cgd,Qg, Qs, Qd;", 
+		"bug_line": "integer Ids, Cgs, Cgd,Qg, Qs, Qd;",
+		"error_description": "Changed variable type from real to integer, causing truncation of current/capacitance values from lookup tables and destroying analog behavior precision. Integer type cannot represent continuous IV/CV characteristics critical for TFET modeling."
+	},
+	{
+		"original_line": "I(g) <+ ddt(Qg);", 
+		"bug_line": "I(g) <+ direction*ddt(Qg);",
+		"error_description": "Introduces directional inversion error in gate current calculation by multiplying with 'direction' parameter. This incorrectly reverses transient gate current polarity for p-type devices, violating charge conservation principles as gate current polarity should be strictly determined by Qg's time derivative regardless of device type."
+	},
+	{
+		"original_line": "Cgs=$table_model(V(d,s), (V(g,s)), "CGS-InAs-NTFET-Lg-20nm.tbl","1LL,1LL");", 
+		"bug_line": "Cgs=$table_model(V(g,s), (V(d,s)), "CGS-InAs-NTFET-Lg-20nm.tbl","1LL,1LL");",
+		"error_description": "Swapped Vds and Vgs arguments in Cgs table lookup, causing incorrect capacitance interpolation by reversing voltage parameter order in the 2D lookup table."
+	},
+	{
+		"original_line": "I(s) <+ ddt(Qs);", 
+		"bug_line": "I(s) <+ ddt(Qd);",
+		"error_description": "Swapping Qs with Qd incorrectly sources the drain's charge derivative to the source terminal, violating charge conservation and leading to erroneous transient current calculations in the source terminal."
+	},
+	{
+		"original_line": "Cgs=$table_model(V(d,s), (V(g,s)), "CGS-GaSb-InAs-HNTFET-Lg-20nm.tbl","1LL,1LL");", 
+		"bug_line": "Cgs=$table_model(V(g,s), (V(d,s)), "CGS-GaSb-InAs-HNTFET-Lg-20nm.tbl","1LL,1LL");",
+		"error_description": "Swapped voltage arguments (Vgs first instead of Vds) for Cgs table lookup. The capacitance model expects Vds as first dimension and Vgs as second per design specs, causing incorrect capacitance values due to reversed parameter ordering."
+	},
+	{
+		"original_line": "      I(d,s) <+ direction*Ids*W ;", 
+		"bug_line": "      I(d,s) <+ Ids*W ;",
+		"error_description": "Removed 'direction' multiplier breaks p-TFET operation by failing to reverse current polarity for p-type devices, violating the symmetric pseudo-modeling requirement where p-TFET should have inverted current flow relative to n-TFET."
+	},
+	{
+		"original_line": "integer direction;", 
+		"bug_line": "real direction;",
+		"error_description": "The 'direction' variable is incorrectly declared as real instead of integer, causing type mismatch in current polarity calculation. This disrupts the discrete +/-1 current direction control, leading to invalid floating-point current contributions instead of proper bidirectional operation."
+	},
+	{
+		"original_line": "module TFET(d,g,s);", 
+		"bug_line": "module TFET(d,s,g);",
+		"error_description": "Swapped gate and source terminals in port declaration. Causes all V(g,s) references to become V(s,g) (negative of intended gate-source voltage), reversing polarity for current calculations and capacitance lookups."
+	},
+	{
+		"original_line": "I(g) <+ ddt(Qg);", 
+		"bug_line": "I(g) <+ direction * ddt(Qg);",
+		"error_description": "Incorrectly applies the 'direction' parameter to the gate current, causing inverted transient gate currents for p-type devices and disrupting proper charge/discharge behavior in circuit simulations."
+	},
+	{
+		"original_line": "I(d) <+ ddt(Qd);", 
+		"bug_line": "I(d) <+ -ddt(Qd);",
+		"error_description": "Inverts the sign of the drain terminal's capacitive current contribution, leading to incorrect transient behavior due to reversed charge/discharge direction."
+	},
+	{
+		"original_line": "else if (type == "p") begin", 
+		"bug_line": "else if (type == "n") begin",
+		"error_description": "Changed p-type condition check to 'n', causing p-TFET configuration block to never execute. This prevents proper current mirroring and capacitance table selection for p-type devices, resulting in zero drain current and uninitialized capacitances when type="p"."
+	},
+	{
+		"original_line": "Cgs=$table_model(V(d,s), (V(g,s)), "CGS-InAs-NTFET-Lg-20nm.tbl","1LL,1LL");", 
+		"bug_line": "Cgs=$table_model(V(g,s), V(d,s), "CGS-InAs-NTFET-Lg-20nm.tbl","1LL,1LL");",
+		"error_description": "Swapped Vds and Vgs arguments in capacitance table lookup, causing incorrect interpolation by using gate voltage as drain voltage and vice versa."
+	},
+	{
+		"original_line": "Qg=(-1)*(Qd+Qs);", 
+		"bug_line": "Qg=(Qd+Qs);",
+		"error_description": "Removes negative sign in charge conservation calculation, making Qg=Qd+Qs instead of -(Qd+Qs). This violates charge conservation (Qg+Qd+Qs≠0), causing incorrect transient current calculations through ddt() operators."
+	},
+	{
+		"original_line": "Ids=$table_model(V(d,s), (V(g,s)), "IdVg-GaSb-InAs-HNTFET-Lg-20nm.tbl","1LL,1LL");", 
+		"bug_line": "Ids=$table_model(V(g,s), (V(d,s)), "IdVg-GaSb-InAs-HNTFET-Lg-20nm.tbl","1LL,1LL");",
+		"error_description": "Swapped Vds and Vgs arguments in the table_model function, causing incorrect lookup order. The model now uses gate voltage as the drain-source voltage parameter and vice versa, leading to inverted current characteristics and invalid interpolation from the DC current lookup table."
+	},
+	{
+		"original_line": "`endif", 
+		"bug_line": "`else",
+		"error_description": "Introduces an else clause for the homojunction conditional compilation, allowing code execution when neither _HETEROJUNCTION_ nor _HOMOJUNCTION_ are defined. This results in missing Ids/Cgd/Cgs table lookups for undefined operation modes, causing zero current flow and broken capacitance characteristics."
+	},
+	{
+		"original_line": "integer direction;", 
+		"bug_line": "integer direction = 1;",
+		"error_description": "Initializing 'direction' to 1 prevents proper inversion for p-TFET operation. While assignments in type blocks overwrite this, some Verilog-A tools may retain initial values if analog blocks are re-entered, causing p-TFET current direction errors."
+	},
+	{
+		"original_line": "else if (type == "p") begin", 
+		"bug_line": "else if (type == "P") begin",
+		"error_description": "Case-sensitive string comparison error - checks for uppercase "P" instead of lowercase "p", causing the p-TFET block to never execute since the type parameter only accepts lowercase values from {"n", "p"}."
+	},
+	{
+		"original_line": "parameter real W=1 from (0:inf);", 
+		"bug_line": "parameter real W=1 from (-1:inf);",
+		"error_description": "Allows negative device width (W) which violates physical reality and reverses current direction when W<0, while the model expects strictly positive values for meaningful semiconductor device operation."
+	}
+]

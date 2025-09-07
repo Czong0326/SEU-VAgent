@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "  parameter real mr = 0.012;", 
+		"bug_line": "  parameter real mr = -0.012;",
+		"error_description": "Negative reduced mass violates physical laws and causes complex-number errors in sqrt(2*mrvalue/egvalue) calculations, breaking tunnel current computations."
+	},
+	{
+		"original_line": "      I(gate,gateprime) <+ gg*V(gate,gateprime);", 
+		"bug_line": "      I(gateprime,gate) <+ gg*V(gate,gateprime);",
+		"error_description": "Reversed the direction of the gate resistance current by swapping the current flow from gateprime to gate instead of gate to gateprime. This error incorrectly models the gate resistance, causing the current to flow opposite to the intended direction relative to the voltage drop."
+	},
+	{
+		"original_line": "        gs = 0;", 
+		"bug_line": "        gs = 1;",
+		"error_description": "Sets source conductance to 1 when source resistance (rs) is <=0 instead of 0. This introduces an unintended 1Ω resistance between source and sourceprime nodes when rs should be infinite, causing incorrect voltage drops and current calculations."
+	},
+	{
+		"original_line": "          mrvalue = mr*9.1095e-31;", 
+		"bug_line": "          mrvalue = mr / 9.1095e-31;",
+		"error_description": "Division instead of multiplication causes effective mass to become astronomically large (inverse of electron mass scaling), breaking the tunneling current calculation which depends exponentially on mass via the b parameter."
+	},
+	{
+		"original_line": "ua = ru+r0p*u0*vgoena;", 
+		"bug_line": "ua = ru - r0p*u0*vgoena;",
+		"error_description": "Changed '+' to '-' operator. This inverts the dependence of ua on vgoena, causing incorrect ambipolar current calculation by making ua decrease as vgoena increases instead of increasing."
+	},
+	{
+		"original_line": "vgta = -vgs-vth;", 
+		"bug_line": "vgta = vgs - vth;",
+		"error_description": "Incorrect polarity in ambipolar current threshold calculation. The sign flip error causes ambipolar current to activate under positive gate bias instead of negative bias, reversing the device's operational characteristics for ambipolar conduction."
+	},
+	{
+		"original_line": "      I(source,sourceprime) <+ gs*V(source,sourceprime);", 
+		"bug_line": "      I(source,sourceprime) <+ gg*V(source,sourceprime);",
+		"error_description": "Replaced source series resistance conductance (gs) with gate series resistance conductance (gg). This causes the source series resistance to be incorrectly modeled using the gate resistance value, leading to inaccurate current flow and voltage drop at the source terminal."
+	},
+	{
+		"original_line": "            gd = 0;", 
+		"bug_line": "            gd = 1/0;",
+		"error_description": "Division by zero introduced unconditionally in the else branch. When drain resistance (rd) is 0 or negative, this causes simulation failure instead of properly disabling the drain resistor by setting conductance (gd) to 0."
+	},
+	{
+		"original_line": "vsde = `VDSMIN*(0.5*vsd/`VDSMIN+sqrt(deltas+(0.5*vsd/`VDSMIN-1)*(0.5*vsd/`VDSMIN-1))-sqrt(deltas+1));", 
+		"bug_line": "vsde = `VDSMIN*(0.5*vsd/`VDSMIN+sqrt(deltas+(0.5*vsd/`VDSMIN-1)*(0.5*vsd/`VDSMIN-1))-sqrt(deltas));",
+		"error_description": "Changed 'sqrt(deltas+1)' to 'sqrt(deltas)', breaking the voltage smoothing function. This removes the +1 offset required for correct asymptotic behavior at small voltages, causing numerical instability and inaccurate current calculations near Vds=0."
+	},
+	{
+		"original_line": "real vgta, vgoa, vgoea, vgoena, fa, ua, ea, ida, ide;", 
+		"bug_line": "real vgta, vgoa, vgoea, vgoena, fa, ua, ea, ida, ida;",
+		"error_description": "Changed 'ide' to a duplicate 'ida' variable. This causes the RTD drain-source current calculation to use an uninitialized 'ida' instead of 'ide', corrupting the current value since 'ida' holds ambipolar current while 'ide' should hold RTD current."
+	},
+	{
+		"original_line": "  parameter real jp = 2e8;", 
+		"bug_line": "  parameter real jp = -2e8;",
+		"error_description": "Negative jp value inverts the RTD current component direction, violating the physical tunneling phenomenon where current magnitude should be positive."
+	},
+	{
+		"original_line": "parameter real l = 20n from (0:inf) `P(spice:name="w" type="instance");", 
+		"bug_line": "parameter real l = 20n from (0:0) `P(spice:name="w" type="instance");",
+		"error_description": "Changed the range constraint from (0:inf) to (0:0), restricting valid channel length values to only 0. This violates physics since zero-length transistors don't exist and causes division-by-zero errors in calculations like rg = rgwl*w/l."
+	},
+	{
+		"original_line": "vdse = `VDSMIN*(0.5*vds/`VDSMIN+sqrt(deltas+(0.5*vds/`VDSMIN-1)*(0.5*vds/`VDSMIN-1))-sqrt(deltas+1));", 
+		"bug_line": "vdse = `VDSMIN*(0.5*vds/`VDSMIN+sqrt(deltas+(0.5*vds/`VDSMIN-1)*(0.5*vds/`VDSMIN-1))+sqrt(deltas+1));",
+		"error_description": "Changed the subtraction of sqrt(deltas+1) to addition. This disrupts the voltage smoothing function by introducing a positive offset, causing vdse to be significantly overestimated at low voltages and corrupting all current calculations that depend on it."
+	},
+	{
+		"original_line": "cgs = cgs0*w;", 
+		"bug_line": "cgs = cgs0*l;",
+		"error_description": "Changed width (w) to length (l) in gate-source capacitance calculation. This incorrectly scales capacitance with channel length instead of width, violating capacitance-area proportionality and causing significant modeling errors in RF characteristics."
+	},
+	{
+		"original_line": "  parameter real r2 = 1.3;", 
+		"bug_line": "  parameter real r2 = -1.3;",
+		"error_description": "Negative r2 value unphysically inverts gate voltage dependence in electric field calculation (e = e0*(1+r1*vdse+r2*vgoe)), causing incorrect tunneling current behavior."
+	},
+	{
+		"original_line": "I(gate,gateprime) <+ gg*V(gate,gateprime);", 
+		"bug_line": "I(gate,gateprime) <+ gd*V(gate,gateprime);",
+		"error_description": "Replaced gate conductance (gg) with drain conductance (gd). This incorrectly models the gate resistance using the drain resistance value, potentially causing gate resistance to be zero when drain resistance is absent (rd=0) and fundamentally misrepresenting the gate terminal's resistive behavior."
+	},
+	{
+		"original_line": "I(drainprime,sourceprime) <+ type*(id+ida+ide);", 
+		"bug_line": "I(drainprime,sourceprime) <+ type*(id+ide);",
+		"error_description": "The ambipolar current component (ida) is missing from the total current calculation. This violates the design specification that requires summing all three current components (main tunneling, ambipolar, and RTD). Without ida, the model fails to account for ambipolar conduction in negative Vgs regions for n-type devices (or positive Vgs for p-type), leading to inaccurate off-state leakage and subthreshold characteristics."
+	},
+	{
+		"original_line": "      if(rs > 0)", 
+		"bug_line": "      if(rs < 0)",
+		"error_description": "Changed condition from rs > 0 to rs < 0. Since rs is always non-negative (>=0), this condition will never be true. This prevents adding source resistance even when rs > 0 is set, effectively shorting source to sourceprime regardless of parameter value."
+	},
+	{
+		"original_line": " `define PGIVEN(p)		p", 
+		"bug_line": " `define PGIVEN(p)		1",
+		"error_description": "Changed PGIVEN macro to always return 1 (true), causing all parameters to be incorrectly treated as user-specified. This breaks conditional logic that depends on detecting whether parameters were explicitly provided, leading to incorrect resistance calculations (rd, rs, rg always set to 0)."
+	},
+	{
+		"original_line": "r0p = 1-r0;", 
+		"bug_line": "r0p = 1+r0;",
+		"error_description": "Changed subtraction to addition, incorrectly calculating r0p as (1 + r0) instead of (1 - r0). This erroneously increases the thermal voltage term in the tunneling current equations, distorting the entire current-voltage characteristic."
+	}
+]

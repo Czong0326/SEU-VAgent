@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real vlogic_low  = 0 ;", 
+		"bug_line": "parameter real vlogic_low  = vlogic_high;",
+		"error_description": "vlogic_low is set equal to vlogic_high, causing the output voltage to be constant (at the high level) regardless of the random bit value. This violates the design requirement for distinct high and low logic levels."
+	},
+	{
+		"original_line": "vout_val = vlogic_low;", 
+		"bug_line": "vout_val = vlogic_high;",
+		"error_description": "Initial output voltage is incorrectly set to vlogic_high instead of vlogic_low, violating the intended initial low state and causing incorrect startup behavior."
+	},
+	{
+		"original_line": "bit = abs($random(iseed)) & 1;", 
+		"bug_line": "bit = abs($random(seed)) & 1;",
+		"error_description": "Using constant parameter 'seed' instead of variable 'iseed' in random call causes the same bit value to repeat every period since the seed never updates, eliminating randomness in the bit stream."
+	},
+	{
+		"original_line": "         iseed = seed;", 
+		"bug_line": "         iseed = tperiod;",
+		"error_description": "The seed for the random number generator is incorrectly set to the real-valued 'tperiod' parameter instead of the integer 'seed' parameter. This causes type mismatch (real to integer truncation) and makes the random sequence dependent on the period value rather than the designated seed."
+	},
+	{
+		"original_line": "parameter real tperiod = 1 from (0:inf);", 
+		"bug_line": "parameter real tperiod = 0 from [0:inf);",
+		"error_description": "Setting period to zero causes continuous immediate events at the same simulation time, creating a simulation hang due to infinitely recurring events without time progression."
+	},
+	{
+		"original_line": "parameter real tperiod = 1 from (0:inf);", 
+		"bug_line": "parameter real tperiod_wrong = 1 from (0:inf);",
+		"error_description": "The parameter name is misspelled to 'tperiod_wrong', causing all subsequent references to 'tperiod' in the analog block to become undefined. This breaks the timing calculations for the random bit stream generation."
+	},
+	{
+		"original_line": "parameter real vlogic_high = 5;", 
+		"bug_line": "parameter real vlogic_high = vlogic_low;",
+		"error_description": "Sets vlogic_high equal to vlogic_low, causing the output voltage for logic high and logic low to be identical. This eliminates voltage distinction between bits, making the output constant regardless of random bit values."
+	},
+	{
+		"original_line": "next = $abstime + tperiod;", 
+		"bug_line": "next = $abstime + tdel;",
+		"error_description": "Replaced 'tperiod' with 'tdel', causing the initial event timing to use the delay parameter instead of the period parameter. This makes the first bit transition occur at time = tdel (typically 0s) rather than after one full period (tperiod), violating the intended periodic behavior from time zero."
+	},
+	{
+		"original_line": "parameter real tfall=1n;", 
+		"bug_line": "parameter real tfall=1;",
+		"error_description": "Changed fall time from 1ns to 1 second. This dramatically increases signal transition time, violating timing requirements and potentially causing synchronization failures in downstream circuits due to excessively slow edges."
+	},
+	{
+		"original_line": "   real next;", 
+		"bug_line": "   integer next;",
+		"error_description": "Changing 'next' from real to integer causes truncation of fractional time values during event scheduling. This results in incorrect timing for fractional-period operations (e.g., 1.5ns periods become 1ns), disrupting the bit stream's temporal accuracy."
+	},
+	{
+		"original_line": "   real vout_val;", 
+		"bug_line": "   integer vout_val;",
+		"error_description": "Changing vout_val from real to integer truncates fractional voltage values, causing incorrect analog output when vlogic_high/vlogic_low have decimal values (e.g., 3.3V becomes 3V)."
+	},
+	{
+		"original_line": "parameter real trise=1n;", 
+		"bug_line": "parameter real trise=-1n;",
+		"error_description": "Negative rise time violates the transition function's requirement for non-negative arguments, causing simulation failures and undefined behavior during signal transitions."
+	},
+	{
+		"original_line": "electrical vout;", 
+		"bug_line": "current vout;",
+		"error_description": "Changes the discipline from voltage (electrical) to current, making the voltage driver (V(vout)) incompatible with the port type. This violates the design's requirement for a voltage output."
+	},
+	{
+		"original_line": "   integer iseed;", 
+		"bug_line": "   real iseed;",
+		"error_description": "Changed 'iseed' from integer to real type, causing type mismatch in $random() system function which requires an integer seed variable for proper operation. This breaks the random bit generation functionality."
+	},
+	{
+		"original_line": "output vout;", 
+		"bug_line": "input vout;",
+		"error_description": "Changed port direction from output to input, violating the design as the module drives vout internally. This creates a functional error since input ports cannot be driven by internal sources."
+	},
+	{
+		"original_line": "parameter integer seed = 21;", 
+		"bug_line": "parameter integer seed = 0;",
+		"error_description": "Setting seed=0 causes non-deterministic behavior since $random uses system time when seed=0, violating the requirement for controlled repeatable sequences specified by the seed parameter."
+	},
+	{
+		"original_line": "parameter real trise=1n;", 
+		"bug_line": "parameter real trise=-1n;",
+		"error_description": "Negative rise time violates physical reality and causes simulation failures in transition functions, as time constants must be non-negative."
+	},
+	{
+		"original_line": "	 vout_val = vlogic_low;", 
+		"bug_line": "	 vout_val = vlogic_high;",
+		"error_description": "Initial output voltage incorrectly set to vlogic_high instead of vlogic_low, violating design specification requiring low initial state before first transition."
+	},
+	{
+		"original_line": "parameter real trise=1n;", 
+		"bug_line": "parameter real trise=0;",
+		"error_description": "Setting trise=0 violates the design requirement for finite transition times, causing instantaneous voltage changes that bypass analog settling effects required for accurate mixed-signal simulation."
+	},
+	{
+		"original_line": "parameter real tdel=0 from [0:inf);", 
+		"bug_line": "parameter real tdel=-1 from (-inf:inf);",
+		"error_description": "Sets default delay to -1 and allows negative delays, violating non-negative timing constraint. Negative delays cause non-causal behavior where output transitions occur before input events, leading to simulation instability and unphysical results."
+	}
+]

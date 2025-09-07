@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "@ (cross (V(sigin) - sigtrig_low,-1) )", 
+		"bug_line": "@ (cross (V(sigin) - sigtrig_high,-1) )",
+		"error_description": "Replaced 'sigtrig_low' with 'sigtrig_high', causing the lower trigger threshold to incorrectly use the upper threshold value. This disrupts the hysteresis behavior by making both state transitions depend on the same threshold (sigtrig_high), eliminating the intended deadband between sigtrig_high and sigtrig_low."
+	},
+	{
+		"original_line": "      end else begin", 
+		"bug_line": "      end else if (hyst_state == 1) begin",
+		"error_description": "Changing 'else' to 'else if (hyst_state == 1)' creates an unreachable condition. When hyst_state is 0, the sigout_low assignment is skipped since the condition fails, leaving sigout_val unassigned. This violates hysteresis behavior by preventing low-state output transitions."
+	},
+	{
+		"original_line": "parameter real sigtrig_high = 1 ;", 
+		"bug_line": "parameter real sigtrig_high = -1 ;",
+		"error_description": "Sets high trigger threshold equal to low trigger threshold (-1), eliminating hysteresis window and causing unstable output oscillation when input signal crosses the shared threshold voltage."
+	},
+	{
+		"original_line": "parameter integer hyst_state_init=1;", 
+		"bug_line": "parameter integer hyst_state_init=-1;",
+		"error_description": "Negative initial state violates the design's requirement that hysteresis states must be 0 (low) or 1 (high). This causes undefined behavior since state comparisons (hyst_state == 0/1) will never match, leaving the output permanently undefined."
+	},
+	{
+		"original_line": "sigout_val = sigout_low;", 
+		"bug_line": "sigout_val = sigtrig_low;",
+		"error_description": "In the low state, the output is incorrectly set to the trigger low level (sigtrig_low) instead of the output low value (sigout_low), causing incorrect hysteresis thresholds and violating the design specification where output levels should be independent of trigger points."
+	},
+	{
+		"original_line": "module hysteresis(sigin, sigout);", 
+		"bug_line": "module hysteresis(sigin, sigout_wrong);",
+		"error_description": "The output port name is changed to 'sigout_wrong', disconnecting it from the internal 'sigout' net. This leaves the actual output port undriven while internal assignments to 'sigout' become unused, violating the output functionality."
+	},
+	{
+		"original_line": "      end else begin", 
+		"bug_line": "      end else if (hyst_state == 2) begin",
+		"error_description": "The condition 'hyst_state == 2' is never true since hyst_state only takes values 0 or 1. This prevents the low output assignment when the hysteresis state is 0, causing sigout_val to retain its previous value (possibly high) instead of switching to low."
+	},
+	{
+		"original_line": "      @ (cross (V(sigin) - sigtrig_low,-1) )", 
+		"bug_line": "      @ (cross (V(sigin) - sigtrig_high,-1) )",
+		"error_description": "Changed trigger condition from sigtrig_low to sigtrig_high. Now both triggers use the high threshold, eliminating hysteresis by making the low trigger identical to the high trigger. Output will toggle at the same input voltage level regardless of direction."
+	},
+	{
+		"original_line": "input sigin;", 
+		"bug_line": "output sigin;",
+		"error_description": "Changed input port direction to output. This violates signal flow requirements since the hysteresis module needs to read input voltage (V(sigin)), but now treats it as an output port. External signals cannot drive this port, breaking the module's functionality."
+	},
+	{
+		"original_line": "@ (cross (V(sigin) - sigtrig_low,-1) )", 
+		"bug_line": "@ (cross (V(sigin) - sigtrig_high,-1) )",
+		"error_description": "Changed trigger threshold from sigtrig_low to sigtrig_high. Now incorrectly triggers state transition to low when input falls below sigtrig_high instead of sigtrig_low, violating the hysteresis window specification."
+	},
+	{
+		"original_line": "parameter real sigout_high = 1 ;", 
+		"bug_line": "parameter real sigout_high = sigout_low;",
+		"error_description": "Assigns sigout_high the same value as sigout_low, causing both hysteresis states to output identical voltages. This eliminates the fundamental hysteresis behavior by removing the required voltage difference between high/low states."
+	},
+	{
+		"original_line": "      @ (cross (V(sigin) - sigtrig_high,1) )", 
+		"bug_line": "      @ (cross (V(sigin) - sigtrig_low,1) )",
+		"error_description": "Changed trigger threshold from sigtrig_high to sigtrig_low. This causes premature state transition to high when input crosses the lower threshold (rising), violating the intended hysteresis behavior where transition should only occur at the higher threshold."
+	},
+	{
+		"original_line": "parameter real trise = 20n from (0:inf);", 
+		"bug_line": "parameter real trise = 0 from [0:inf);",
+		"error_description": "Sets rise time to 0 and includes 0 in the valid range, causing instantaneous transitions. This violates the design requirement for gradual signal changes and leads to convergence issues in simulation due to discontinuous output."
+	},
+	{
+		"original_line": "input sigin;", 
+		"bug_line": "output sigin;",
+		"error_description": "Changing sigin from input to output violates the design's directionality. The hysteresis module requires sigin as an input signal to monitor, but declaring it as an output causes conflicts when external circuits drive this port. This results in undefined voltage values on sigin, breaking the cross-triggering logic that detects threshold crossings."
+	},
+	{
+		"original_line": "parameter real sigout_low = -1;", 
+		"bug_line": "parameter real sigout_low = sigout_high;",
+		"error_description": "Assigning sigout_low the same value as sigout_high eliminates the output voltage difference between hysteresis states, causing the output to remain constant regardless of input crossings and violating the fundamental hysteresis behavior."
+	},
+	{
+		"original_line": "if (hyst_state == 1) begin", 
+		"bug_line": "if (hyst_state == 0) begin",
+		"error_description": "The condition is inverted, causing the output to be high when the state is low and low when the state is high. This swaps the hysteresis triggering behavior and violates the design specification."
+	},
+	{
+		"original_line": "output sigout;", 
+		"bug_line": "input sigout;",
+		"error_description": "Changing the port direction from output to input causes a functional error because the module attempts to drive an input port (V(sigout) <+ ...), which violates Verilog-A port direction rules and results in simulation failure."
+	},
+	{
+		"original_line": "module hysteresis(sigin, sigout);", 
+		"bug_line": "module hysteresis(sigout, sigin);",
+		"error_description": "Swapped input and output ports in module declaration. Causes sigin to be treated as output and sigout as input during instantiation, reversing signal flow and violating design requirements."
+	},
+	{
+		"original_line": "parameter real sigout_low = -1;", 
+		"bug_line": "parameter real sigout_low = sigout_high;",
+		"error_description": "Sets the low output level equal to the high output level, eliminating hysteresis functionality by making both states output identical values, effectively turning the hysteresis into a constant output device."
+	},
+	{
+		"original_line": "      @ ( initial_step ) begin", 
+		"bug_line": "      @ ( initial_step("ic") ) begin",
+		"error_description": "Added invalid argument "ic" to initial_step event. VerilogA initial_step takes no arguments, causing compilation failure. This prevents initialization of the hysteresis state, leaving it undefined throughout simulation."
+	}
+]

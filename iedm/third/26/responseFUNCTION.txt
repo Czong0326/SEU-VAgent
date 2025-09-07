@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Replaced 'analog' with 'initial', changing the continuous-time simulation block to a one-time initialization block. This prevents the inductor's differential equation (V = L*dI/dt) from being continuously evaluated during simulation, making the component behave as a short circuit after initialization instead of providing inductive behavior."
+	},
+	{
+		"original_line": "`define MAXINT  2_147_483_647.0", 
+		"bug_line": "`define MAXINT  0.0",
+		"error_description": "Changing MAXINT to 0.0 causes division by zero during initialization when calculating v1 and v2, as $random values are divided by MAXINT. This results in a simulation error, preventing the inductor value from being computed and violating the required initialization process."
+	},
+	{
+		"original_line": "         iseed1 = seed1;", 
+		"bug_line": "         iseed1 = seed2;",
+		"error_description": "Initializes both random seeds to seed2 instead of independent seeds. This causes identical random sequences for v1 and v2, corrupting the Gaussian distribution calculation for inductance values since Box-Muller requires two independent uniform variables."
+	},
+	{
+		"original_line": "analog function real gasdev;", 
+		"bug_line": "analog function real gasdev; input v1;",
+		"error_description": "Added an extra 'input v1' declaration in the function header, making the function expect only one input instead of two. This causes a parameter mismatch when calling gasdev(v1,v2) later, leading to incorrect Gaussian distribution generation and wrong inductance values."
+	},
+	{
+		"original_line": "   integer iseed1, iseed2;", 
+		"bug_line": "   integer iseed1; real iseed2;",
+		"error_description": "The seed variable iseed2 is incorrectly declared as real instead of integer. This causes a type mismatch error when passed to the $random system function, which requires an integer seed reference, preventing proper random number generation for inductance calculation."
+	},
+	{
+		"original_line": "   integer iseed1, iseed2;", 
+		"bug_line": "   integer iseed1;",
+		"error_description": "The variable 'iseed2' is no longer declared, causing a compilation error when used in the initial_step block where it is assigned and passed to $random. This breaks the seed initialization for the Gaussian distribution."
+	},
+	{
+		"original_line": "   input v1,v2;", 
+		"bug_line": "   input v1;",
+		"error_description": "The function 'gasdev' now only accepts one input argument instead of two. This causes a mismatch when called with two arguments (v1,v2) in the initial block, leading to compilation/simulation errors."
+	},
+	{
+		"original_line": "              V(vp, vn) <+ ddt(l*I(vp, vn));", 
+		"bug_line": "              V(vp, vn) <+ idt(l*I(vp, vn));",
+		"error_description": "Replaced derivative operator (ddt) with integral operator (idt), converting the inductor into a capacitor (V proportional to integral of I) instead of maintaining proper inductor behavior (V proportional to derivative of I)."
+	},
+	{
+		"original_line": "parameter integer seed1 = 0 from [0:inf);", 
+		"bug_line": "parameter integer seed1 = 0 from (0:inf);",
+		"error_description": "Changed range from inclusive [0 to exclusive (0, excluding the default value 0. This causes initialization errors since 0 is no longer a valid seed value, breaking Gaussian distribution generation."
+	},
+	{
+		"original_line": "         iseed2 = seed2;", 
+		"bug_line": "         iseed2 = seed1;",
+		"error_description": "Assigns seed1 to iseed2 instead of seed2, causing both random number generators to use identical seeds. This produces correlated v1/v2 values, corrupting the Gaussian distribution of inductance values."
+	},
+	{
+		"original_line": " v1 = abs($random(iseed1)/`MAXINT);", 
+		"bug_line": " v1 = $random(iseed1)/`MAXINT;",
+		"error_description": "Removed abs() function, allowing v1 to be negative. This causes logarithm of negative values in the Box-Muller transform, producing invalid Gaussian samples and incorrect inductance values."
+	},
+	{
+		"original_line": "`define MAXINT  2_147_483_647.0", 
+		"bug_line": "`define MAXINT  -2_147_483_647.0",
+		"error_description": "Changing MAXINT to negative causes normalized random values (v1, v2) to become negative, which later triggers logarithm of negative numbers in the gasdev function, resulting in mathematical domain errors during simulation."
+	},
+	{
+		"original_line": "v2 = abs($random(iseed2)/`MAXINT);", 
+		"bug_line": "v2 = abs($random(iseed1)/`MAXINT);",
+		"error_description": "Using seed1 for both random variables breaks independence required by Box-Muller transform, corrupting the Gaussian distribution of inductance values."
+	},
+	{
+		"original_line": "parameter real l_mean = 10K from (0:inf);", 
+		"bug_line": "parameter real l_mean = 10K from (-inf:inf);",
+		"error_description": "Changed the range of l_mean to include negative values, allowing non-physical negative inductance. This violates the design requirement that inductance must be positive, leading to invalid simulation results when negative values occur."
+	},
+	{
+		"original_line": "V(vp, vn) <+ ddt(l*I(vp, vn));", 
+		"bug_line": "V(vp, vn) <+ l*I(vp, vn);",
+		"error_description": "The derivative operator (ddt) is omitted, incorrectly modeling the inductor as a resistor (V = L*I) instead of an inductor (V = L*dI/dt)."
+	},
+	{
+		"original_line": "real  v1,v2;", 
+		"bug_line": "real  v1, v2 = 1.0;",
+		"error_description": "Initializing v2 to 1.0 overrides the passed random value, causing the Gaussian distribution to always use v2=1.0. This breaks the Box-Muller transform by fixing the second uniform variable, resulting in incorrect inductance values that don't follow the specified normal distribution."
+	},
+	{
+		"original_line": "   input v1,v2;", 
+		"bug_line": "   output v1,v2;",
+		"error_description": "Changing input to output reverses argument direction. The function now expects v1 and v2 as outputs but they're used as inputs in the calculation, causing undefined behavior since outputs aren't initialized. This corrupts the Gaussian deviate computation."
+	},
+	{
+		"original_line": "@ ( initial_step ) begin ", 
+		"bug_line": "@ (initial_step or cross(V(vp,vn), 0)) begin",
+		"error_description": "Added incorrect cross event trigger. This causes inductance recalculation whenever terminal voltage crosses zero, making the inductor value time-varying instead of fixed. The module should only calculate inductance once during initialization."
+	},
+	{
+		"original_line": "	 iseed2 = seed2;", 
+		"bug_line": "	 iseed2 = seed1;",
+		"error_description": "Assigns the first seed parameter to both seed variables, causing loss of independent random sequences. This violates Gaussian distribution requirements for inductance generation by producing correlated random values v1 and v2."
+	},
+	{
+		"original_line": "`define MAXINT  2_147_483_647.0", 
+		"bug_line": "`define MAXINT  -2_147_483_647.0",
+		"error_description": "Setting MAXINT to a negative value causes v1/v2 normalization to produce negative numbers. The gasdev function then computes log(v1) with negative input, violating mathematical domain requirements and crashing simulation during initialization."
+	}
+]

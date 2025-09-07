@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "parameter real af_lev_shift = 0;", 
+		"bug_line": "parameter real af_le_shift = 0;",
+		"error_description": "Renamed parameter 'af_lev_shift' to 'af_le_shift', causing an undefined variable error in the analog block where 'af_lev_shift' is referenced during output level shifting."
+	},
+	{
+		"original_line": "parameter real rf_gain = 1;", 
+		"bug_line": "parameter real rf_gain = 0;",
+		"error_description": "Sets RF gain to zero, causing complete attenuation of the input signal before demodulation. This violates the design requirement for signal amplification in the RF stage, resulting in no output signal regardless of input."
+	},
+	{
+		"original_line": "parameter real af_lev_shift = 0;", 
+		"bug_line": "parameter real af_level_shift = 0;",
+		"error_description": "Parameter name changed to 'af_level_shift' causing mismatch with 'af_lev_shift' in analog block. The undefined 'af_lev_shift' defaults to 0, making the level shift non-adjustable."
+	},
+	{
+		"original_line": "parameter real af_lev_shift = 0;", 
+		"bug_line": "parameter real af_lev_shift = 1/0;",
+		"error_description": "Division by zero in parameter initialization causes simulation failure during compilation. The undefined shift value violates functional requirements as the level shift becomes mathematically undefined."
+	},
+	{
+		"original_line": "parameter real af_lev_shift = 0;", 
+		"bug_line": "parameter real af_lev_shift = "0";",
+		"error_description": "Assigned a string literal "0" to a real-valued parameter. This violates type constraints in VerilogA where real parameters must receive numeric assignments, causing compilation/simulation errors due to type mismatch."
+	},
+	{
+		"original_line": "af_filter (vaf,demod_gnd,vdetect,demod_gnd);", 
+		"bug_line": "af_filter (vaf,demod_gnd,vout,demod_gnd);",
+		"error_description": "Incorrectly connected AF filter input to demodulator output (vout) instead of rectified signal (vdetect), causing feedback loop and preventing proper demodulation of the AM signal."
+	},
+	{
+		"original_line": "af_filter (vaf,demod_gnd,vdetect,demod_gnd);", 
+		"bug_line": "af_filter (vaf,demod_gnd,demod_gnd,demod_gnd);",
+		"error_description": "The filter input is incorrectly connected to ground (demod_gnd) on both terminals instead of the rectifier output (vdetect). This results in the filter processing a constant zero input signal, causing complete loss of demodulated audio output regardless of the AM input signal."
+	},
+	{
+		"original_line": "parameter real af_gain = 1;", 
+		"bug_line": "parameter real af_gain = -1;",
+		"error_description": "Negative audio gain inverts the demodulated signal output polarity, violating design specifications where positive gain is required for correct signal processing."
+	},
+	{
+		"original_line": "parameter real af_wn   = 1K;", 
+		"bug_line": "parameter real af_wn   = -1K;",
+		"error_description": "Negative pole frequency (-1000 rad/s) creates unstable positive poles in the audio filter, causing exponential output growth instead of proper demodulation."
+	},
+	{
+		"original_line": "parameter real af_gain = 1;", 
+		"bug_line": "parameter real af_gain = 0;",
+		"error_description": "The af_gain parameter is incorrectly set to 0, silencing the audio amplifier stage. This causes the demodulated output to always equal af_lev_shift regardless of input, violating the required amplification functionality."
+	},
+	{
+		"original_line": "V(vout) <+ af_gain*V(vaf) + af_lev_shift;", 
+		"bug_line": "V(vout) <+ af_gain*V(vdetect) + af_lev_shift;",
+		"error_description": "Bypasses the AF filter stage by using the rectified signal (vdetect) instead of the filtered signal (vaf). This causes high-frequency ripple from the detector to appear in the output."
+	},
+	{
+		"original_line": "   svcvs #(.gain(1),.poles({-af_wn,0,-af_wn,0})) ", 
+		"bug_line": "   svcvs #(.gain(1),.poles({af_wn,0,af_wn,0})) ",
+		"error_description": "Changed negative poles to positive values. This creates unstable poles in the right half-plane, causing exponential growth instead of stable low-pass filtering."
+	},
+	{
+		"original_line": "           real vrf;", 
+		"bug_line": "           real vrf = 0.0;",
+		"error_description": "Initializing vrf to 0.0 creates a persistent offset error. The variable should be recalculated each timestep based on vin, but the assignment overwrites the intended vrf = rf_gain * V(vin) in the analog block, causing incorrect demodulation where output always includes the initial 0.0 value."
+	},
+	{
+		"original_line": "parameter real rf_gain = 1;", 
+		"bug_line": "parameter real rf_gain = 0;",
+		"error_description": "Setting rf_gain to 0 causes the RF amplifier stage to completely block the input signal. This results in no signal reaching the detector and audio stages, making the demodulator output constant (equal to af_lev_shift) regardless of input."
+	},
+	{
+		"original_line": "   analog begin", 
+		"bug_line": "   initial begin",
+		"error_description": "Changed 'analog' to 'initial', making the block execute only once at time zero instead of continuously. This breaks the demodulator's real-time behavior as RF/audio processing stops after initialization."
+	},
+	{
+		"original_line": "electrical  vin, vout;", 
+		"bug_line": "electrical vout, vin;",
+		"error_description": "Swapped port order causes incorrect signal mapping: input vin connects to internal vout, while output vout connects to internal vin. This reverses signal flow direction, leading to input being driven and output reading external signals."
+	},
+	{
+		"original_line": "V(vout) <+ af_gain*V(vaf) + af_lev_shift;", 
+		"bug_line": "V(vout) <+ rf_gain*V(vaf) + af_lev_shift;",
+		"error_description": "Uses rf_gain instead of af_gain for audio amplification, incorrectly applying radio-frequency gain to the demodulated audio signal instead of the dedicated audio gain parameter."
+	},
+	{
+		"original_line": "parameter real rf_gain = 1;", 
+		"bug_line": "parameter real rf_gain = 0;",
+		"error_description": "Setting rf_gain to zero blocks the input signal at the RF amplifier stage, preventing any signal from reaching the detector. This results in no demodulated output, violating the core functionality of the module."
+	},
+	{
+		"original_line": "V(vout) <+ af_gain*V(vaf) + af_lev_shift;", 
+		"bug_line": "V(vout) <+ af_gain*V(vdetect) + af_lev_shift;",
+		"error_description": "Bypasses the AF filter stage by using the rectified signal (vdetect) directly instead of the filtered signal (vaf). This results in the output containing high-frequency components from the rectifier, violating the design that requires low-pass filtering to extract the audio signal."
+	},
+	{
+		"original_line": "              V(vout) <+ af_gain*V(vaf) + af_lev_shift;", 
+		"bug_line": "              V(vout) <+ af_gain*V(vin) + af_lev_shift;",
+		"error_description": "Used 'vin' input signal instead of 'vaf' filtered signal, bypassing the audio filter stage and outputting raw RF signal instead of demodulated audio."
+	}
+]

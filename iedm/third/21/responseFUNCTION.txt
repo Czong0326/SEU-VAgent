@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "`define VPHI_TRANS_ABSTOL 0.1", 
+		"bug_line": "`define VPHI_TRANS_ABSTOL 10",
+		"error_description": "The absolute tolerance for detecting switching events is increased from 0.1V to 10V, which exceeds typical switching signal voltage ranges (usually 0-1V). This prevents accurate detection of vphi threshold crossings, causing the integrator to miss sampling events and fail state updates."
+	},
+	{
+		"original_line": "`define VPHI_TRANS_ABSTOL 0.1", 
+		"bug_line": "`define VPHI_TRANS_ABSTOL -0.1",
+		"error_description": "Negative absolute tolerance (-0.1) violates Verilog-A requirements for cross() function, causing undefined behavior in switching event detection as abstol must be positive. This breaks the integrator's state sampling logic."
+	},
+	{
+		"original_line": "sc_state = (cap_in*V(vin_p,vin_n) + cap_fb*vout)/(cap_in + cap_fb);", 
+		"bug_line": "sc_state = (cap_in*V(vin_p,vin_n) + cap_fb*vout);",
+		"error_description": "Removed division by total capacitance (cap_in + cap_fb), causing the state variable to store unnormalized charge instead of voltage. This results in incorrect integration gain and output voltage scaling by capacitor ratio."
+	},
+	{
+		"original_line": "input vin_p, vin_n, vphi;", 
+		"bug_line": "input vin_p, vin_n, output vphi;",
+		"error_description": "The switching signal input 'vphi' is incorrectly declared as an output. This prevents external driving of the clock signal, causing the cross event to never trigger and halting integrator operation."
+	},
+	{
+		"original_line": "output vout_p, vout_n;", 
+		"bug_line": "input vout_p, vout_n;",
+		"error_description": "Changed output ports to input direction, causing the analog block to illegally drive input terminals (V(vout_p,vout_n) <+ vout) which violates Verilog-A semantic rules and breaks functionality."
+	},
+	{
+		"original_line": "parameter real vphi_trans = 0.5;", 
+		"bug_line": "parameter real vphi_trans = -0.5;",
+		"error_description": "Negative transition voltage (-0.5V) violates the physical requirement for positive switching thresholds. This inverts the sampling phase logic, causing the integrator to capture input signals during wrong clock phases and corrupting the output."
+	},
+	{
+		"original_line": "real sc_state;", 
+		"bug_line": "integer sc_state;",
+		"error_description": "Changed state variable 'sc_state' from real to integer type, causing truncation of fractional values during integration calculations and precision loss."
+	},
+	{
+		"original_line": "parameter real cap_in = 1u from (0:inf);", 
+		"bug_line": "parameter real cap_in = 0 from (0:inf);",
+		"error_description": "Setting cap_in to 0 disables input signal integration, causing the output to remain constant regardless of input voltage, violating the integrator functionality."
+	},
+	{
+		"original_line": "vout = sc_state;", 
+		"bug_line": "vout = sc_state + V(vin_p,vin_n);",
+		"error_description": "Added input voltage to output during hold phase, corrupting integration by mixing input signal with stored state instead of maintaining pure state output."
+	},
+	{
+		"original_line": "electrical vout_p, vout_n, vin_p, vin_n, vphi;", 
+		"bug_line": "electrical vout_p, vout_n, vin_p, vphi;",
+		"error_description": "Missing declaration for input terminal vin_n, causing undefined reference in differential voltage calculation V(vin_p,vin_n) in the analog block."
+	},
+	{
+		"original_line": "@ (cross( V(vphi)- vphi_trans,1, 1.0,`VPHI_TRANS_ABSTOL ))", 
+		"bug_line": "@ (cross( V(vin_p,vin_n)- vphi_trans,1, 1.0,`VPHI_TRANS_ABSTOL ))",
+		"error_description": "Replaced clock signal vphi with input signal vin_p/vin_n. Now triggers integration phase based on input voltage crossing vphi_trans instead of clock signal, causing erratic sampling unrelated to clock timing."
+	},
+	{
+		"original_line": "crossed = 1;", 
+		"bug_line": "sc_state = 1;",
+		"error_description": "Incorrect assignment to state variable: 'sc_state' is set to 1 instead of updating the 'crossed' flag. This overwrites the integrator's state with a constant value during switching events, destroying the accumulated charge and breaking the integration functionality."
+	},
+	{
+		"original_line": "(* instrument_module *)", 
+		"bug_line": "parameter real vphi_trans = 2.5;",
+		"error_description": "Duplicates the 'vphi_trans' parameter declaration, causing a compilation error due to multiple definitions. The original parameter at line 35 becomes invalid, breaking the switching threshold logic in the cross() function."
+	},
+	{
+		"original_line": "electrical vout_p, vout_n, vin_p, vin_n, vphi;", 
+		"bug_line": "electrical vout_p, vout_n, vin_p, vphi; ground vin_n;",
+		"error_description": "The negative input terminal (vin_n) is incorrectly declared as ground instead of electrical. This forces vin_n to 0V, converting the differential input to single-ended and causing incorrect integration behavior by altering the input voltage reference."
+	},
+	{
+		"original_line": "sc_state = (cap_in*V(vin_p,vin_n) + cap_fb*vout)/(cap_in + cap_fb);", 
+		"bug_line": "sc_state = (cap_in*V(vin_p,vin_n) - cap_fb*vout)/(cap_in + cap_fb);",
+		"error_description": "Changed feedback term from positive to negative addition. This converts the integrator to a positive feedback configuration causing instability and oscillation instead of proper integration."
+	},
+	{
+		"original_line": "input vin_p, vin_n, vphi;", 
+		"bug_line": "output vin_p, vin_n, vphi;",
+		"error_description": "Changed input ports to outputs, violating directionality. The module now incorrectly expects to drive external signals (vin_p, vin_n, vphi) instead of reading them, causing undriven outputs and breaking signal acquisition logic."
+	},
+	{
+		"original_line": "parameter real cap_fb = 1m from (0:inf);", 
+		"bug_line": "parameter real cap_fb = 0 from (0:inf);",
+		"error_description": "Setting feedback capacitance to zero creates an unstable integrator with infinite gain, causing output saturation instead of proper integration."
+	},
+	{
+		"original_line": "parameter real cap_in = 1u from (0:inf);", 
+		"bug_line": "parameter real cap_in = 0 from (0:inf);",
+		"error_description": "Setting input capacitance to zero causes the input signal to be ignored, breaking the integrator function as no input charge transfers to the feedback path."
+	},
+	{
+		"original_line": "electrical vout_p, vout_n, vin_p, vin_n, vphi;", 
+		"bug_line": "electrical vout_p, vout_n, vin_p, vin_n;",
+		"error_description": "The switching signal terminal 'vphi' is omitted from electrical discipline declaration. This causes V(vphi) in the analog block to reference an undefined node, breaking the switching logic and preventing proper integration functionality."
+	},
+	{
+		"original_line": "output vout_p, vout_n;", 
+		"bug_line": "input vout_p, vout_n;",
+		"error_description": "Output terminals incorrectly declared as inputs. This prevents the integrator from driving the output voltage, violating the fundamental requirement of producing an integrated output signal."
+	}
+]

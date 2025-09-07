@@ -1,0 +1,102 @@
+[
+	{
+		"original_line": "    parameter real Ny = 0.5;", 
+		"bug_line": "    parameter real Ny = -0.5;",
+		"error_description": "Changed y-axis demagnetization coefficient from positive to negative value. This unphysical sign inversion causes the demagnetization field to incorrectly reinforce rather than oppose magnetization in the y-direction, violating fundamental magnetic material behavior."
+	},
+	{
+		"original_line": "@(cross((T(T_temp)) - DT_cutoff,1)) begin 		// AOS startup point", 
+		"bug_line": "@(cross((T(T_temp)) - DT_cutoff,-1)) begin 		// AOS startup point",
+		"error_description": "Changed cross direction from +1 to -1. Now triggers when temperature difference FALLS below DT_cutoff instead of RISING above it, inverting the AOS activation condition."
+	},
+	{
+		"original_line": "dmy = -(llg_step) * ( hx*Mzi + Mxi*(ix*Myi - iy*Mxi) - hz*Mxi - Mzi*(iy*Mzi - iz*Myi) + alpha*ix*Mzi - alpha*iz*Mxi + alpha*Mxi*(hx*Myi - hy*Mxi) - alpha*Mzi*(hy*Mzi - hz*Myi) );", 
+		"bug_line": "dmy = -(llg_step) * ( hx*Mzi + Mxi*(ix*Myi - iy*Mxi) - hz*Mxi - Mzi*(iy*Mzi - iz*Myi) + alpha*ix*Mzi - alpha*iz*Mxi + alpha*Mxi*(hx*Myi - hy*Mxi) - alpha*Mzi*(hy*Mzi + hz*Myi) );",
+		"error_description": "Changed the subtraction operator to addition in the last term of the demagnetization field component (- alpha*Mzi*(hy*Mzi - hz*Myi) becomes - alpha*Mzi*(hy*Mzi + hz*Myi)). This sign error inverts the contribution of the z-component of the external field (hz) to the y-axis magnetization dynamics, violating the LLG equation implementation."
+	},
+	{
+		"original_line": "hy = (V(h[1]) + Hk * ( cos(theta)*easy_axis_y ) - Ny*(Myi) );", 
+		"bug_line": "hy = (V(h[1]) + Hk * ( cos(theta)*easy_axis_y ) + Ny*(Myi) );",
+		"error_description": "Changed demagnetization field sign from negative to positive, incorrectly modeling the demagnetization field direction which opposes magnetization."
+	},
+	{
+		"original_line": "`include "disciplines.vams"", 
+		"bug_line": "`include "wrong_disciplines.vams"",
+		"error_description": "Changed include filename to non-existent 'wrong_disciplines.vams', causing missing definitions for electrical, Thermal_2Tmodel, and Magnet disciplines. This breaks compilation and prevents proper interface handling throughout the module."
+	},
+	{
+		"original_line": "    (* desc="z axis demagnetization coefficients"*)", 
+		"bug_line": "    (* desc="z axis demagnetization coefficients"*) // Changed to positive value",
+		"error_description": "Changed demagnetization coefficient Nz from 0.0 to 1.0, violating the physical constraint that sum of demagnetization coefficients (Nx+Ny+Nz) must equal 1. Original values (0.5+0.5+0.0=1) were valid, but new values (0.5+0.5+1.0=2.0) create unphysical magnetic behavior."
+	},
+	{
+		"original_line": "`include "constants.vams"", 
+		"bug_line": "`include "wrong_constants.vams"",
+		"error_description": "Included non-existent file causes undefined constants `M_PI and `P_Q. This makes Area = 0 and q = 0, leading to division-by-zero in kstt calculation and invalid magnetization dynamics."
+	},
+	{
+		"original_line": "analog begin", 
+		"bug_line": "analog initial begin",
+		"error_description": "Changed 'analog begin' to 'analog initial begin', causing the entire analog block to execute only once at simulation start instead of continuously. This prevents magnetization updates over time, freezing all dynamics after initialization."
+	},
+	{
+		"original_line": "real theta = 0.01;", 
+		"bug_line": "real theta = 0.0;",
+		"error_description": "Initialized theta to 0.0 instead of 0.01. This causes cos(theta) to return 1.0 instead of ~0.99995 in the initial anisotropy field calculation, leading to incorrect anisotropy magnitude during the first simulation steps before timer-based recalculation."
+	},
+	{
+		"original_line": "    parameter real tfm=20e-9;", 
+		"bug_line": "    parameter real tfm=20e9;",
+		"error_description": "Changed magnet thickness from 20 nm to 20 billion meters. This unrealistic physical dimension (larger than Earth's diameter) breaks the STT effect calculation by making kstt ~0, disabling spin-torque influence on magnetization dynamics."
+	},
+	{
+		"original_line": "    parameter real Ny = 0.5;", 
+		"bug_line": "    parameter real Ny = 0.0;",
+		"error_description": "Setting Ny to zero instead of 0.5 incorrectly eliminates the y-axis demagnetization field. This violates the thin-film magnet design where non-zero in-plane demagnetization coefficients (Nx=Ny=0.5) are required to model shape anisotropy, leading to unphysical magnetization dynamics."
+	},
+	{
+		"original_line": "hx = (V(h[0]) + Hk * ( cos(theta)*easy_axis_x ) - Nx*(Mxi) );", 
+		"bug_line": "hx = (V(h[0]) - Hk * ( cos(theta)*easy_axis_x ) - Nx*(Mxi) );",
+		"error_description": "Changed the sign of the anisotropy field term from positive to negative. This inverts the anisotropy contribution in the x-direction, fundamentally altering the magnetic behavior and violating the intended effective field calculation."
+	},
+	{
+		"original_line": "if(Starting_point == 1) begin			// positive mz start LUT", 
+		"bug_line": "if(Starting_point == 0) begin			// positive mz start LUT",
+		"error_description": "Condition inverted: Positive LUT incorrectly triggers for negative starting point (0) instead of positive (1). This swaps the LUT tables during AOS operation, causing incorrect magnetization trajectories when crossing the thermal threshold."
+	},
+	{
+		"original_line": "M(M_AOS[2]) <+ Mzi/Norm_M;//slew(Mzi/Norm_M,slew_rate,-slew_rate);", 
+		"bug_line": "M(M_AOS[2]) <+ Mzi * Norm_M;//slew(Mzi/Norm_M,slew_rate,-slew_rate);",
+		"error_description": "Replaced division with multiplication for z-component normalization. Instead of normalizing Mzi by dividing by Norm_M, this scales it by Norm_M. This disrupts magnetization vector normalization since other components use division, causing incorrect magnitude and direction in the z-component."
+	},
+	{
+		"original_line": "parameter real easy_axis_y = 0 from [0:1];", 
+		"bug_line": "parameter real easy_axis_y = 1 from [0:1];",
+		"error_description": "Changed easy_axis_y from 0 to 1. This incorrectly introduces a Y-component in the anisotropy axis, making the intended uniaxial anisotropy (along Z) elliptical and altering the effective field calculation in the LLG equation."
+	},
+	{
+		"original_line": "  M(M_AOS[0]) <+ Mxi/Norm_M;//slew(Mxi/Norm_M,slew_rate,-slew_rate);  ", 
+		"bug_line": "  M(M_AOS[0]) <+ Myi/Norm_M;//slew(Mxi/Norm_M,slew_rate,-slew_rate);  ",
+		"error_description": "Assigns the y-component value (Myi) to the x-component output (M_AOS[0]), swapping magnetization components and violating vector direction integrity."
+	},
+	{
+		"original_line": "real Mx = 0.01;", 
+		"bug_line": "real Mx = 1.0;",
+		"error_description": "Changed initial Mx value from 0.01 to 1.0, causing potential normalization errors when combined with My/Myi and Mz/Mzi values during the first LLGS integration step. This violates the unit vector constraint for magnetization by introducing artificial bias in the x-component before normalization."
+	},
+	{
+		"original_line": "real test = 0;", 
+		"bug_line": "real DT_cutoff = 0;",
+		"error_description": "Replaced 'test' variable with a new 'DT_cutoff' variable, shadowing the critical parameter of the same name. This causes the thermal gradient threshold in the AOS trigger condition (@cross and if-condition) to use 0 instead of the intended 10, making the AOS system hypersensitive to any thermal fluctuation."
+	},
+	{
+		"original_line": "real timing = 0;", 
+		"bug_line": "real timing = 1e-9;",
+		"error_description": "Initializing 'timing' to 1e-9 instead of 0 introduces a constant 1ns offset in the AOS timing calculation. This causes incorrect lookup table indexing during all-optical switching since the timing variable is used as ($abstime-offset)*1e15 + 1e-9, shifting all LUT accesses by 1ns and returning wrong magnetization states."
+	},
+	{
+		"original_line": "electrical [0:2] h, s;", 
+		"bug_line": "electrical [0:2] s, h;",
+		"error_description": "Swapping 'h' and 's' reverses the signal mapping. The thermal gradient input 'h' now connects to spin current ports 's', and vice versa, causing incorrect field/current interactions in the LLGS equation."
+	}
+]
